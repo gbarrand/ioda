@@ -1,0 +1,11 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file pmx.license for terms.
+
+#include "../EXLIB_APP/main"
+
+typedef EXLIB_APP::main app_main_t;
+
+#import <exlib/app/Cocoa/main_mm>
+
+int main(int argc,char** argv) {return exlib_main<EXLIB_APP::context,EXLIB_APP::main>("EXLIB_APP",argc,argv);}
+ 
