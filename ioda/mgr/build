@@ -132,7 +132,10 @@ use_dl=yes #for CoinGL
 #//////////////////////////////////////////////////////
 #//////////////////////////////////////////////////////
 /bin/cp ${exlib_home}/exlib/spy/inlib.py ../comres/.
-/bin/cp ${exlib_home}/exlib/spy/inlib.py ../Android/res/raw/inlib_py.py
+
+if [ -f ${exlib_home}/exlib/spy/inlib.py ] ; then
+  /bin/cp ${exlib_home}/exlib/spy/inlib.py ../Android/res/raw/inlib_py.py
+fi    
 
 #/////////////////////////////////////////////////////////////
 
