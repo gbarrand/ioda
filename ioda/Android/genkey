@@ -1,7 +1,0 @@
-#!/bin/sh -f
-
-# validity :  22 October 2033
-#  (33+1)-10 = 24*365 = 8760 "rounded" to 10000
-
-keytool -genkeypair -keystore ioda.jks -alias ioda -validity 10000
-
