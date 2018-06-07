@@ -1,0 +1,68 @@
+MACRO color
+**************************************************************************
+* Color example.                                                         *
+**************************************************************************
+* Default color table is :
+*   0 white
+*   1 black
+*   2 red
+*   3 green
+*   4 blue
+*   5 yellow
+*   6 magenta
+*   7 cyan
+* Default palette 1 (PALNB=1) is filled with 6 elements :
+*   2 red
+*   3 green
+*   4 blue
+*   5 yellow
+*   6 magenta
+*   7 cyan
+**************************************************************************
+exec alldef
+zone 2 3
+* Get a 2D histogram :
+histogram/file 1 $IODA_TMP_DIR/pawhists.root 0
+hrin  0
+hi/li
+close 1
+* Plot filled contour (OPT=3) with the palette 1.
+* Set HCOL 0.<PALNB> permits to select the palette.
+* 20 levels are required. Colors is looping within 
+* the selected palette : 
+set hcol 0.1
+hi/2d/con 200 20 3
+* Create the palette 2. With the below command it contains
+* color elements (0,5,7,3,6,2,4,1) :
+set ncol 8
+palette 2
+* Plot boxes with the palette 2 :
+hi/plot 200 colz
+* Change the palette 2 to swap yellow and green ;
+* then redefine first the color elements :
+color_table 5 0 1 0
+color_table 3 1 1 0
+* then redefine the palette 2 :
+palette 2
+* Plot filled contour with the new palette 2 :
+set hcol 0.2
+hi/2d/con 200 20 3
+* Return to palette 1 :
+set hcol 0.1
+* Draw a 3D surface according to palette 1 :
+surf 200 ! ! 1
+* Create a grey scale palette :
+set ncol 16
+palette 3 8 8 9 10 11 12 13 14 15
+* Plot filled contour with the new palette 3 :
+set hcol 0.3
+hi/2d/con 200 20 3
+* Create a blue to red palette :
+palette 4
+* Plot filled contour with the new palette 3 :
+set hcol 0.4
+hi/2d/con 200 20 3
+* End :
+hi/del 0
+zone
+RETURN

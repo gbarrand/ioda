@@ -1,0 +1,22 @@
+#!/bin/sh -f
+
+if [ -d "$1" ] ; then exit; fi
+if [ "`basename $1`" = "Entries" ] ; then exit;fi
+if [ "`basename $1`" = "Repository" ] ; then exit;fi
+if [ "`basename $1`" = "Root" ] ; then exit;fi
+if [ "`basename $1`" = "README" ] ; then exit;fi
+
+echo "doing $1 ..."
+#exit
+
+/* Copyright (C) 2010, Guy Barrand. All rights reserved. */
+/* See the file exlib.license for terms.                 */
+
+cat > tmp <<END
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+END
+
+cat $1 >> tmp
+/bin/mv tmp $1

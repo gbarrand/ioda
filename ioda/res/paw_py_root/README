@@ -1,0 +1,8 @@
+
+ pawex[10,11] are clones of the PAW_f77_hbook ones but modified to use .py version of the .f scripts.
+
+ pawex[11->21,24] are clones of the PAW_f77_hbook ones but modified to work on .root files instead of .hbook ones.
+
+ Use ./diff_kumacs to see differences with PAW_f77_hbook kumacs.
+
+ 

@@ -1,0 +1,123 @@
+#!/bin/sh -f
+
+bush_home=`pwd`/../../bush
+
+save_dir=`pwd`
+
+exlib_home="${save_dir}/../../inexlib/exlib"
+ourex_home="${save_dir}/../../inexlib/ourex"
+
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+files="ioda.style ioda.ftp ioda.scenarios"
+files="${files} END.fog EEL.fog"
+files="${files} arialbd.ttf helveticabd.ttf courbd.ttf lucidagrandebd.ttf" #gui fonts.
+files="${files} helvetica.ttf arial.ttf symbol.ttf"
+files="${files} stixgeneral.otf"
+files="${files} times_roman.ttf" #for graphviz
+files="${files} logo_lal_512_1024.jpg"
+files="${files} demo.root"
+files="${files} aleph.root aleph.vds"
+files="${files} exa.dot lsst_packs.dot"
+files="${files} dcmtk_3_6_0_dicom.dic"
+files="${files} color.dcm chest_dcm.jpg"
+files="${files} x0bq0102t_d0h.fits"
+files="${files} syncmap.fits"
+files="${files} lhcbvelo.gdml lhcbhcal.gdml"
+
+# Note that png is a pain with Xcode/iOS. They are iOS-specific compressed and can't be read by exlib/png.
+#files="${files} eiffel_tower.png"
+#files="${files} windsurf.png" # to test transparent texture.
+
+files="${files} ioda.style ioda.ftp"
+
+#/////////////////////////////////////////////////////////////
+#/// icons ///////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+# cam panel :
+files="${files} move2red.jpg crazyeye_run.jpg flip_flop.jpg"
+files="${files} close.jpg edit.jpg edit_undo.jpg"
+
+# main gui :
+files="${files} go_home_large.jpg turn_around.jpg"
+files="${files} movie_camera.jpg system_config_boot.jpg"
+
+# rwc items :
+files="${files} sidebar_photos.jpg stop_diaporama.jpg"
+files="${files} cursor.jpg"
+
+# ioda main gui items :
+files="${files} files.jpg location_ftp.jpg"
+files="${files} package_edutainment.jpg"
+files="${files} set_current_region.jpg edit_plot.jpg"
+files="${files} fit.jpg"
+files="${files} edit_clear.jpg"
+files="${files} xmas_tree.jpg"
+files="${files} help_browser.jpg"
+files="${files} connect_to_wall.jpg"
+files="${files} application_exit.jpg"
+files="${files} object_rotate_left.jpg stop_object_rotate_left.jpg"
+files="${files} document_export.jpg"
+files="${files} routing_step.jpg console.jpg tools.jpg"
+files="${files} icon.jpg"
+files="${files} white.jpg"
+files="${files} favicon.ico"
+
+#files="${files} plot_to_wall.jpg det_to_wall.jpg"
+#files="${files} disconnect_from_wall.jpg"
+
+# agora :
+#files="${files} event.jpg stop_events.jpg vis_events.jpg clear_event.jpg"
+#files="${files} atlas_front_128.jpg"
+#files="${files} det_front.jpg det_side.jpg"
+# pmx :
+#files="${files} lhcb_side_256_128.jpg cam_lhcb_front.jpg cam_lhcb_side.jpg"
+
+# examples :
+files="${files} ioda_cube.jpg ioda_atlas.jpg"
+files="${files} forward.jpg"
+files="${files} lhc1_256_128.jpg"
+files="${files} wall_atlas.jpg wall_lri.jpg web_g4view.jpg web_ioda.jpg"
+files="${files} video_proj.jpg softinex.slides"
+files="${files} zvid.jpg zvid_sphere.jpg oleg_lal.zvid"
+files="${files} BMS.fog SHI.fog T4E.fog T4F.fog EVE1.fog"
+files="${files} osc_histos.hdf5 g4b4.hdf5"
+files="${files} magnet.bsg evt_3.bsg rich2.bsg"
+files="${files} user.lua tree.lua hrand.lua"
+files="${files} user.py hrand.py riv.py rroot.py tree.py"
+
+files="${files} my_view_a0.heprep drawas.heprep calo_heprep2.heprep g4_sample_event.heprep view_a1.heprep"
+files="${files} g4.zheprep"
+
+files="${files} alldef.kumac pawex1.kumac pawex10.kumac mandel.py paw_py_root.zip"
+
+#/////////////////////////////////////////////////////////////
+#/// CoinGL related : ////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+files="${files} LHCb_magnet.hiv	atlas_evt_1.iv g4_monville_2.wrl galclass_wrl.wrl"
+
+#/////////////////////////////////////////////////////////////
+#/// cp in comres /////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+find ../comres -mindepth 1 -maxdepth 1 -name '*' -type f -exec /bin/rm -R -f {} \;
+for file in ${files} ; do
+  /bin/cp ../res/${file} ../comres/.
+done
+
+/bin/cp ${exlib_home}/exlib/spy/inlib.py ../comres/.
+/bin/rm -R -f ../comres/lib
+/bin/rm -R -f ../comres/lib_py.zip
+/bin/rm -R -f ./python_2_7
+/bin/mkdir python_2_7
+cp -R ${ourex_home}/Python/lib ./python_2_7/.
+${bush_home}/find_rm ./python_2_7 '*pyc'
+zip -qr python_2_7_lib_py.zip ./python_2_7
+/bin/mv python_2_7_lib_py.zip ../comres/.
+/bin/rm -R -f python_2_7
+
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+. ${bush_home}/and_app_res
+. ${bush_home}/ios_app_res

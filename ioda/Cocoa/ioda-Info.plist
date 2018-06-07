@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFile</key>
+	<string>ioda.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>fr.in2p3.lal.${PRODUCT_NAME:rfc1034identifier}mac</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>${PRODUCT_NAME}</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
+	<key>CFBundleVersion</key>
+	<string>10</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.14.0</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+
+        <key>LSApplicationCategoryType</key>
+        <string>public.app-category.utilities</string>
+
+        <!-- G.Barrand : added by hand. Potential DOCUMENT type : -->
+        <key>CFBundleDocumentTypes</key>
+        <array>
+          <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+              <string>fits</string>
+              <string>aida</string>
+              <string>root</string>
+              <string>hdf5</string>
+              <string>fog</string>
+              <string>dst</string>
+              <string>gz</string>
+              <string>jpg</string>
+<!--
+              <string>png</string>
+-->
+              <string>gdml</string>
+              <string>dot</string>
+              <string>dcm</string>
+
+              <string>wrl</string>
+              <string>iv</string>
+              <string>hiv</string>
+              <string>heprep</string>
+              <string>lua</string>
+              <string>py</string>
+            </array>
+            <key>CFBundleTypeName</key>
+            <string>ioda data file</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>  <!-- Editor, Viewer, None, Shell -->
+          </dict>
+        </array>
+
+</dict>
+</plist>

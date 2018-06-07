@@ -1,0 +1,139 @@
+#!/bin/sh -f
+
+# Copyright (C) 2010, Guy Barrand. All rights reserved.
+# See the file ioda.license for terms.
+
+#
+# valid options :
+#   -app_use_hiv
+#   -inlib_gl -x11_no_gl
+#   -inlib_gl -x11 -no_gl
+#
+
+bush_home=../../bush
+
+. ${bush_home}/args
+
+# -app_use_ enforced :
+build_args="${build_args} -app_use_SOPHYA"
+build_args="${build_args} -app_use_dcmtk"
+build_args="${build_args} -app_use_Python"
+
+. ${bush_home}/app_header_use
+
+build_hiv=no
+if [ ${build_cocoa} = yes ] ;  then build_hiv=yes;fi
+if [ ${build_visual} = yes ] ; then build_hiv=yes; fi
+if [ ${build_x11} = yes ] ;    then build_hiv=yes; fi
+
+if [ ${build_offscreen} = yes ] ; then build_hiv=yes; fi
+if [ ${build_sdk_ios} = yes ] ;   then build_hiv=yes; fi
+
+# CoinGL not multi-threaded :
+#if [ ${build_webgl} = yes ] ;     then build_hiv=yes; fi
+#if [ ${build_tntnet} = yes ] ;    then build_hiv=yes; fi
+
+if [ ${build_hiv} = yes ] ; then
+  use_hiv=yes
+  build_app_use="${build_app_use} hiv"
+  if [ `uname` = "Linux" ] ; then
+    use_thread=yes
+  fi
+fi
+
+build_gopaw=yes
+#build_gopaw=no
+
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+
+if [ ${build_visual} = "yes" ] ; then
+  cppflags="${cppflags} -wd4800 -wd4305 -wd4244"
+  cppflags="${cppflags} -bigobj"
+fi
+
+if [ "${use_hiv}" = "yes" ] ; then
+  cppfiles="${cppfiles} ${exlib_home}/exlib/iv/so_2sg_action.cpp"
+fi
+
+if [ "${use_Python}" = "yes" ] ; then
+  cppfiles="${cppfiles} ${exlib_home}/exlib/spy/inlib_swig_py.cpp"
+fi
+
+#cppflags="${cppflags} -DAPP_USE_EDEP"
+
+# exlib/yacc/cexpr_eval, for edep/rgdml :
+cppfiles="${cppfiles} ${exlib_home}/exlib/yacc/cexpr_lexer.cpp"
+cppfiles="${cppfiles} ${exlib_home}/exlib/yacc/cexpr_eval.cpp"
+
+if [ ${build_sdk_android} = "no" ] ; then
+  cppflags="${cppflags} -DEXLIB_ANDROID_MAIN_DO_STD_EXIT"
+
+  #cppfiles="${cppfiles} ${inlib_home}/inlib/f2cmn" #archive logic clashes with f2cmn used in gopaw.
+  #cppflags="${cppflags} -DINLIB_USE_ARCHIVE"
+  #archive_headers="f2cmn"
+fi
+
+# lua :
+cppfiles="${cppfiles} ${exlib_home}/exlib/slua/inlib_swig_lua.cpp"
+
+# for inlib_swig_[lua,py].cpp :
+cppflags="${cppflags} -DINLIB_USE_CSZ"
+
+# gopaw :
+if [ "${build_gopaw}" = "yes" ] ; then
+  cppflags="${cppflags} -DAPP_USE_GOPAW"
+
+  cfiles="${cfiles} ../../gopaw/source/PAWCDF.c"
+  cfiles="${cfiles} ../../gopaw/source/gopawcdf.c"
+  cppfiles="${cppfiles} ../../gopaw/source/PAW.cpp"
+
+  cppfiles="${cppfiles} ../../inexlib/exlib/exlib/yacc/fort_fmt_lexer.cpp"
+  cppfiles="${cppfiles} ../../inexlib/exlib/exlib/yacc/fort_fmt.cpp"
+  
+  use_KUIP=yes
+  #use_Getline=yes
+  . ${bush_home}/use/KUIP
+  #. ${bush_home}/use/Getline
+    
+fi
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+
+use_zip=yes
+use_csz=yes
+use_graphviz=yes
+use_dcmtk=yes
+use_cfitsio=yes
+use_wcslib=yes
+use_hdf5=yes
+use_lua=yes
+use_thread=yes #for Python
+use_dl=yes #for CoinGL
+
+. ${bush_home}/use/csz
+. ${bush_home}/use/cfitsio
+. ${bush_home}/use/wcslib
+
+. ${bush_home}/use/hdf5
+. ${bush_home}/use/png
+. ${bush_home}/use/zip
+. ${bush_home}/use/graphviz
+. ${bush_home}/use/dcmtk
+. ${bush_home}/use/lua
+. ${bush_home}/use/thread
+. ${bush_home}/use/dl
+
+. ${bush_home}/app_trailer_use
+
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+/bin/cp ${exlib_home}/exlib/spy/inlib.py ../comres/.
+/bin/cp ${exlib_home}/exlib/spy/inlib.py ../Android/res/raw/inlib_py.py
+
+#/////////////////////////////////////////////////////////////
+
+. ${bush_home}/app_trailer

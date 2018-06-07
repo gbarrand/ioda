@@ -1,0 +1,190 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file ioda.license for terms.
+
+#ifndef ioda_ioda_exas
+#define ioda_ioda_exas
+
+#include <inlib/cbk/www>
+
+#include <inlib/exa/hrand>
+#include <inlib/exa/fit>
+#include <inlib/exa/plots>
+#include <inlib/exa/snow>
+#include <inlib/exa/angry_cube>
+#include <inlib/exa/shapes>
+#include <inlib/exa/valop>
+#include <inlib/exa/gui>
+#include <inlib/exa/text>
+#include <inlib/exa/create>
+#include <inlib/exa/files>
+#include <inlib/exa/polyhedron>
+#include <inlib/exa/spinors>
+/*
+#include <inlib/exa/maxwell>
+#include <inlib/exa/kerr>
+#include <inlib/exa/schwarzschild>
+#include <inlib/exa/Sp4>
+*/
+
+#ifdef APP_USE_GOPAW
+#include <inlib/exa/gopaw>
+#endif
+
+#include <exlib/exa/lal>
+#include <exlib/exa/aleph>
+#include <exlib/exa/text_marker>
+#include <exlib/exa/lua_h1d>
+#include <exlib/exa/lua_user>
+#include <exlib/exa/lua_tree>
+#include <exlib/exa/lhc1>
+#include <exlib/exa/create>
+#include <exlib/exa/healpix>
+#include <exlib/cbk/astro>
+
+#ifdef APP_USE_PYTHON
+#include <exlib/exa/pys>
+#endif
+#ifdef APP_USE_SOPHYA
+#include <exlib/exa/SOPHYA>
+#endif
+#ifdef APP_USE_HIV
+#include <exlib/exa/hiv>
+#endif
+
+//#include <exlib/cbk/diaporama>
+
+namespace ioda {
+
+inline inlib::sg::return_action action_exas(inlib::sg::gui_viewer& a_gv,const inlib::sg::pos_data& a_data) {
+  inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+  a_gv.set_style(*list);
+
+  //typedef exlib::app::wall_client wc_t;
+
+  /////////////////////////////////////////////////////
+  /// inlib/exa ///////////////////////////////////////
+  /////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////
+  /// analysis (histo,ntuple,fit,plot) ////////////////
+  /////////////////////////////////////////////////////
+
+  inlib::sg::add_white_item(a_gv,*list,"h/rand",inlib::exa::hrand,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"fit",inlib::exa::fit,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"lego",inlib::exa::lego,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"plots...",inlib::exa::plots,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"icon",inlib::exa::icon,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"ntuple",inlib::exa::ntuple,a_data);
+
+#ifdef APP_USE_GOPAW
+  inlib::sg::add_white_item(a_gv,*list,"paw_py_root/all.kumac",inlib::exa::paw_py_root_all_kumac,a_data);
+//inlib::sg::add_white_item(a_gv,*list,"paw_py_root/debug.kumac",inlib::exa::paw_py_root_debug_kumac,a_data);
+#endif
+
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+
+  inlib::sg::add_white_item(a_gv,*list,"create node",inlib::exa::create_node,a_data);
+  inlib::sg::add_image_item(a_gv,*list,"ATLAS (with .fog)","ioda_atlas.jpg",inlib::exa::povama,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"polyhedron",inlib::exa::polyhedron,a_data);
+
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  inlib::sg::add_image_item(a_gv,*list,"DICOM","chest_dcm.jpg",inlib::exa::dcm,a_data);
+  inlib::sg::add_image_item(a_gv,*list,"slides","video_proj.jpg",inlib::exa::slides,a_data);
+
+  /////////////////////////////////////////////////////
+  /// anims ///////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  inlib::sg::add_image_item(a_gv,*list,"zvid","zvid.jpg",inlib::exa::zvid,a_data);
+  inlib::sg::add_image_item(a_gv,*list,"shapes","ioda_cube.jpg",inlib::exa::shapes,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"snow",inlib::exa::snow,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"angry cube",inlib::exa::angry_cube,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"spinor_pauli",inlib::exa::action_spinor_pauli_set,a_data);
+//inlib::sg::add_white_item(a_gv,*list,"spinor_pauli_reset",inlib::exa::spinor_pauli_reset,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"spinor_dirac",inlib::exa::action_spinor_dirac_set,a_data);
+//inlib::sg::add_white_item(a_gv,*list,"spinor_dirac_reset",inlib::exa::spinor_dirac_reset,a_data);
+/*
+  inlib::sg::add_white_item(a_gv,*list,"Maxwell transporter",inlib::exa::action_maxwell,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"Kerr transporter",inlib::exa::action_kerr,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"Schwarz transporter",inlib::exa::action_schwarzschild,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"Lorentz (red) & Sp4 displace",inlib::exa::action_Lorentz_and_Sp4_displace,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"Lorentz (red) & RU2 displace",inlib::exa::action_Lorentz_and_RU2_displace,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"Lorentz (red) & SO5 displace",inlib::exa::action_Lorentz_and_SO_131_displace,a_data);
+  //inlib::sg::add_white_item(a_gv,*list,"Sp4 displace",inlib::exa::action_Sp4_displace,a_data);
+*/
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  inlib::sg::add_white_item(a_gv,*list,"transparency",inlib::exa::transparency,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"formulas",inlib::exa::formulas,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"edit math",inlib::exa::edvalop,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"stix text",inlib::exa::stix_text,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"freetype",inlib::exa::freetype,a_data);
+
+  /////////////////////////////////////////////////////
+  //// gui ////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+
+  inlib::sg::add_white_item(a_gv,*list,"numeric",inlib::exa::numeric,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"ip",inlib::exa::ip,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"entry",inlib::exa::entry,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"entries",inlib::exa::entries,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"colors",inlib::exa::colors,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"vis colors",inlib::exa::vis_colors,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"bcub",inlib::exa::bcub,a_data);
+
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////
+#ifdef IODA_DEV
+ {std::string url = "http://OpenScientist.lal.in2p3.fr/download/data/aida/";
+  url += "ref_inlib_waxml.aida.gz";
+  a_gv.list_white_add(*list,"web",new exlib::cbk::www(a_gv,m_web_cache,url));}
+#endif
+
+  /////////////////////////////////////////////////////
+  /// exlib/exa ///////////////////////////////////////
+  /////////////////////////////////////////////////////
+  inlib::sg::add_white_item(a_gv,*list,"exlib :",inlib::sg::action_none,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"create node",exlib::exa::create_node,a_data);
+//inlib::sg::add_white_item(a_gv,*list,"diaporama",exlib::cbk::action_diaporama,a_data);
+  inlib::sg::add_image_item(a_gv,*list,"LAL","logo_lal_512_1024.jpg",exlib::exa::lal,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"HEALPix of CMB",exlib::exa::healpix,a_data);
+  //if being a inlib/sg/view_astro :
+  inlib::sg::add_white_item(a_gv,*list,"M51 (net needed)",exlib::astro::action_get_M51,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"M82 (net needed)",exlib::astro::action_get_M82,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"M104 (net needed)",exlib::astro::action_get_M104,a_data);
+
+#ifdef APP_USE_SOPHYA
+  inlib::sg::add_white_item(a_gv,*list,"SOPHYA histo",exlib::exa::SOPHYA_Histo,a_data);
+#endif
+
+  inlib::sg::add_image_item(a_gv,*list,"ALEPH (with .root)","ioda_atlas.jpg",exlib::exa::aleph,a_data);
+#ifdef APP_USE_HIV
+  inlib::sg::add_white_item(a_gv,*list,"ATLAS evt (with .iv)",exlib::exa::hiv,a_data);
+#endif
+//inlib::sg::add_image_item(a_gv,*list,"LHC status (net needed)","lhc1_256_128.jpg",exlib::exa::action_lhc1,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"text marker",exlib::exa::text_marker,a_data);
+
+  //inlib::sg::add_white_item(a_gv,*list,"lua h1d",exlib::exa::lua_h1d,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"tree.lua",exlib::exa::lua_tree,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"user.lua",exlib::exa::lua_user,a_data);
+#ifdef APP_USE_PYTHON
+  //inlib::sg::add_white_item(a_gv,*list,"py h1d",exlib::exa::py_h1d,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"hrand.py",exlib::exa::py_hrand,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"riv.py",exlib::exa::py_riv,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"rroot.py",exlib::exa::py_rroot,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"tree.py",exlib::exa::py_tree,a_data);
+  inlib::sg::add_white_item(a_gv,*list,"user.py",exlib::exa::py_user,a_data);
+#endif
+
+  a_gv.show_widget(a_data,list);
+  return inlib::sg::return_to_render;
+}
+
+}
+
+#endif

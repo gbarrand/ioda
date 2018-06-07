@@ -1,0 +1,44 @@
+#!/bin/sh -f
+
+if [ "$1" = "" ] ; then
+  echo "no file name given."
+  exit 1
+fi
+
+save_dir=`pwd`
+
+tos="../res"
+tos="${tos} ../X11/res ../Windows/res"
+tos="${tos} ../iOS/res ../Cocoa/res"
+tos="${tos} ../Android/res/raw"
+
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+files="$1"
+
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////
+
+for dir in ${tos} ; do
+  if [ -d ${dir} ] ; then
+    for file in ${files} ; do
+      if [ ${dir} = "../Android/res/raw" ] ; then
+        raw_file=`echo ${file} | sed -e 's:\.:_:g'`
+        raw_file=`echo ${raw_file} | tr "[:upper:]" "[:lower:]"`
+        cd ${dir}
+        git add ${raw_file}
+        git commit -m 'add' ${raw_file}
+        cd ${save_dir}
+      else
+        cd ${dir}
+        git add ${file}
+        git commit -m 'add' ${file}
+        cd ${save_dir}
+      fi
+    done
+  fi
+done
+
+cd ${save_dir}

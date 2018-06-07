@@ -1,0 +1,58 @@
+<scenarios>
+
+  <scenario name="aleph">
+
+    <file>aleph.root</file>
+
+    <vds>aleph.vds</vds> <!-- ascii ntuple : <vol name> <vol depth> -->
+
+    <background>black</background>
+
+    <camera>
+      <class>ortho</class>
+      <height>2000</height>
+
+      <znear>200</znear>
+      <zfar>20000</zfar>
+      <focal>2000</focal>
+      <dx>20</dx>
+      <da>0.017</da> <!--one degree -->
+      <ds>0.99</ds>
+
+      <!-- camera side with +z toward right -->
+      <position>-2000 0 0</position>
+      <orientation>0 1 0 -1.570796</orientation>
+    </camera>
+  
+    <volume>
+      <name>ALEF</name>
+      <max_depth>2</max_depth>
+      <colormap>
+        <color>yellow</color>
+        <color>cyan</color>
+        <color>magenta</color>
+        <color>yellow</color>
+      </colormap>
+    </volume>
+
+    <volume>
+      <name>EBMO</name>
+      <color>red</color>
+      <solid_depth>0</solid_depth>
+    </volume>
+
+    <volume>
+      <name>ECMO</name>
+      <color>aquamarine</color>
+    </volume>
+
+<!--
+    <volume>
+      <name>H*</name>
+      <color>green</color>
+    </volume>
+-->
+
+  </scenario>
+
+</scenarios>

@@ -1,0 +1,97 @@
+#/////////////////////////////////////////
+#/// histos : ////////////////////////////
+#/////////////////////////////////////////
+exec_menu_item examples
+exec_menu_item h/rand
+do_paint
+do_png
+#
+push_home
+clear_static_scene
+exec_menu_item examples
+exec_menu_item SOPHYA histo
+do_paint out_exa_SOPHYA_histo.ps
+do_png out_exa_SOPHYA_histo.png
+#
+#/////////////////////////////////////////
+#/// geom : //////////////////////////////
+#/////////////////////////////////////////
+push_home
+clear_static_scene
+exec_menu_item examples
+exec_menu_item polyhedron
+do_paint out_exa_polyhedron.ps
+do_png out_exa_polyhedron.png
+#
+push_home
+clear_static_scene
+exec_menu_item examples
+exec_menu_item formulas
+exec_menu_item Ok
+swap_camera_kind
+adapt_camera_to_scene
+do_paint out_exa_formulas.ps
+do_png out_exa_formulas.png
+#
+push_home
+clear_static_scene
+exec_menu_item examples
+exec_menu_item ATLAS evt (with .iv)
+adapt_camera_to_scene
+#light_on # zb and light does not work properly.
+do_paint out_exa_ATLAS_evt_iv.ps
+do_png out_exa_ATLAS_evt_iv.png
+#
+#/////////////////////////////////////////
+#/// lua : ///////////////////////////////
+#/////////////////////////////////////////
+hide_main_menu
+hide_camera_menu
+clear_static_scene
+open_res user.lua
+do_paint out_exa_user_lua.ps
+do_png out_exa_user_lua.png
+#
+hide_console
+#
+clear_static_scene
+open_res tree.lua
+do_paint out_exa_tree_lua.ps
+do_png out_exa_tree_lua.png
+#
+hide_console
+#/////////////////////////////////////////
+#/// python : ////////////////////////////
+#/////////////////////////////////////////
+hide_main_menu
+hide_camera_menu
+clear_static_scene
+open_res user.py
+do_paint out_exa_user_py.ps
+do_png out_exa_user_py.png
+#
+hide_console
+#
+clear_static_scene
+open_res hrand.py
+do_paint out_exa_hrand_py.ps
+do_png out_exa_hrand_py.png
+#
+hide_console
+#
+clear_static_scene
+open_res tree.py
+do_paint out_exa_tree_py.ps
+do_png out_exa_tree_py.png
+#
+clear_static_scene
+open_res rroot.py
+do_paint out_exa_rroot_py.ps
+do_png out_exa_rroot_py.png
+#
+clear_static_scene
+open_res riv.py
+light_off # zb and light does not work properly.
+do_paint out_exa_riv_py.ps
+do_png out_exa_riv_py.png
+#

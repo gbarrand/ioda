@@ -1,0 +1,4 @@
+macro python
+/session/python $IODA_paw_py_root/histo.py
+return
+

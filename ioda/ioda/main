@@ -1,0 +1,487 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file ioda.license for terms.
+
+#ifndef ioda_ioda_main
+#define ioda_ioda_main
+
+#include <string>
+
+namespace ioda {
+
+class context {
+public:
+  context(const std::string&) {}
+  virtual ~context() {}
+protected:
+  context(const context&){}
+  context& operator=(const context&){return *this;}
+};
+
+}
+
+#include "version"
+
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+#define APP_USE_GRAPHVIZ 
+#define APP_USE_HDF5
+#ifndef INLIB_USE_CSZ
+#define INLIB_USE_CSZ
+#endif
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+
+//Linux : put png first so that png.h comes before any setjmp.h
+#include <exlib/png_opener>
+
+#include <exlib/app/main>
+
+#include "exas" //may bring Python.h
+
+#include <exlib/cbk/out>
+#include <exlib/cbk/unzip>
+
+#include <exlib/cbk/wall>
+
+#include <exlib/rroot/opener>
+#include <exlib/cfitsio_opener>
+#include <exlib/jpeg_opener>
+#ifdef APP_USE_HDF5
+#include <exlib/hdf5/opener>
+#endif
+#ifdef APP_USE_HIV
+#include <exlib/iv/opener>
+#include <exlib/wrl/opener>
+#include <exlib/iv/file>
+#endif
+
+#ifdef APP_USE_DCMTK
+#include <exlib/dcmtk/opener>
+#endif
+
+#include <exlib/povama/opener>
+#include <exlib/edep/opener>
+#include <exlib/scenarios_opener>
+#include <exlib/slides_opener>
+#include <exlib/zvid_opener>
+#include <exlib/aida_opener>
+#include <exlib/bsg_opener>
+#include <exlib/exsg_opener>
+#include <exlib/heprep_opener>
+
+#ifdef APP_USE_GRAPHVIZ
+#define boolean gv_boolean //clash with jpeg about typedef boolean
+#include <exlib/graphviz/opener>
+#endif
+
+#include <exlib/sg/view_lua>
+#include <exlib/lua_opener>
+extern "C" {
+void luaopen_inlib(lua_State*);
+}
+
+#ifdef APP_USE_PYTHON
+#include <exlib/sg/view_Python>
+#include <exlib/py_opener>
+extern "C" {
+  void initinlib_swig_py();
+}
+#endif
+
+#ifdef APP_USE_GOPAW
+#include "UI_gopaw"
+#include "../../gopaw/source/session"
+#include <exlib/KUIP/opener>
+#ifdef APP_USE_PYTHON
+#include "../../gopaw/source/session_py"
+#endif
+extern "C" {
+  void gopaw_initialize(std::ostream&,unsigned int,gopaw::session&,gopaw::iui&,bool);
+  void gopaw_finalize();
+  bool gopaw_kuip_exec_no_help(std::ostream&,const std::string&);
+  typedef void(*kout_func)(void*,char*,va_list);
+  void k_get_out_func(kout_func*,void**);
+  void k_set_out_func(kout_func,void*);
+}
+#endif
+
+#include <exlib/sg/rbsg_factories>
+#include <inlib/sg/rbsg_factories>
+
+#include <inlib/ftp/cbk>
+#include <inlib/sg/csv_opener>
+#include <inlib/cbk/fit>
+#include <inlib/cbk/files>
+
+#include <inlib/cbk/plots_popup>
+#include <inlib/cbk/healpix_popup>
+#include <inlib/cbk/cfitsio_popup>
+
+#include <inlib/sg/view_evd>
+
+#include <exlib/uzres>
+
+#include "background_popup"
+
+//#define IODA_USE_SEARCH
+#ifdef IODA_USE_SEARCH
+#include "../../inexlib/inlib/tests/search"
+inline inlib::sg::return_action action_search(inlib::sg::gui_viewer& a_gv) {
+  if(!search(a_gv.out(),"run_0")) {}
+  return inlib::sg::return_none;
+}
+#endif
+
+namespace ioda {
+
+class main
+:public exlib::app::main
+,public inlib::sg::view_evd 
+,public inlib::sg::view_astro 
+,public exlib::sg::view_lua
+#ifdef APP_USE_PYTHON
+,public exlib::sg::view_Python
+#endif
+{
+  typedef exlib::app::main parent;
+  typedef inlib::sg::view_evd parent_evd;
+  typedef inlib::sg::view_astro parent_astro;
+  typedef exlib::sg::view_lua parent_lua;
+#ifdef APP_USE_PYTHON
+  typedef exlib::sg::view_Python parent_Python;
+#endif
+#ifdef APP_USE_GOPAW
+  INLIB_CLASS_STRING(IODA_paw_py_root)
+#endif  
+public:
+  INLIB_SCLASS(ioda::main)
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = inlib::cmp_cast<main>(this,a_class)) return p;
+    if(void* p = inlib::cmp_cast<parent_evd>(this,a_class)) return p;
+    if(void* p = inlib::cmp_cast<parent_astro>(this,a_class)) return p;
+    if(void* p = inlib::cmp_cast<parent_lua>(this,a_class)) return p;
+#ifdef APP_USE_PYTHON
+    if(void* p = inlib::cmp_cast<parent_Python>(this,a_class)) return p;
+#endif
+    return parent::cast(a_class);
+  }
+protected:
+  virtual inlib::sg::node* create_main_menu() {
+    //m_out << "exlib::app::main::create_home_menu : " << std::endl;
+
+    inlib::sg::list* list = new inlib::sg::list(ttf());
+    set_style(*list);
+
+#ifdef IODA_USE_SEARCH
+    inlib::sg::add_image_item(*this,*list,"search","connect_to_wall.jpg",action_search);
+#endif
+
+    inlib::sg::add_image_item(*this,*list,inlib::sg::s_files(),"files.jpg",inlib::cbk::action_files);
+    if(has_open_panel()) {
+      inlib::sg::add_image_item(*this,*list,"open...","files.jpg",inlib::sg::action_open_open_panel);
+    }
+
+    if(m_ftps.size()) {
+      inlib::sg::add_image_item
+        (*this,*list,"ftp","location_ftp.jpg",inlib::ftp::action_ftp,inlib::ftp::pos_data(m_ftps,false,0,0));
+    }
+
+  //inlib::sg::add_image_item(*this,*list,"empty scene","white.jpg",inlib::sg::action_empty_scene_3D);
+    inlib::sg::add_image_item(*this,*list,"examples","package_edutainment.jpg",action_exas);
+
+  //inlib::sg::add_image_item(*this,*list,"clear scene","edit_clear.jpg",inlib::sg::action_clear_scene);
+    inlib::sg::add_image_item(*this,*list,"clear static scene","edit_clear.jpg",inlib::sg::action_clear_static_sg);
+    inlib::sg::add_image_item(*this,*list,"reset","edit_undo.jpg",inlib::sg::action_reset_camera);
+
+    if(m_walls._walls().size()) {
+      inlib::sg::add_image_item(*this,*list,"wall","connect_to_wall.jpg",exlib::wall::action_main);
+    }
+
+    inlib::sg::add_image_item(*this,*list,"anim","object_rotate_left.jpg",inlib::sg::action_start_anim_around_focal);
+    inlib::sg::add_image_item(*this,*list,"plots","set_current_region.jpg",inlib::sg::action_regions_main);
+    inlib::sg::add_image_item(*this,*list,"edit plot","edit_plot.jpg",inlib::sg::action_edit_plot);
+    inlib::sg::add_image_item(*this,*list,"plot/fit","fit.jpg",inlib::cbk::action_fit,inlib::cbk::fit_data(0,false,0,0));
+    inlib::sg::add_image_item(*this,*list,"export","document_export.jpg",exlib::out::action_main);
+    inlib::sg::add_image_item(*this,*list,"unzip","files.jpg",exlib::cbk::action_unzip);
+
+  //list_add(*list,"help","help_browser.jpg",new inlib::cbk::help(*this,m_help));
+
+    inlib::sg::add_image_item(*this,*list,"utils","tools.jpg",inlib::sg::action_utils);
+
+   {std::vector<std::string> about;
+    about.push_back("App : ioda");
+    about.push_back("Version : "+std::string(IODA_VERSION));
+    about.push_back("Author : Guy Barrand");
+    inlib::sg::add_image_item(*this,*list,"about","icon.jpg",inlib::sg::action_about,about);}
+
+    if(inlib::device::is_Android() || !inlib::device::stop_app_button() ){
+      inlib::sg::add_image_item(*this,*list,"exit","application_exit.jpg",inlib::sg::action_set_to_exit);
+    }
+
+    return list;
+  }
+
+  virtual void create_camenu_items(unsigned int a_nb,float a_wcw,float a_wch,float a_wb,float a_hb) {
+    parent::create_camenu_items(a_nb,a_wcw,a_wch,a_wb,a_hb);
+
+    create_main_button(m_out,m_res_dir,m_params,
+                       m_camenu_sep,a_wcw,a_wch,a_wb,a_hb,0,
+                       2,0,"clear","","edit_clear.jpg",
+                       new inlib::sg::gv_cbk(*this,inlib::sg::action_clear_static_and_dynamic_sg));
+  }
+public:
+  main(std::ostream& a_out,
+       inlib::sg::render_manager& a_gl_mgr,
+       const inlib::sg::base_freetype& a_ttf,
+       const inlib::sg::selection& a_selection,
+       const std::string& a_data_dir,
+       const std::string& a_res_dir,
+       const std::string& a_out_dir,
+       const std::string& a_tmp_dir,
+       bool a_verbose,
+       unsigned int a_mem_limit)
+  :parent("ioda",IODA_VERSION,a_out,a_gl_mgr,a_ttf,a_selection,
+          a_data_dir,a_res_dir,a_out_dir,a_tmp_dir,a_verbose,a_mem_limit)
+  ,parent_evd(*((inlib::sg::gui_viewer*)this))
+  ,parent_astro(a_out,m_srvs)
+  ,parent_lua(*((inlib::sg::viewer*)this),false)
+#ifdef APP_USE_PYTHON
+  ,parent_Python(*((inlib::sg::viewer*)this),false)
+#endif
+#ifdef APP_USE_GOPAW
+  ,m_gopaw_ui(a_out,*((inlib::sg::gui_viewer*)this)) //before gopaw_initialize().
+  ,m_gopaw_session(a_out,a_verbose,m_gopaw_ui,a_res_dir)
+#ifdef APP_USE_PYTHON
+  ,m_gopaw_session_py(m_gopaw_session,false)
+#endif
+#endif
+  {
+    //::printf("debug : IODA_DATA_DIR \"%s\"\n",a_data_dir.c_str());
+    //::printf("debug : IODA_RES_DIR \"%s\"\n",a_res_dir.c_str());
+    //::printf("debug : IODA_OUT_DIR \"%s\"\n",a_out_dir.c_str());
+    //::printf("debug : IODA_TMP_DIR \"%s\"\n",a_tmp_dir.c_str());
+    
+    m_opener.add_ext("*");
+    m_opener.add_ext(inlib::file::s_ext_fits());
+    m_opener.add_ext(inlib::file::s_ext_aida());
+    m_opener.add_ext(inlib::file::s_ext_root());
+    m_opener.add_ext(inlib::file::s_ext_csv());
+    m_opener.add_ext(inlib::file::s_ext_tnt());
+    m_opener.add_ext(inlib::file::s_ext_hiptxt());	
+#ifdef APP_USE_HDF5
+    m_opener.add_ext(inlib::file::s_ext_hdf5());
+#endif
+    m_opener.add_ext(inlib::file::s_ext_jpg());
+    m_opener.add_ext(inlib::file::s_ext_png());
+#ifdef APP_USE_DCMTK
+    m_opener.add_ext(inlib::file::s_ext_dcm());
+#endif
+    m_opener.add_ext(inlib::file::s_ext_fog());
+#ifdef APP_USE_GRAPHVIZ
+    m_opener.add_ext(inlib::file::s_ext_dot());
+#endif
+    m_opener.add_ext(inlib::file::s_ext_exsg());
+    m_opener.add_ext(inlib::file::s_ext_bsg());
+    m_opener.add_ext(inlib::file::s_ext_scenarios());
+    m_opener.add_ext(inlib::file::s_ext_slides());
+    m_opener.add_ext(inlib::file::s_ext_zvid());
+    m_opener.add_ext(inlib::file::s_ext_gdml());
+    m_opener.add_ext(inlib::file::s_ext_heprep());
+    m_opener.add_ext(inlib::file::s_ext_zheprep());
+    m_opener.add_ext(inlib::file::s_ext_lua());
+    m_opener.add_ext(inlib::file::s_ext_py());
+
+#ifdef APP_USE_HIV
+    m_opener.add_ext(inlib::file::s_ext_iv());
+    m_opener.add_ext(inlib::file::s_ext_hiv());
+    m_opener.add_ext(inlib::file::s_ext_wrl());
+
+#if TARGET_OS_IPHONE
+    inlib::put_env("COIN_GL_NO_CURRENT_CONTEXT_CHECK","1");
+#endif
+    if(!SoDB::isInitialized()) SoDB::init();
+    SoNodeKit::init();
+    SoInteraction::init();
+    // HEPVis :
+    exlib::iv::hepvis::initialize();
+    // exlib nodes :
+    so_2sg_action::initClass();
+#endif
+
+#ifdef APP_USE_GOPAW
+    m_opener.add_ext(inlib::file::s_ext_kumac());
+#endif
+
+   {inlib::sg::bsg_factories bfac;
+    inlib::sg::add_factories(bfac);
+    exlib::sg::add_factories(bfac);
+#ifdef APP_USE_GRAPHVIZ
+    bfac.add_factory<exlib::graphviz::scene>();
+#endif
+#ifdef APP_USE_HIV
+    bfac.add_factory<exlib::iv::file>();
+#endif
+    m_opener.add_opener(inlib::file::s_format_bsg(),new exlib::bsg_opener(bfac));}
+
+    m_opener.add_opener(inlib::file::s_format_root(),new exlib::rroot::opener());
+    m_opener.add_opener(inlib::file::s_format_fits(),new exlib::cfitsio_opener());
+#ifdef APP_USE_HDF5
+    m_opener.add_opener(inlib::file::s_format_hdf5(),new exlib::hdf5::opener());
+#endif
+    m_opener.add_opener(inlib::file::s_format_jpeg(),new exlib::jpeg_opener(a_mem_limit));
+    m_opener.add_opener(inlib::file::s_format_png(),new exlib::png_opener(a_mem_limit));
+#ifdef APP_USE_DCMTK
+    m_opener.add_opener(inlib::file::s_format_dcm(),new exlib::dcmtk::opener(a_mem_limit));
+#endif
+#ifdef APP_USE_HIV
+    m_opener.add_opener(inlib::file::s_format_iv(),new exlib::iv::opener());
+    m_opener.add_opener(inlib::file::s_format_wrl(),new exlib::wrl::opener());
+#endif
+
+    m_opener.add_opener(inlib::file::s_format_fog(),new exlib::povama::opener());
+#ifdef APP_USE_GRAPHVIZ
+    m_opener.add_opener(inlib::file::s_format_dot(),new exlib::graphviz::opener());
+#endif
+    m_opener.add_opener(inlib::file::s_format_csv(),new inlib::sg::csv_opener());
+    m_opener.add_opener(inlib::file::s_format_hippo(),new inlib::sg::hippo_opener());
+
+   {inlib::xml::exsg::vreaders readers;
+#ifdef APP_USE_GRAPHVIZ
+    readers.push_back
+      (inlib::xml::exsg::named_reader(exlib::graphviz::scene::s_class(),exlib::rsgml::read_node<exlib::graphviz::scene>));
+#endif
+    m_opener.add_opener(inlib::file::s_format_exsg(),new exlib::exsg_opener(readers));}
+
+    m_opener.add_opener(inlib::file::s_format_gdml(),new exlib::edep::opener());
+    m_opener.add_opener(inlib::file::s_format_aida(),new exlib::aida_opener());
+    m_opener.add_opener(inlib::file::s_format_heprep(),new exlib::heprep_opener());
+    m_opener.add_opener(inlib::file::s_format_zheprep(),new exlib::heprep_opener());
+    m_opener.add_opener(inlib::file::s_format_lua(),new exlib::lua_opener());
+#ifdef APP_USE_PYTHON
+    m_opener.add_opener(inlib::file::s_format_py(),new exlib::py_opener());
+#endif
+
+    m_opener.add_opener(inlib::file::s_format_scenarios(),new exlib::scenarios_opener(m_opener.openers()));
+    m_opener.add_opener(inlib::file::s_format_slides(),new exlib::slides_opener(m_opener.openers()));
+
+    m_opener.add_opener(inlib::file::s_format_zvid(),new exlib::zvid_opener());
+
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    m_image_readers.add_reader(inlib::file::s_format_jpeg(),new exlib::jpeg::reader());
+    m_image_readers.add_reader(inlib::file::s_format_png(),new exlib::png::reader());
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    m_popup_cbks.add(new background_popup(*this,m_ftps));
+    m_popup_cbks.add(new inlib::cbk::plots_popup(*this));
+    m_popup_cbks.add(new inlib::cbk::healpix_popup(*this));
+    m_popup_cbks.add(new inlib::cbk::cfitsio_popup(*this));
+
+    ///////////////////////////////////////////////////
+    /// lua ///////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    if(!parent_lua::initialize()) {
+    } else {
+      luaopen_inlib(parent_lua::lua_state());
+    }
+
+#ifdef APP_USE_PYTHON
+   {std::string file = a_res_dir+inlib::sep()+"python_2_7_lib_py.zip";    
+    if(inlib::device::is_iOS()){
+      // no way to cleanup tmp file at exit (because we can't be warned
+      // when the app is killed), then we store in app tmp dir but as
+      // if done permanently.
+      if(!exlib::unfold_res_file_iOS(m_out,"PYTHONHOME",file,"python_2_7",a_data_dir,a_tmp_dir)){}
+    } else {
+      if(!exlib::unfold_res_file_tmp(m_out,"PYTHONHOME","ioda_",file,"python_2_7",a_data_dir,a_tmp_dir,m_tmp_dirs)){}
+    }}
+    //NOTE : in Python/src/Modules/getpath.c, the cpp VERSION must be 2.7.
+    inlib::put_env("PYTHONPATH",a_res_dir); //to find inlib.py
+    if(!parent_Python::initialize()){}
+    initinlib_swig_py();
+#endif
+
+#ifdef APP_USE_GOPAW
+   {std::string IODA_paw_py_root;
+   {std::string file = a_res_dir+inlib::sep()+"paw_py_root.zip";    
+    if(inlib::device::is_iOS()){
+      if(!exlib::unfold_res_file_iOS(m_out,s_IODA_paw_py_root(),file,"paw_py_root",a_data_dir,a_tmp_dir)){}
+    } else {
+      if(!exlib::unfold_res_file_tmp(m_out,s_IODA_paw_py_root(),"ioda_",file,"paw_py_root",a_data_dir,a_tmp_dir,m_tmp_dirs)){}
+    }
+    if(!inlib::getenv(s_IODA_paw_py_root(),IODA_paw_py_root)) {}
+    inlib::put_env("IODA_DATA_DIR",a_data_dir);
+    inlib::put_env("IODA_RES_DIR",a_res_dir);
+    inlib::put_env("IODA_OUT_DIR",a_out_dir);
+    inlib::put_env("IODA_TMP_DIR",a_tmp_dir);}
+    if(!inlib::is_env("KUIPPSVIEWER")) {
+      // override what is in kuip/kuinit.c/Kuinit :
+      std::string KUIPPSVIEWER = "echo gopaw_set_env_dummy_psviewer ";
+      if(!inlib::put_env("KUIPPSVIEWER",KUIPPSVIEWER)) {}
+    }
+    m_opener.add_opener(inlib::file::s_format_kumac(),new exlib::KUIP::opener());
+#ifdef APP_USE_PYTHON
+    if(!m_gopaw_session_py.initialize()) {}
+    if(!inlib::env_append_path("PYTHONPATH",IODA_paw_py_root)) {}
+#endif
+    bool gopaw_silent = true;
+    gopaw_initialize(m_out,a_verbose,m_gopaw_session,m_gopaw_ui,gopaw_silent);
+    kout_func old_proc;void* old_tag;
+    ::k_get_out_func(&old_proc,&old_tag);
+    ::k_set_out_func(0,0); //to disconnect message "Macro search order is Command".
+    gopaw_kuip_exec_no_help(m_out,"/macro/defaults '.,"+a_res_dir+","+IODA_paw_py_root+"'");
+    ::k_set_out_func(old_proc,old_tag);}
+#endif
+
+    inlib::sg::set_empty_scene_3D(*this,*this); //pass gv and view_evd because cast may not be fully available at this point.
+#ifdef APP_USE_GOPAW
+    // The upper line clear static_sg() containing the inlib::sg::plots created by gopaw_initialize.
+#endif
+
+    set_meta_zone_had_not_been_shown();
+    show_main_menu();
+  }
+  virtual ~main() {
+#ifdef APP_USE_GOPAW
+    gopaw_finalize();
+#endif    
+    clear_tmp();  //for APP_USE_PYTHON
+  }
+protected:
+  main(const main& a_from)
+  :inlib::sg::ui(a_from)
+  ,inlib::sg::alert(a_from)
+  ,parent(a_from)
+  ,parent_evd(a_from)
+  ,parent_astro(a_from)
+  ,parent_lua(a_from)
+#ifdef APP_USE_PYTHON
+  ,parent_Python(a_from)
+#endif
+#ifdef APP_USE_GOPAW
+  ,m_gopaw_ui(a_from.m_gopaw_ui)
+  ,m_gopaw_session(a_from.m_gopaw_session)
+#ifdef APP_USE_PYTHON
+  ,m_gopaw_session_py(m_gopaw_session)
+#endif
+#endif
+  {}
+private:
+  main& operator=(const main&){return *this;}
+protected:  
+#ifdef APP_USE_GOPAW
+  ioda::UI_gopaw m_gopaw_ui;
+  gopaw::session m_gopaw_session;
+#ifdef APP_USE_PYTHON
+  gopaw::session_py m_gopaw_session_py;
+#endif
+#endif
+};
+
+}
+
+#endif

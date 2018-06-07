@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BEGIN_INCLUDE(manifest) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="fr.in2p3.lal.ioda"
+        android:versionCode="12"
+        android:versionName="1.13.0">
+
+    <!-- G.Barrand : does not work with SDK API 8 (2.2. My SGS1).
+                     API 9 (Android ?) not available for me on my Mac.
+                     I have API 10 on my Mac, it works on my
+                     Nexus-10 (4.2.2 API 17) and on my SGS1 (2.3.3). -->
+
+    <!-- Android 2.3.3 : API 10 -->
+    <uses-sdk android:minSdkVersion="10" />
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application android:label="@string/app_name" android:icon="@drawable/icon">
+
+        <activity android:name="Main"
+                android:label="@string/app_name"
+                android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+                android:configChanges="orientation|keyboardHidden">
+            <!-- Tell NativeActivity the name of or .so -->
+            <meta-data android:name="android.app.lib_name" android:value="ioda" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest> 
+<!-- END_INCLUDE(manifest) -->

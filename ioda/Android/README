@@ -1,0 +1,8 @@
+
+  Execute :
+    csh> source ../../bush/setup/android-<version>.csh
+
+ to setup the Android SDK and NDK development environment. And then :
+    csh> ../../bush/and_build
+ 
+ to build the application.

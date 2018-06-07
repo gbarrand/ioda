@@ -1,0 +1,285 @@
+
+#import "GLView.h"
+
+#define APPLE_GL
+
+//#define NS_DEBUG
+//#define EXLID_SG_DEBUG
+
+#include <ostream>
+#include "NSLog_streambuf"
+
+#include <ioda/main>
+
+namespace ioda_Cocoa {
+
+class main : public ioda::main {
+public:
+  virtual void win_render() {
+    [[m_GLView openGLContext] makeCurrentContext];
+    render();
+    [[m_GLView openGLContext] flushBuffer];
+  }
+public:
+  inline main(std::ostream& a_out,
+            const std::string& a_data_dir,
+            const std::string& a_res_dir,
+            const std::string& a_out_dir,
+            const std::string& a_tmp_dir,
+            GLView* a_GLView)
+  : ioda::main(a_out,a_data_dir,a_res_dir,a_out_dir,a_tmp_dir)
+  ,m_GLView(a_GLView)
+  {}
+  inline virtual ~main(){}
+private:
+  GLView* m_GLView;
+};
+
+}
+
+#include <inlib/system>
+
+//#define IODA_DUMP_TIMER
+#ifdef IODA_DUMP_TIMER
+static unsigned int s_timer_count = 0;
+#endif
+
+#if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_5
+@interface app_delegate : NSObject {
+#else
+@interface app_delegate : NSObject<NSApplicationDelegate> {
+#endif
+  GLView* m_view;
+  NSLog_streambuf* m_buf;
+  std::ostream* m_out;
+  ioda_Cocoa::main* m_main;
+  NSTimer* m_work_timer;
+
+  ioda::main::key_timer* m_ioda_move_timer;
+}
+- (id)initWithView:(GLView*)a_view;
+- (void)dealloc;
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)aSender;
+- (BOOL)application:(NSApplication*)a_app openFile:(NSString*)a_file;
+- (ioda_Cocoa::main*)get_main;
+- (void)stop_work_timer;
+@end
+@implementation app_delegate
+- (id)initWithView:(GLView*)a_view {
+  if(self = [super init]) {
+    m_view = a_view;
+    m_buf = new NSLog_streambuf();
+    m_out = new std::ostream(m_buf);
+
+    // Get the .app directory :
+    NSString* bundle_dir = [[NSBundle mainBundle] bundlePath];
+    std::string sbundle_dir = [bundle_dir UTF8String];
+    //NSLog(@"app_delegate : bundle dir %@",bundle_dir);
+    std::string res_dir = sbundle_dir+"/Contents/Resources";
+
+    // Get the tmp directory :
+    std::string tmp_dir = ""; //then tmp
+
+    // Get the Documents directory :
+    std::string doc_dir;
+   {std::string HOME;
+    if(inlib::getenv("HOME",HOME)) {    
+      doc_dir = HOME+"/Documents/ioda";
+    } else {
+      NSLog(@"app_delegate : can't get HOME.");
+    }}
+    std::string data_dir = doc_dir;
+    std::string out_dir = doc_dir;
+
+    m_main = 
+      new ioda_Cocoa::main(*m_out,data_dir,res_dir,out_dir,tmp_dir,m_view);
+    m_work_timer = 0;
+
+    // 10 milisec is lower than 1/60 = 16.6 milisecs.
+    m_ioda_move_timer = new ioda::main::key_timer(*m_main,10); //millisecs.
+  }
+  return self;
+}
+- (void)dealloc {
+  [self stop_work_timer];
+  delete m_ioda_move_timer;
+
+  delete m_main;
+  delete m_out;
+  delete m_buf;
+
+  [super dealloc];
+}
+- (ioda_Cocoa::main*)get_main {return m_main;}
+- (ioda::main::key_timer*)get_move_timer {return m_ioda_move_timer;}
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)aSender {
+#ifdef NS_DEBUG
+  NSLog(@"debug : delegate terminate\n");
+#endif
+  delete m_main;m_main = 0;
+  delete m_out;m_out = 0;
+  delete m_buf;m_buf = 0;
+  return NSTerminateNow;
+}
+- (BOOL)application:(NSApplication*)a_app openFile:(NSString*)a_file {
+#ifdef NS_DEBUG
+  NSLog(@"debug : open : %@\n",a_file);
+#endif
+  //if(!m_main) return NO;
+  std::string file = std::string("file://") + [a_file UTF8String];
+  //if(m_main->open_url(file)==NO) return NO;
+  [m_view setNeedsDisplay:YES];
+  return YES;
+}
+
+- (void)start_work_timer{
+  if(m_work_timer) return; //done 
+  double seconds = 1./60.; // 0.016666
+  m_work_timer = [NSTimer scheduledTimerWithTimeInterval:seconds
+                    target:self selector:@selector(work_timer_proc:)
+                    userInfo:nil repeats:TRUE];
+}
+
+
+- (void)stop_work_timer{
+  if(!m_work_timer) return; //done 
+  [m_work_timer invalidate];
+  m_work_timer = 0;
+}
+
+- (void)work_timer_proc:(id)sender{
+#ifdef IODA_DUMP_TIMER
+  NSLog(@"debug : work_timer_proc %d",s_timer_count);s_timer_count++;
+#endif
+  m_main->do_works();
+  m_ioda_move_timer->check_time_out();
+  if(!m_main->num_cbks() && !m_ioda_move_timer->active()) {
+    [self stop_work_timer];
+  }
+  if(m_main->to_exit()) {
+    [NSApp terminate:self];
+  }
+}
+
+@end
+
+@implementation GLView
+
+- (id)initWithCoder:(NSCoder*)coder {
+  if ((self = [super initWithCoder:coder])) {
+    m_app_delegate = [[app_delegate alloc] initWithView:self];
+    [NSApp setDelegate:m_app_delegate];
+  }
+  return self;
+}
+
+- (void)dealloc {  
+  [super dealloc];
+}
+
+- (void)drawRect:(NSRect)rect {
+  [[self openGLContext] makeCurrentContext];
+  int w = rect.size.width;
+  int h = rect.size.height;
+
+  ioda_Cocoa::main& ioda_main = *[m_app_delegate get_main];
+  ioda_main.set_size(w,h);
+  ioda_main.render();
+
+  [[self openGLContext] flushBuffer];
+}
+- (void)mouseDown:(NSEvent*)a_event {  
+  NSPoint p = [a_event locationInWindow];
+  //(0,0) = bottom left of window.
+#ifdef NS_DEBUG
+  NSLog(@"debug : GLView::mouseDown %g %g",p.x,p.y);
+#endif
+  ioda_Cocoa::main& ioda_main = *[m_app_delegate get_main];
+  ioda_main.save_cursor_and_camera(p.x,p.y);
+  ioda_main.touch_down(p.x,p.y);
+  if(ioda_main.num_cbks()) {
+    [m_app_delegate start_work_timer];
+  }
+}
+
+- (void)mouseUp:(NSEvent*)a_event {  
+  NSPoint p = [a_event locationInWindow];
+  //(0,0) = bottom left of window.
+#ifdef NS_DEBUG
+  NSLog(@"debug : GLView::mouseUp %g %g",p.x,p.y);
+#endif
+  ioda_Cocoa::main& ioda_main = *[m_app_delegate get_main];
+  ioda_main.add_work_check_arm_buttons();
+  if(ioda_main.was_in_motion()) {
+    ioda_main.set_in_motion(false);
+  } else {
+    ioda_main.touch_up(p.x,p.y);
+  }
+  if(ioda_main.num_cbks()) {
+    [m_app_delegate start_work_timer];
+  }
+}
+
+- (void)mouseDragged:(NSEvent*)a_event {  
+  NSPoint p = [a_event locationInWindow];
+  //(0,0) = bottom left of window.
+#ifdef NS_DEBUG
+  NSLog(@"debug : GLView::mouseDragged %g %g",p.x,p.y);
+#endif
+  ioda_Cocoa::main& ioda_main = *[m_app_delegate get_main];
+  if(ioda_main.touch_move(p.x,p.y)) ioda_main.win_render();
+}
+
+- (BOOL)acceptsFirstResponder {return YES;} //so that keyDown be called.
+
+- (void)keyDown:(NSEvent*)a_event {  
+#ifdef NS_DEBUG
+  NSLog(@"debug : GLView::keyDown");
+#endif
+
+  ioda_Cocoa::main& ioda_main = *[m_app_delegate get_main];
+  ioda::main::key_timer& move_timer = *[m_app_delegate get_move_timer];
+
+  bool shift = [a_event modifierFlags] & NSShiftKeyMask;
+  bool ctrl = [a_event modifierFlags] & NSControlKeyMask;
+
+  //NSString* chars = [a_event charactersIgnoringModifiers];
+  NSString* chars = [a_event characters];
+  unichar keyChar = 0;
+  if ( [chars length] == 0 ) return;
+  if ( [chars length] != 1 ) {[super keyDown:a_event];return;}
+
+  keyChar = [chars characterAtIndex:0];
+
+  if ( keyChar == NSLeftArrowFunctionKey ) {
+    if(ioda_main.do_key(move_timer,inlib::sg::key_left,shift,ctrl))
+      ioda_main.win_render();
+    if(move_timer.active()) [m_app_delegate start_work_timer];
+  } else if ( keyChar == NSRightArrowFunctionKey ) {
+    if(ioda_main.do_key(move_timer,inlib::sg::key_right,shift,ctrl))
+      ioda_main.win_render();
+    if(move_timer.active()) [m_app_delegate start_work_timer];
+  } else if ( keyChar == NSUpArrowFunctionKey ) {
+    if(ioda_main.do_key(move_timer,inlib::sg::key_up,shift,ctrl))
+      ioda_main.win_render();
+    if(move_timer.active()) [m_app_delegate start_work_timer];
+  } else if ( keyChar == NSDownArrowFunctionKey ) {
+    if(ioda_main.do_key(move_timer,inlib::sg::key_down,shift,ctrl))
+      ioda_main.win_render();
+    if(move_timer.active()) [m_app_delegate start_work_timer];
+
+  } else if ( keyChar == NSTabCharacter ) {
+    if(ioda_main.do_tab(false)) ioda_main.win_render();
+  } else if ( keyChar == 25 ) { //shift+tab ! //ASCII 25=EM (end of medium)
+    if(ioda_main.do_tab(true)) ioda_main.win_render();
+  } else if ( keyChar == NSCarriageReturnCharacter ) {
+    ioda_main.do_return();
+    if(ioda_main.num_cbks()) [m_app_delegate start_work_timer];
+  } else if ( keyChar == 27 ) { //escape
+    ioda_main.do_escape();
+    ioda_main.win_render();
+  }
+  //NSLog(@"debug : GLView::keyDown : ??? %d \"%c\"",keyChar,keyChar);
+}
+
+@end

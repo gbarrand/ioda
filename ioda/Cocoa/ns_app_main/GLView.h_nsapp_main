@@ -1,0 +1,15 @@
+
+#import <Cocoa/Cocoa.h>
+
+#import <OpenGL/gl.h>
+
+@class app_delegate;
+
+@interface GLView : NSOpenGLView {
+  app_delegate* m_app_delegate;
+}
+
+- (void)dealloc;
+- (void)drawRect:(NSRect)rect;
+
+@end

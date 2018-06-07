@@ -1,0 +1,233 @@
+<slides>
+
+  <background>black</background>
+
+  <slide name="slide_title">
+    <text>
+      <line value="softinex :" color="wheat"/>
+      <line value=" inlib, exlib" color="wheat"/>
+      <line value=" ioda, g4view, wall, etc..." color="wheat"/>
+      <line value=" http://softinex.lal.in2p3.fr" color="wheat"/>
+      <line value="  G.Barrand              CNRS/IN2P3/LAL" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_0">
+    <text>
+      <line value="2010 :" color="wheat"/>
+      <line value="- iOS, Android smartphones &amp; tablets" color="wheat"/>
+      <line value="- LAL Apple ARTS : 8 screens and 4 machines : wallino" color="wheat"/>
+      <line value="- App-Stores : easy way to distribute world wide apps" color="wheat"/>
+      <line value="We can't ignore all that !" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_1">
+    <text>
+      <line value="new software :" color="wheat"/>
+      <line value="- C++ : common to Android, iOS, OSX, Linux, Windows, Wall" color="wheat"/>
+      <line value="- GL-ES : common too : graphics and GUI over GL-ES" color="wheat"/>
+      <line value="- graphics : scene graph logic" color="wheat"/>
+      <line value="- guided by the Software Least Action Principle" color="wheat"/>
+      <line value="  (size of apps are limited on the stores)" color="wheat"/>
+      <line value="- maximum of header-only code shared on all systems" color="wheat"/>
+      <line value="- OO ! which is not the same than 'doing C++'" color="wheat"/>
+      <line value="- softinex : inlib/exlib, ioda, g4view, etc..." color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_2">
+    <text>
+      <line value="Jan 2011 : ioda 1.0 :" color="wheat"/>
+      <line value="- AppleStore, GooglePlay" color="wheat"/>
+      <line value="- generic analysis and vis tools" color="wheat"/>
+      <line value="- read files : fits, root, png, jpeg, etc..." color="wheat"/>
+      <line value="- histos, ntuples, fit, plots" color="wheat"/>
+      <line value="- visualization of HEP geometries and astro images" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_3">
+    <text>
+      <line value="g4view :" color="wheat"/>
+      <line value="- Geant4 GDML viewer" color="wheat"/>
+      <line value="- have pythia8" color="wheat"/>
+      <line value="- examples/calorimeter : teach particle physics" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_4">
+    <text>
+      <line value="pmx, agora :" color="wheat"/>
+      <line value="- Concept event display for LHCb, ATLAS" color="wheat"/>
+      <line value="- Way will be long to have LHC frameworks on a tablet" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_5">
+    <text>
+      <line value="Wall software, LAL-wallino :" color="wheat"/>
+      <line value="- control 12 screens and 4 machines as one display system" color="wheat"/>
+      <line value="- it works well !" color="wheat"/>
+      <line value="- same software as for the tablets !" color="wheat"/>
+      <line value="- ioda, g4view, pmx, agora can" color="wheat"/>
+      <line value="  send scene graphs (from an iPad !) to the system" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_6">
+    <title><line value="LRI WILD" color="wheat"/></title>
+    <file back_color="0 0 0">wall_lri.jpg</file>
+  </slide>
+
+  <slide name="slide_7">
+    <title><line value="LAL wallino" color="wheat"/></title>
+    <file back_color="0 0 0">wall_atlas.jpg</file>
+  </slide>
+
+  <slide name="slide_8">
+    <text>
+      <line value="Wall usage :" color="wheat"/>
+      <line value="- ideal for outreach ! probably nice for teaching" color="wheat"/>
+      <line value="- ideal for astro images, big graphs" color="wheat"/>
+      <line value="- HEP reconstruction, event display" color="wheat"/>
+      <line value="- would be nice in a HEP control room" color="wheat"/>
+      <line value="- we are still exploring..." color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_9">
+    <text>
+      <line value="web with WebGL :" color="wheat"/>
+      <line value="- the 'all GL-ES logic' works well with WebGL browsers !" color="wheat"/>
+      <line value="- demo with a g4view server displaying" color="wheat"/>
+      <line value="  in Safari, Firefox, Chrome..." color="wheat"/>
+      <line value="- (done for the moment with Wt on the server side)" color="wheat"/>
+      <line value="- but globally much less responsive than a local app !" color="wheat"/>
+      <line value="  CPU charged on the server..." color="wheat"/>
+      <line value="  whilst we have a lot of CPU in hands now !" color="wheat"/>
+    </text>
+  </slide>
+
+  <slide name="slide_10">
+    <title><line value="g4view in Firefox" color="wheat"/></title>
+    <file back_color="0 0 0">web_g4view.jpg</file>
+  </slide>
+
+  <slide name="slide_11">
+    <title><line value="ioda in Safari" color="wheat"/></title>
+    <file back_color="0 0 0">web_ioda.jpg</file>
+  </slide>
+
+  <slide name="atlas">
+
+    <title><line value="vis .fog" color="wheat"/></title>
+
+    <fog>
+      <file>BMS.fog</file>
+    </fog>
+    <fog>
+      <file>T4E.fog</file>
+      <solid>true</solid>
+    </fog>
+    <fog>
+      <file>T4F.fog</file>
+      <solid>true</solid>
+    </fog>
+
+    <fog>
+      <file>EVE1.fog</file>
+    </fog>
+
+  </slide>
+
+  <slide name="aleph">
+
+    <title><line value="vis geo .root" color="wheat"/></title>
+
+    <file>aleph.root</file>
+
+    <vds>aleph.vds</vds> <!-- ascii ntuple : <vol name> <vol depth> -->
+
+    <volume>
+      <name>ALEF</name>
+      <max_depth>2</max_depth>
+      <colormap>
+        <color>yellow</color>
+        <color>cyan</color>
+        <color>magenta</color>
+        <color>yellow</color>
+      </colormap>
+    </volume>
+
+    <volume>
+      <name>EBMO</name>
+      <color>red</color>
+      <solid_depth>0</solid_depth>
+    </volume>
+
+    <volume>
+      <name>ECMO</name>
+      <color>aquamarine</color>
+    </volume>
+
+<!--
+    <volume>
+      <name>H*</name>
+      <color>green</color>
+    </volume>
+-->
+
+  </slide>
+
+  <slide name="lsst_dot">
+    <title><line value="vis .dot" color="wheat"/></title>
+    <file>lsst_packs.dot</file>
+  </slide>
+
+  <slide name="dicom">
+    <title><line value="vis DICOM" color="wheat"/></title>
+    <file back_color="0 0 0">color.dcm</file>
+  </slide>
+
+  <slide name="fits">
+    <title><line value="vis fits" color="wheat"/></title>
+    <file hdu="1" slice="0"
+          min="0" max="35" ncol="256"
+          cmap="midas_idl15">x0bq0102t_d0h.fits</file>
+  </slide>
+
+  <slide name="gdml">
+    <title><line value="vis gdml" color="wheat"/></title>
+    <file>lhcbvelo.gdml</file>
+<!--
+    <file>lhcbhcal.gdml</file>
+-->
+    <volume>
+      <min_depth>2</min_depth>
+      <max_depth>4</max_depth>
+      <colormap>
+        <color>yellow</color>
+        <color>cyan</color>
+        <color>magenta</color>
+        <color>yellow</color>
+      </colormap>
+    </volume>
+  </slide>
+
+<!--
+  <slide name="hdf5">
+    <title><line value="vis histos in hdf5" color="wheat"/></title>
+    <file>histos.hdf5</file>
+    <plots row="2" cols="2"/>
+    <plot row="0" cols="0" path="out/histo/prof"/>
+    <plot row="0" cols="1" path="out/histo/rg"/>
+    <plot row="1" cols="0" path="out/histo/rgbw"/>
+  </slide>
+-->
+
+  <slide name="slide_end">
+    <text/>
+  </slide>
+
+</slides>

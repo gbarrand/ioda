@@ -1,0 +1,5 @@
+<walls>
+  <wall>
+    <host>mac-arts.lal.in2p3.fr</host> <!-- front end machine. -->
+  </wall>
+</walls>

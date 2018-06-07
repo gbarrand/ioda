@@ -1,0 +1,14 @@
+ ntuple projection : for ntuple (defined as a table of columns with numbers),
+ ioda can now do interactive projections of one or two columns in a 1D or 2D
+ histogram. This works for a "flat TTree" in a ROOT file, a BINARY_TABLE in
+ a FITS file, a flat ntuple in an AIDA file and table data in a CSV file.
+
+ new file types : CSV, hippodraw TNT (CSV+a header with a first line for
+ a global title and a second line with labels of columns).
+
+ examples : have a demo.root file to play with ntuple.
+
+ plot style : once having a plot, this sub menu permits to change the overall
+ style according to a set of predefined ones.
+
+ FTP : we have implemented "FTP passive".

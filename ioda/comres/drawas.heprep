@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+<heprep:heprep xmlns:heprep="http://www.slac.stanford.edu/~perl/heprep/"
+   xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance" xsi:schemaLocation="HepRep.xsd">
+
+  <heprep:type name="shapes">
+
+  <heprep:instance>
+    <heprep:attvalue name="DrawAs" value="Prism"/>
+    <heprep:attvalue name="LineColor" value="yellow"/>
+    <heprep:primitive>
+      <heprep:point x="-5" y="5" z="-5"/>
+      <heprep:point x="-5" y="-5" z="-5"/>
+      <heprep:point x="-15" y="-5" z="-5"/>
+      <heprep:point x="-15" y="5" z="-5"/>
+
+      <heprep:point x="-5" y="5" z="5"/>
+      <heprep:point x="-5" y="-5" z="5"/>
+      <heprep:point x="-15" y="-5" z="5"/>
+      <heprep:point x="-15" y="5" z="5"/>
+    </heprep:primitive>
+  </heprep:instance>
+
+  <heprep:instance>
+    <heprep:attvalue name="DrawAs" value="Polygon"/>
+    <heprep:attvalue name="LineColor" value="magenta"/>
+    <heprep:primitive>
+      <heprep:point x="3" y="3" z="-3"/>
+      <heprep:point x="3" y="-3" z="-3"/>
+      <heprep:point x="-3" y="-3" z="-3"/>
+    </heprep:primitive>
+
+    <heprep:primitive>
+      <heprep:point x="3.5" y="3.5" z="3.5"/>
+      <heprep:point x="3.5" y="-3.5" z="3.5"/>
+      <heprep:point x="-3.5" y="-3.5" z="3.5"/>
+      <heprep:point x="-3.5" y="3.5" z="3.5"/>
+    </heprep:primitive>
+  </heprep:instance>
+
+  <heprep:instance>
+    <heprep:attvalue name="DrawAs" value="Point"/>
+    <heprep:attvalue name="LineColor" value="cyan"/>
+    <heprep:attvalue name="MarkSize" value="10"/>
+    <heprep:attvalue name="MarkName" value="Circle"/>
+    <heprep:primitive>
+      <heprep:point x="1.5" y="1.5" z="-1.5"/>
+      <heprep:point x="1.5" y="-1.5" z="-1.5"/>
+      <heprep:point x="-1.5" y="-1.5" z="-1.5"/>
+
+      <heprep:point x="2.5" y="2.5" z="2.5"/>
+      <heprep:point x="2.5" y="-2.5" z="2.5"/>
+      <heprep:point x="-2.5" y="-2.5" z="2.5"/>
+      <heprep:point x="-2.5" y="2.5" z="2.5"/>
+    </heprep:primitive>
+  </heprep:instance>
+
+  <heprep:instance>
+    <heprep:attvalue name="DrawAs" value="Cylinder"/>
+    <heprep:attvalue name="LineColor" value="red"/>
+    <heprep:primitive>
+      <heprep:attvalue name="Radius1" value="5"/>
+      <heprep:attvalue name="Radius2" value="10"/>
+      <heprep:point x="5" y="5" z="-5"/>
+      <heprep:point x="8" y="5" z="5"/>
+    </heprep:primitive>
+  </heprep:instance>
+
+  </heprep:type>
+
+</heprep:heprep>

@@ -1,0 +1,22 @@
+cfitsio : handle ASCII_TBL and for BINARY_TBL, handle more column types. Handle variable size array cells. (Prepare ioda to read LSST files).
+
+aida files : ioda can now read clouds and plot 2d clouds.
+
+examples/plots : ioda can now plot 2D functions as surfaces.
+
+examples/LHC status : it permits to periodically show and update the LHC status panel has provided by CERN on the LHC1 page.
+
+export/mail : now you can send a jpeg, png output file by email.
+
+files : be able to navigate in directories.
+
+camera panel : have a panel at left with erase and 2D/3D buttons. It avoids
+to return back to the main menu to do these operations, very handy when
+browsing files.
+
+picking popup/center : you can put the camera focal point on the picked point.
+
+params : you can switch on/off the usage of VBO (OpenGL Virtual Buffer Object).
+According the device you can gain speed on some scene. (On a MacBookPro
+we gain a factor two on most .fog files).
+

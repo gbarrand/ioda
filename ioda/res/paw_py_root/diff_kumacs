@@ -1,0 +1,28 @@
+#!/bin/sh -f
+diff pawex1.kumac ../PAW_f77_hbook/pawex1.kumac
+diff pawex2.kumac ../PAW_f77_hbook/pawex2.kumac
+diff pawex3.kumac ../PAW_f77_hbook/pawex3.kumac
+diff pawex4.kumac ../PAW_f77_hbook/pawex4.kumac
+diff pawex5.kumac ../PAW_f77_hbook/pawex5.kumac
+diff pawex6.kumac ../PAW_f77_hbook/pawex6.kumac
+diff pawex7.kumac ../PAW_f77_hbook/pawex7.kumac
+diff pawex8.kumac ../PAW_f77_hbook/pawex8.kumac
+diff pawex9.kumac ../PAW_f77_hbook/pawex9.kumac
+
+diff pawex10.kumac ../PAW_f77_hbook/pawex10.kumac
+diff pawex11.kumac ../PAW_f77_hbook/pawex11.kumac
+diff pawex12.kumac ../PAW_f77_hbook/pawex12.kumac
+diff pawex13.kumac ../PAW_f77_hbook/pawex13.kumac
+diff pawex14.kumac ../PAW_f77_hbook/pawex14.kumac
+diff pawex15.kumac ../PAW_f77_hbook/pawex15.kumac
+diff pawex16.kumac ../PAW_f77_hbook/pawex16.kumac
+diff pawex17.kumac ../PAW_f77_hbook/pawex17.kumac
+diff pawex18.kumac ../PAW_f77_hbook/pawex18.kumac
+diff pawex19.kumac ../PAW_f77_hbook/pawex19.kumac
+diff pawex20.kumac ../PAW_f77_hbook/pawex20.kumac
+diff pawex21.kumac ../PAW_f77_hbook/pawex21.kumac
+diff pawex22.kumac ../PAW_f77_hbook/pawex22.kumac
+diff pawex23.kumac ../PAW_f77_hbook/pawex23.kumac
+diff pawex24.kumac ../PAW_f77_hbook/pawex24.kumac
+
+diff color.kumac ../PAW_f77_hbook/color.kumac

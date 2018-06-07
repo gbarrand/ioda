@@ -1,0 +1,43 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef ioda_background_popup
+#define ioda_background_popup
+
+#include <inlib/sg/background>
+#include <inlib/cbk/popup>
+#include <inlib/ftp/cbk>
+
+#include <exlib/cbk/out>
+
+#include "exas"
+
+namespace ioda {
+
+class background_popup : public inlib::cbk::popup {
+  typedef inlib::cbk::popup parent;
+public:
+  virtual void add_items(inlib::sg::ilist& a_list,int a_x,int a_y) const {
+    inlib::sg::add_item(m_gv,a_list,"examples",action_exas,inlib::sg::pos_data(true,a_x,a_y));
+    inlib::sg::add_item(m_gv,a_list,"export",exlib::out::action_main,inlib::sg::pos_data(true,a_x,a_y));
+    if(m_ftps.size()) {
+      inlib::sg::add_item(m_gv,a_list,"ftp",inlib::ftp::action_ftp,inlib::ftp::pos_data(m_ftps,true,a_x,a_y));
+    }
+  }
+public:
+  virtual inlib::sg::bcbk* copy() const {return new background_popup(*this);}
+public:
+  background_popup(inlib::sg::gui_viewer& a_gv,inlib::ftp::ftps& a_ftps)
+  :parent(inlib::sg::background::s_class(),0),m_gv(a_gv),m_ftps(a_ftps){}
+  virtual ~background_popup(){}
+protected:
+  background_popup(const background_popup& a_from):parent(a_from),m_gv(a_from.m_gv),m_ftps(a_from.m_ftps){}
+  background_popup& operator=(const background_popup& a_from){parent::operator=(a_from);return *this;}
+protected:
+  inlib::sg::gui_viewer& m_gv;
+  inlib::ftp::ftps& m_ftps;
+};
+
+}
+
+#endif

@@ -1,0 +1,6 @@
+#!/bin/sh -f
+if [ $# != 1 ] ; then
+  echo one argument expected.
+  exit
+fi
+adb push $1 /sdcard/Android/data/fr.in2p3.lal.ioda/.
