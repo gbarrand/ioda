@@ -1,0 +1,67 @@
+#ifndef wrap_camera_panel_help
+#define wrap_camera_panel_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    camera_panel.help
+//
+
+inline const char** camera_panel_help(unsigned int& a_linen){
+  static const char _0[] = "  - H bottom-right button : hide the camera panel.";
+  static const char _1[] = "  - 0 top-right button : reset camera to the same";
+  static const char _2[] = "    parameters than at creation of the scene.";
+  static const char _3[] = "  - [A,S] top-left button : A = continous movement.";
+  static const char _4[] = "    S = step by step movement. When having triggered";
+  static const char _5[] = "    a continuous movement, you stop it by touching/clicking";
+  static const char _6[] = "    on this button or on the same arrow button that";
+  static const char _7[] = "    triggered the movement.";
+  static const char _8[] = "";
+  static const char _9[] = "  If in plane viewer mode (for exa if viewing 1D histos) :";
+  static const char _10[] = "  - center P + left/right : pane left/right.";
+  static const char _11[] = "  - center P + top/down : pane top/down.";
+  static const char _12[] = "  - center P/Z + top/down : zoom in/out.";
+  static const char _13[] = "";
+  static const char _14[] = "  If in examiner viewer mode (for exa with exas/ATLAS) :";
+  static const char _15[] = "  - center R/T + left/right : rotate camera left/right.";
+  static const char _16[] = "  - center R/T + top/down : move forward/backward.";
+  static const char _17[] = "  - center P + left/right : pane left/right.";
+  static const char _18[] = "  - center P + top/down : pane up/down.";
+  static const char _19[] = "";
+  static const char _20[] = "  When no camera panel is mapped (and then being full";
+  static const char _21[] = "  screen on the scene), you can move the camera with";
+  static const char _22[] = "  a paning gesture. If available, pinching issues a";
+  static const char _23[] = "  zoom and a rotation gesture rotates the camera in";
+  static const char _24[] = "  the viewing plane.";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+,_7
+,_8
+,_9
+,_10
+,_11
+,_12
+,_13
+,_14
+,_15
+,_16
+,_17
+,_18
+,_19
+,_20
+,_21
+,_22
+,_23
+,_24
+};
+ a_linen = 25;
+ return _lines;
+}
+
+#endif

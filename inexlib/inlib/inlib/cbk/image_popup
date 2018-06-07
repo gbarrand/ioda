@@ -1,0 +1,85 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_image_popup
+#define inlib_cbk_image_popup
+
+#include "popup"
+#include "popup_data"
+#include "image_manip"
+#include "../sg/ilist"
+#include "../sg/gui_viewer"
+
+namespace inlib {
+namespace cbk {
+
+inline sg::return_action image_popup_action_show_pixel(sg::gui_viewer& a_gv,const popup_data& a_data) {
+  a_gv.hide_popup(); //needed because down,up event are handled by the image_manip.
+  tex_set_manip(a_gv,a_gv.scene(),a_data.m_node,a_gv.verbose());
+  return sg::return_to_render;
+}
+
+inline sg::return_action image_popup_action_load_file(sg::gui_viewer& a_gv,sg::file_chooser& a_fch,const popup_data& a_data) {
+  image::ireader* _reader;
+  if(!find(a_gv.image_readers().named_readers(),a_fch.format.value(),_reader)) {
+    a_gv.popup_warn(a_data.m_ex,a_data.m_ey,"reader not found");
+    return sg::return_to_render;
+  }
+  unsigned int w,h,bpp;
+  unsigned char* buffer = _reader->read(a_gv.out(),a_fch.value.value(),w,h,bpp);
+  if(!buffer) {
+    a_gv.popup_warn(a_data.m_ex,a_data.m_ey,"read failed");
+    return sg::return_to_render;
+  }
+  img<byte> img(w,h,bpp,buffer,true);
+  if(sg::base_tex* _tex = safe_cast<sg::node,sg::base_tex>(a_data.m_node)) {
+    _tex->img.value().transfer(img);
+    _tex->img.touch();
+    _tex->expand = a_gv.m_params.m_image_expand;
+  }
+  return sg::return_to_render;
+}
+
+inline sg::return_action image_popup_action_file(sg::gui_viewer& a_gv,const popup_data& a_data) {
+  //a_gv.hide_popup();
+  sg::file_chooser* fch = new sg::file_chooser(a_gv.ttf());
+  a_gv.set_style(*fch);
+  std::vector<std::string> exts;
+  exts.push_back(file::s_ext_jpg());
+  exts.push_back(file::s_ext_png());
+  fch->exts.add(exts);
+  fch->dirs.add(a_gv.res_dir());
+  fch->dirs.add(a_gv.data_dirs());
+  sg::add_callback(a_gv,*fch,image_popup_action_load_file,a_data);
+  fch->initialize(a_gv.out());
+  a_gv.show_widget(sg::pos_data(true,a_data.m_ex,a_data.m_ey),fch);
+  return sg::return_to_render;
+}
+
+class image_popup : public popup {
+  typedef popup parent;
+public:
+  virtual void add_items(sg::ilist& a_list,int a_ex,int a_ey) const {
+    sg::add_item(m_gv,a_list,"show pixel",image_popup_action_show_pixel,popup_data(*m_node,a_ex,a_ey));
+    sg::add_item(m_gv,a_list,"load file",image_popup_action_file,popup_data(*m_node,a_ex,a_ey));
+  }
+public:
+  virtual sg::bcbk* copy() const {return new image_popup(*this);}
+public:
+  image_popup(sg::gui_viewer& a_gv,const std::string& a_class):popup(a_class,0),m_gv(a_gv){}
+  virtual ~image_popup(){}
+protected:
+  image_popup(const image_popup& a_from):popup(a_from),m_gv(a_from.m_gv){}
+  image_popup& operator=(const image_popup& a_from){
+    popup::operator=(a_from);
+    return *this;
+  }
+protected:
+  sg::gui_viewer& m_gv;
+};
+
+}}
+
+//inlib_build_use kernel
+
+#endif

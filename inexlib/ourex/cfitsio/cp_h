@@ -1,0 +1,23 @@
+#!/bin/sh -f
+
+from=/usr/local/cfitsio/3.25/build/cfitsio
+
+cp ${from}/fitsio2.h ./src/.
+cp ${from}/group.h ./src/.
+cp ${from}/compress.h ./src/.
+cp ${from}/eval_defs.h ./src/.
+cp ${from}/region.h ./src/.
+cp ${from}/f77_wrap.h ./src/.
+cp ${from}/grparser.h ./src/.
+
+cp ${from}/fitsio.h  ./src/.
+cp ${from}/longnam.h ./src/.
+cp ${from}/drvrsmem.h ./src/.
+cp ${from}/eval_tab.h ./src/.
+
+#cp ${from}/cfortran.h ./src/.
+
+cp ${from}/fitsio.h  ./include/.
+cp ${from}/fitsio2.h  ./include/.
+cp ${from}/longnam.h ./include/.
+cp ${from}/drvrsmem.h ./include/.

@@ -1,0 +1,47 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_s2int64
+#define inlib_s2int64
+
+#include "typedefs"
+
+//NOTE : we do not put the below in typedefs to avoid including
+//       cstdlib in typedefs.
+//       It is used in inlib/io/ascii_buffer.
+
+
+#include <cstdlib> //strtol
+
+namespace inlib {
+
+#ifdef _MSC_VER
+
+typedef int64(*s2int64_func)(const char*,char**,int);
+inline int64 s2int64(const char* a_s,char** a_end,int a_base){
+  return _strtoi64(a_s,a_end,a_base);
+}
+
+#elif defined(_LP64) 
+
+// 64 Bit Platforms
+
+typedef int64(*s2int64_func)(const char*,char**,int);
+inline int64 s2int64(const char* a_s,char** a_end,int a_base){
+  return ::strtol(a_s,a_end,a_base);
+}
+
+#else 
+
+// 32-Bit Platforms
+
+typedef int64(*s2int64_func)(const char*,char**,int);
+inline int64 s2int64(const char* a_s,char** a_end,int a_base){
+  return ::strtoll(a_s,a_end,a_base);
+}
+
+#endif
+
+}
+
+#endif

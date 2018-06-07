@@ -1,0 +1,30 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_wrl_opener
+#define exlib_wrl_opener
+
+#include "../iv/opener"
+#include "../gzip"
+
+namespace exlib {
+namespace wrl {
+
+class opener : public virtual iv::opener {
+  typedef iv::opener parent;
+  INLIB_SCLASS(exlib::wrl::opener)
+public:
+  virtual bool is(const std::string& a_path,bool& a_is) const {return gzip_is_wrl(a_path,a_is);}
+public:
+  opener(){}
+  virtual ~opener(){}
+public:
+  opener(const opener& a_from):parent(a_from){}
+  opener& operator=(const opener& a_from){parent::operator=(a_from);return *this;}  
+};
+
+}}
+
+//exlib_build_use inlib CoinGL HEPVis zlib kernel
+
+#endif

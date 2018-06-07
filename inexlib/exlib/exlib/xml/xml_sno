@@ -1,0 +1,66 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_xml_sno
+#define exlib_xml_sno
+
+#include <inlib/xml/snos>
+
+#include "loader"
+
+namespace exlib {
+namespace xml {
+  
+inline bool load_file(std::ostream& a_out,const std::string& a_file,inlib::xml::scenarios& a_snos) {
+  inlib::raw_clear(a_snos);
+  inlib::xml::default_factory factory;
+  exlib::xml::loader ml(factory,a_out,false);
+  std::vector<std::string> tags;
+  tags.push_back(inlib::xml::s_scenarios());
+  tags.push_back(inlib::xml::s_scenario());
+  tags.push_back(inlib::xml::s_volume());
+  tags.push_back(inlib::xml::s_fog());
+  tags.push_back(inlib::xml::s_colormap());
+  tags.push_back(inlib::xml::s_camera());
+  tags.push_back(inlib::xml::s_gun());
+  tags.push_back(inlib::xml::s_trajectories());
+  tags.push_back(inlib::xml::s_primaries());
+  tags.push_back(inlib::xml::s_text());
+  tags.push_back(inlib::xml::s_title());
+
+  tags.push_back(inlib::xml::s_slides());
+  tags.push_back(inlib::xml::s_slide());
+
+  ml.set_tags(tags);
+  if(!ml.load_file(a_file,false)) return false;
+  inlib::xml::tree* top = ml.top_item();
+  if(!top) return true; //File could be empty.
+
+ {inlib::xml::looper _for(*top);
+  while(inlib::xml::element* _elem = _for.next_element()) {
+    if(_elem->name()==inlib::xml::s_time_interval()) {
+      a_snos.m_time_interval = _elem->value();
+    } else if(_elem->name()==inlib::xml::s_background()) {
+      a_snos.m_background = _elem->value();
+    } else if(_elem->name()==inlib::xml::s_light_on()) {
+      a_snos.m_light_on = _elem->value();
+    } else {
+      a_out << "exlib::xml::load_file :"
+            << " unknown property " << inlib::sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+  }}  
+
+  if(!inlib::xml::scan_tree(a_out,*top,a_snos)) {
+    inlib::raw_clear(a_snos);
+    return false;
+  }
+  return true;
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib expat

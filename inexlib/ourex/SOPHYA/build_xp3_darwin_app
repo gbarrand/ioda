@@ -1,0 +1,169 @@
+#!/bin/sh -f
+
+#//////////////////////////////////////////////////////
+#/// to customize : ///////////////////////////////////
+#//////////////////////////////////////////////////////
+app_exe=xp3
+
+build_path=/usr/local/SOPHYA/head_git/ProjectPI/PI/PIWxW/Objs
+
+# below list got from :
+#   Darwin> otool -X -L ${build_path}/xp3
+#   Darwin> otool -X -L <related .dylib>
+# At end a :
+#   Darwin> find xp3.app -name '*.dylib' -exec otool -L {} \; | grep local
+# must be empty.
+
+# WARNING : avoid to have symbolic links in the below list (else "Darwin> open xp3.app" may crash at startup).
+
+darwin_app_libs=
+darwin_app_libs="${darwin_app_libs} /usr/local/SOPHYA/head_git/build/slb/libPI.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/SOPHYA/head_git/build/slb/libextsophya.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/SOPHYA/head_git/build/slb/libsophya.dylib"
+
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_baseu_xml-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_baseu-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_baseu_net-3.1.0.0.0.dylib"
+
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_osx_cocoau_core-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_osx_cocoau_html-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_osx_cocoau_adv-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_osx_cocoau_xrc-3.1.0.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /usr/local/wxWidgets/3.1.0/lib/libwx_osx_cocoau_qa-3.1.0.0.0.dylib"
+
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXm.4.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXt.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libX11.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXmu.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXext.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXp.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXrender.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXft.2.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXdmcp.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libXau.6.dylib"
+
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libcurl.4.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libiconv.2.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libjpeg.9.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libpng16.16.dylib"
+
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libfontconfig.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libfreetype.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libz.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libexpat.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libz.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libbz2.1.0.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libz.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libxcb.1.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libSM.6.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libICE.6.dylib"
+
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libssl.1.0.0.dylib"
+darwin_app_libs="${darwin_app_libs} /opt/local/lib/libcrypto.1.0.0.dylib"
+
+darwin_app_dlls=
+
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+#//////////////////////////////////////////////////////
+
+if [ "${app_exe}" = "" ] ; then
+  echo "bush/darwin_app : app_exe variable not defined."
+  exit
+fi
+
+if [ "${build_path}" = "" ] ; then
+  echo "bush/darwin_app : build_path variable not defined."
+  exit
+fi
+
+/bin/rm -R -f ${build_path}/${app_exe}.app
+
+head=${build_path}/${app_exe}.app/Contents
+/bin/mkdir -p ${head}/MacOS
+/bin/cp ${build_path}/${app_exe} ${head}/MacOS
+
+#/bin/mkdir -p ${head}/Resources
+#darwin_app_res_dir=${head}/Resources
+#/bin/cp -R ./tests/nib.nib ${head}/Resources/${app_exe}.nib
+
+#/bin/cp -R /usr/local/wxWidgets/3.1.0/share ${head}/.
+
+if [ "${darwin_app_libs}" != "" ] ; then
+
+  /bin/mkdir -p ${head}/lib
+
+  for item in ${darwin_app_libs} ; do
+    /bin/cp ${item} ${head}/lib/.
+    lib_name="`basename ${item}`"
+    /bin/chmod u+w ${head}/lib/${lib_name} # for libssl, libcrypto
+  done
+
+ #otool -X -L "${head}/MacOS/${app_exe}"
+  
+  # Change the id of dylibs :  
+  for item in ${darwin_app_libs} ; do
+    lib_name="`basename ${item}`"
+    new_name="@executable_path/../lib/${lib_name}"
+    install_name_tool -id ${new_name} "${head}/lib/${lib_name}"
+  done
+
+  # Change the install names of dylibs in the application binary :
+  for item in ${darwin_app_libs} ; do
+    lib_name="`basename ${item}`"
+   #old_name="${build_path}/${lib_name}"
+    old_name="${item}"
+    new_name="@executable_path/../lib/${lib_name}"
+   #echo "///////"
+   #echo "old_name ${old_name}"
+   #echo "new_name ${new_name}"
+    install_name_tool -change  ${old_name} ${new_name} "${head}/MacOS/${app_exe}"
+  done
+
+  # Change the install names of dylibs in the dylibs :
+  for item_lib in ${darwin_app_libs} ; do
+    item_lib_name="`basename ${item_lib}`"
+    for item in ${darwin_app_libs} ; do
+      lib_name="`basename ${item}`"
+     #old_name="${build_path}/${lib_name}"
+      old_name="${item}"
+      new_name="@executable_path/../lib/${lib_name}"
+     #echo "///////"
+     #echo "old_name ${old_name}"
+     #echo "new_name ${new_name}"
+      install_name_tool -change  ${old_name} ${new_name} "${head}/lib/${item_lib_name}"
+    done
+  done
+
+  for item in ${darwin_app_libs} ; do
+    lib_name="`basename ${item}`"
+    /bin/chmod u-w ${head}/lib/${lib_name} # for libssl, libcrypto
+  done
+
+  #find ${head}/lib -name '*.dylib' -exec otool -L {} \; | grep local
+  
+fi # darwin_app_libs
+
+if [ "${darwin_app_dlls}" != "" ] ; then
+
+  /bin/mkdir -p ${head}/bin
+
+  for item in ${darwin_app_dlls} ; do
+    /bin/cp ${item} ${head}/bin/.
+  done
+
+  #otool -X -L "${head}/MacOS/${app_exe}"
+
+  # Change the install names of dylibs in the dlls :
+  for item_dll in ${darwin_app_dlls} ; do
+    #echo ${item_dll}
+    dll_name="`basename ${item_dll}`"
+    for item in ${darwin_app_libs} ; do
+      lib_name="`basename ${item}`"
+      old_name="${build_path}/${lib_name}"
+      new_name="@executable_path/../lib/${lib_name}"
+      install_name_tool -change  ${old_name} ${new_name} "${head}/bin/${dll_name}"
+    done
+  done
+
+fi # darwin_dlls

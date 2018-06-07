@@ -1,0 +1,47 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_printer
+#define inlib_printer
+
+//used with Python.
+
+#include "S_STRING"
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+namespace inlib {
+
+class printer {
+public:
+  INLIB_SCLASS(inlib::printer)
+public:
+  void write(const std::string& a_s) {m_out << a_s;}
+public:
+  printer(std::ostream& a_out):m_out(a_out) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~printer(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  printer(const printer& a_from):m_out(a_from.m_out) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  printer& operator=(const printer&){return *this;}
+protected:
+  std::ostream& m_out;
+};
+
+}
+
+#endif
+

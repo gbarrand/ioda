@@ -1,0 +1,274 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_field3d
+#define inlib_sg_field3d
+
+//used in pmx to store magnetic field.
+
+#include "node"
+#include "sf"
+#include "mf"
+#include "../vec3d"
+#include "../mnmx"
+
+namespace inlib {
+namespace sg {
+
+class field3d : public node {
+  INLIB_NODE(field3d,inlib::sg::field3d,node)
+public:
+  sf<unsigned int> nx;
+  sf<unsigned int> ny;
+  sf<unsigned int> nz;
+
+  sf<double> dx;
+  sf<double> dy;
+  sf<double> dz;
+
+  sf<double> ox;
+  sf<double> oy;
+  sf<double> oz;
+
+  sf<double> scale;
+  mf_vec<vec3d,double> vectors;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::field3d)
+    static const desc_fields s_v(parent::node_desc_fields(),11, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(nx),
+      INLIB_ARG_FIELD_DESC(ny),
+      INLIB_ARG_FIELD_DESC(nz),
+
+      INLIB_ARG_FIELD_DESC(dx),
+      INLIB_ARG_FIELD_DESC(dy),
+      INLIB_ARG_FIELD_DESC(dz),
+
+      INLIB_ARG_FIELD_DESC(ox),
+      INLIB_ARG_FIELD_DESC(oy),
+      INLIB_ARG_FIELD_DESC(oz),
+
+      INLIB_ARG_FIELD_DESC(scale),
+      INLIB_ARG_FIELD_DESC(vectors)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&nx);
+    add_field(&ny);
+    add_field(&nz);
+
+    add_field(&dx);
+    add_field(&dy);
+    add_field(&dz);
+
+    add_field(&ox);
+    add_field(&oy);
+    add_field(&oz);
+
+    add_field(&scale);
+    add_field(&vectors);
+  }
+public:
+  field3d()
+  :parent()
+
+  ,nx(0)
+  ,ny(0)
+  ,nz(0)
+
+  ,dx(0)
+  ,dy(0)
+  ,dz(0)
+
+  ,ox(0)
+  ,oy(0)
+  ,oz(0)
+
+  ,scale(1)
+  ,vectors()
+  {
+    add_fields();
+  }
+  virtual ~field3d(){}
+public:
+  field3d(const field3d& a_from)
+  :parent(a_from)
+
+  ,nx(a_from.nx)
+  ,ny(a_from.ny)
+  ,nz(a_from.nz)
+
+  ,dx(a_from.dx)
+  ,dy(a_from.dy)
+  ,dz(a_from.dz)
+
+  ,ox(a_from.ox)
+  ,oy(a_from.oy)
+  ,oz(a_from.oz)
+
+  ,scale(a_from.scale)
+  ,vectors(a_from.vectors)
+  {
+    add_fields();
+  }
+  field3d& operator=(const field3d& a_from){
+    parent::operator=(a_from);
+
+    nx = a_from.nx;
+    ny = a_from.ny;
+    nz = a_from.nz;
+
+    dx = a_from.dx;
+    dy = a_from.dy;
+    dz = a_from.dz;
+
+    ox = a_from.ox;
+    oy = a_from.oy;
+    oz = a_from.oz;
+
+    scale = a_from.scale;
+    vectors = a_from.vectors;
+
+    return *this;
+  }
+public:
+  bool field_by_interpolation(const vec3d& a_r,vec3d& a_bf) const {
+    /// Return the field vector fvec at the point xyz by interpolation
+    /// on the grid.
+
+    //  Interpolate the field on a cube
+    a_bf.set_value(0,0,0) ;
+
+    unsigned int _nx = nx.value();
+    unsigned int _ny = ny.value();
+    unsigned int _nz = nz.value();
+
+    double _dx = dx.value();
+    double _dy = dy.value();
+    double _dz = dz.value();
+/*
+    if(nx.value()<=0) return false;
+    if(ny.value()<=0) return false;
+    if(nz.value()<=0) return false;
+    if(dx.value()<=0) return false;
+    if(dy.value()<=0) return false;
+    if(dz.value()<=0) return false;
+*/
+    double x = a_r.x() - ox;  
+    double y = a_r.y() - oy;
+    double z = a_r.z() - oz;
+
+    int i = int( x/_nx) ;
+    int j = int( y/_ny) ;
+    int k = int( z/_nz) ;
+    if((i<0)||(i>=int(_nx-1))) return false;
+    if((j<0)||(j>=int(_ny-1))) return false;
+    if((k<0)||(k>=int(_nz-1))) return false;
+    
+    int ijk000 = ( _nx*( _ny*k     + j )     + i );
+    int ijk001 = ( _nx*( _ny*(k+1) + j )     + i );
+    int ijk010 = ( _nx*( _ny*k     + j + 1 ) + i );
+    int ijk011 = ( _nx*( _ny*(k+1) + j + 1)  + i );
+    int ijk100 = ( _nx*( _ny*k     + j)      + i + 1 );
+    int ijk101 = ( _nx*( _ny*(k+1) + j)      + i + 1 );
+    int ijk110 = ( _nx*( _ny*k     + j + 1)  + i + 1 );
+    int ijk111 = ( _nx*( _ny*(k+1) + j + 1 ) + i + 1 );
+      
+    // auxiliary variables defined at the vertices of the cube that
+    // contains the (x, y, z) point where the field is interpolated
+    double cx000,cx001,cx010,cx011,cx100,cx101,cx110,cx111,
+           cy000,cy001,cy010,cy011,cy100,cy101,cy110,cy111,
+           cz000,cz001,cz010,cz011,cz100,cz101,cz110,cz111;
+
+    const std::vector<vec3d>& m_Q = vectors.values();
+      
+    cx000 = (m_Q)[ ijk000 ].x();
+    cy000 = (m_Q)[ ijk000 ].y();
+    cz000 = (m_Q)[ ijk000 ].z();
+    cx001 = (m_Q)[ ijk001 ].x();
+    cy001 = (m_Q)[ ijk001 ].y();
+    cz001 = (m_Q)[ ijk001 ].z();
+    cx010 = (m_Q)[ ijk010 ].x();
+    cy010 = (m_Q)[ ijk010 ].y();
+    cz010 = (m_Q)[ ijk010 ].z();
+    cx011 = (m_Q)[ ijk011 ].x();
+    cy011 = (m_Q)[ ijk011 ].y();
+    cz011 = (m_Q)[ ijk011 ].z();
+    cx100 = (m_Q)[ ijk100 ].x();
+    cy100 = (m_Q)[ ijk100 ].y();
+    cz100 = (m_Q)[ ijk100 ].z();
+    cx101 = (m_Q)[ ijk101 ].x();
+    cy101 = (m_Q)[ ijk101 ].y();
+    cz101 = (m_Q)[ ijk101 ].z();
+    cx110 = (m_Q)[ ijk110 ].x();
+    cy110 = (m_Q)[ ijk110 ].y();
+    cz110 = (m_Q)[ ijk110 ].z();
+    cx111 = (m_Q)[ ijk111 ].x();
+    cy111 = (m_Q)[ ijk111 ].y();
+    cz111 = (m_Q)[ ijk111 ].z();
+      
+    double hx1 = ( x-i*_dx)/_dx;
+    double hy1 = ( y-j*_dy)/_dy;
+    double hz1 = ( z-k*_dz)/_dz;
+    double hx0 = 1.0-hx1;
+    double hy0 = 1.0-hy1;
+    double hz0 = 1.0-hz1;
+      
+    double h000 = hx0*hy0*hz0;
+    double h001 = hx0*hy0*hz1;
+    double h010 = hx0*hy1*hz0;
+    double h011 = hx0*hy1*hz1;
+    double h100 = hx1*hy0*hz0;
+    double h101 = hx1*hy0*hz1;
+    double h110 = hx1*hy1*hz0;
+    double h111 = hx1*hy1*hz1;
+      
+    a_bf.v0( cx000*h000 + cx001*h001 + cx010*h010 + cx011*h011 +
+             cx100*h100 + cx101*h101 + cx110*h110 + cx111*h111) ;
+    a_bf.v1( cy000*h000 + cy001*h001 + cy010*h010 + cy011*h011 +
+             cy100*h100 + cy101*h101 + cy110*h110 + cy111*h111 );
+    a_bf.v2( cz000*h000 + cz001*h001 + cz010*h010 + cz011*h011 +
+             cz100*h100 + cz101*h101 + cz110*h110 + cz111*h111 );
+    a_bf *= scale;
+
+    return true;
+  }
+
+  bool field_min_max(double& a_fmin,double& a_fmax,unsigned int& a_cmax) const {
+    a_fmin = 0.0;
+    a_fmax = 0.0;
+    a_cmax = 0;
+
+    const std::vector<vec3d>& m_Q = vectors.values();
+
+    double value;
+    bool first = true;
+    unsigned int count = 0;
+    inlib_vforcit(vec3d,m_Q,it) {
+      value = (*it).length();
+      if(first) {
+        a_fmin = value;
+        a_fmax = value;
+        a_cmax = 0;
+        first = false;
+      } else {
+        a_fmin = mn<double>(a_fmin,value);
+        if(value>=a_fmax) {
+          a_fmax = value;
+          a_cmax = count;
+        }
+      }
+      count++;
+    }
+
+    return first==false?true:false;
+  }
+
+
+};
+
+}}
+
+#endif

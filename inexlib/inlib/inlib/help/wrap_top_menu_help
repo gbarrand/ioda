@@ -1,0 +1,47 @@
+#ifndef wrap_top_menu_help
+#define wrap_top_menu_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    top_menu.help
+//
+
+inline const char** top_menu_help(unsigned int& a_linen){
+  static const char _0[] = "  Beside @@double_quote@@files@@double_quote@@ and @@double_quote@@examples@@double_quote@@ the top menu has the items :";
+  static const char _1[] = "  - clear : to clear the viewing scene.";
+  static const char _2[] = "  - reset : to reset the camera with the parameters";
+  static const char _3[] = "    used when the scene had been created.";
+  static const char _4[] = "  - out.jpg : produce a jpeg file of what is viewed.";
+  static const char _5[] = "    According to the platform, the output directory is :";
+  static const char _6[] = "      desktop : ~/Documents/ioda";
+  static const char _7[] = "      Android : /sdcard/Android/data/fr.in2p3.lal.ioda";
+  static const char _8[] = "      iPod/iPhone/iPad : <app dir>/Documents.";
+  static const char _9[] = "  - infos : view various infos as the document";
+  static const char _10[] = "    directory, the output directory, the @@double_quote@@pwd@@double_quote@@ at";
+  static const char _11[] = "    startup, etc...";
+  static const char _12[] = "  - exit : (desktop) : exit the application.";
+  static const char _13[] = "    For Android and iPod/iPhone/iPad, use the device";
+  static const char _14[] = "    exit/home button.";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+,_7
+,_8
+,_9
+,_10
+,_11
+,_12
+,_13
+,_14
+};
+ a_linen = 15;
+ return _lines;
+}
+
+#endif

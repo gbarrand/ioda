@@ -1,0 +1,16 @@
+#!/bin/sh -f
+
+dirname=`dirname $1`
+basename=`basename $1`
+
+toname=`echo $basename | sed -e 's:.iv:.h:g'`
+
+set -x
+echo ++++++++
+echo $1
+echo ${dirname}/${toname}
+./iv2h.sh $1 > ${dirname}/${toname}
+
+
+
+

@@ -1,0 +1,72 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_sg_lhc1
+#define exlib_sg_lhc1
+
+#ifdef _MSC_VER
+// disable the warning about the usage of "this" in the constructor.
+#pragma warning(disable:4355)
+#endif
+
+#include <inlib/sg/tex_rect_anim>
+#include <inlib/wget>
+
+#include "../pngb"
+
+namespace exlib {
+namespace sg {
+
+class lhc1 : protected inlib::image::iterator, public inlib::sg::tex_rect_anim {
+  INLIB_NODE(lhc1,exlib::sg::lhc1,inlib::sg::tex_rect_anim)
+  typedef inlib::image::iterator img_it;
+protected: //image_iterator
+  virtual unsigned int entries() const {return 1;}
+  virtual bool next() {return true;}
+  virtual bool rewind() {return true;}
+  virtual unsigned int index() const {return 0;}
+  virtual unsigned char* read_image(unsigned int& a_w,unsigned int& a_h,unsigned int& a_bpp) {    
+    /////////////////////////////////////////////////
+    /// get lhc1.png ////////////////////////////////
+    /////////////////////////////////////////////////
+    std::string host("vistar-capture.web.cern.ch");
+    std::string request = "/vistar-capture/lhc1.png"; //width=1024 height=768 bpp=3
+
+    std::string ocookie;
+    char* ubuffer;
+    inlib::uint64 ulength;
+    if(!m_wget.get(host,80,request,ubuffer,ulength,m_cookie,ocookie)) {a_w = 0;a_h = 0;a_bpp = 0;return 0;}
+    if(m_cookie.empty()) m_cookie = ocookie;
+
+    if(!pngb::is(ulength,ubuffer)) {
+      delete [] ubuffer;
+      a_w = 0;a_h = 0;a_bpp = 0;
+      return 0;
+    }
+
+    unsigned int w,h,bpp;
+    unsigned char* buffer = pngb::read_buffer(ulength,ubuffer,w,h,bpp);
+    delete [] ubuffer;
+
+    if(!buffer) {a_w = 0;a_h = 0;a_bpp = 0;return 0;}
+    a_w = w;
+    a_h = h;
+    a_bpp = bpp;
+    return buffer;
+  }
+public:
+  lhc1(const inlib::wget& a_wget,const inlib::atime& a_start):parent(a_start,*((img_it*)this)),m_wget(a_wget){}
+  virtual ~lhc1(){}
+public:
+  lhc1(const lhc1& a_from):parent(a_from),m_wget(a_from.m_wget){}
+  lhc1& operator=(const lhc1& a_from){parent::operator=(a_from);return *this;}
+protected:
+  const inlib::wget& m_wget;
+  std::string m_cookie;
+};
+
+}}
+
+//exlib_build_use inlib png zlib
+
+#endif

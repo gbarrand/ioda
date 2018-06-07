@@ -1,0 +1,23 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_osc_strings
+#define exlib_hdf5_osc_strings
+
+#include <string>
+
+namespace exlib {
+namespace osc {
+
+inline const std::string& s_directory() {
+  static const std::string s_v("BatchLab::Directory");
+  return s_v;
+}
+inline const std::string& s_header() {
+  static const std::string s_v("BatchLab::Header");
+  return s_v;
+}
+
+}}
+
+#endif

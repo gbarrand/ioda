@@ -1,0 +1,427 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_scenario
+#define inlib_cbk_scenario
+
+#include "../sg/iopener"
+#include "../sg/entries"
+#include "../sg/scenario"
+#include "../sg/acbk"
+#include "../sg/base_camera"
+
+#include "../xml/snos"
+#include "../rroot/file"
+#include "../rroot/geo_manager"
+#include "../scolors"
+#include "../svalues"
+
+#include "../sg/view_evd"
+
+namespace inlib {
+namespace cbk {
+
+class scenario : public sg::acbk {
+protected:
+  static unsigned int action_main()   {return 0;}
+public:
+  virtual sg::return_action action() {
+
+    if(m_action==action_main()) {    
+      sg::view_evd* _evd = sg::cast_view_evd(m_gv);
+      if(!_evd) return sg::return_none;
+  
+      if(m_sno.m_background.size()){
+        colorf col(1,1,1);  
+        if(!sg::find_color(_evd->cmaps(),m_sno.m_background,col)) {
+          m_gv.map_warn("color "+m_sno.m_background+" not found.");
+          return sg::return_to_render;    
+        }
+        m_gv.set_scene_clear_color(col);
+      }
+
+      if(m_sno.m_console.size()){
+        m_gv.show_console(m_sno.m_console);
+      }
+
+      if(!_evd->is_evd()) _evd->create_sg_evd();
+  
+      if(m_sno.m_light_on.size()){
+        bool v;
+        if(to(m_sno.m_light_on,v)) {
+          m_gv.set_scene_light_on(v);
+        }
+      }
+
+      //////////////////////////////////////////////////////////
+      /// camera ///////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      if(m_sno.m_camera.m_class.size()){
+        sg::base_camera* camera = create_scenario_camera(m_gv,m_sno);
+        if(!camera) {
+          m_gv.map_warn("camera creation failed.");
+          return sg::return_to_render;
+        }
+        _evd->replace_camera(camera);
+      }
+
+      //////////////////////////////////////////////////////////
+      /// look for fog files : /////////////////////////////////
+      //////////////////////////////////////////////////////////
+      bool fog_empty = true;
+
+     {std::vector<xml::fog_file>::const_iterator it;
+      for(it=m_sno.m_fogs.begin();it!=m_sno.m_fogs.end();++it) {
+        const xml::fog_file& fog = *it;
+
+        std::string _path;
+        if(!m_gv.find_file(fog.m_file,_path)){
+          m_gv.map_warn("file "+fog.m_file+" not found.");
+        } else {
+
+          bool solid = false;
+          if(fog.m_solid.size() && !to(fog.m_solid,solid)) {
+            m_gv.map_warn_nab();
+            solid = false;
+          }
+          //bool edges = m_gv.m_params.m_edges;
+
+          args _args(m_args);
+          _args.add("-solid",fog.m_solid);
+
+          if(!open(_path,m_sno,_evd->cmaps(),_args)){
+            m_gv.map_warn("fog file type not treated.");
+            return sg::return_to_render;     
+          }
+  
+          fog_empty = false;
+        }
+      }}
+
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      if(m_sno.m_files.empty()) {
+        if(!fog_empty) m_gv.hide_main_menu();
+      } else {
+
+        const std::vector<xml::item>& _files = m_sno.m_files;
+        std::vector<xml::item>::const_iterator it;
+        for(it=_files.begin();it!=_files.end();++it) {
+          std::string _path;
+          if(!m_gv.find_file((*it).m_name,_path)){
+            m_gv.map_warn("file "+(*it).m_name+" not found.");
+            return sg::return_to_render;     
+          }
+
+          args _args(m_args);
+          _args.add((*it).m_args);
+          //if(m_gv.m_params.m_node_color.size()) {
+          //  _args.add(sg::s_back_color(),m_gv.m_params.m_node_color,true);
+          //}
+
+          if(!open(_path,m_sno,_evd->cmaps(),_args)) return sg::return_to_render;     
+
+          if(_args.is_arg(sg::s_pos_x_wcam())) m_sno.m_center_adjust = false;
+          if(_args.is_arg(sg::s_pos_y_hcam())) m_sno.m_center_adjust = false;
+          if(_args.is_arg(sg::s_pos_col())) m_sno.m_center_adjust = false;
+          if(_args.is_arg(sg::s_pos_row())) m_sno.m_center_adjust = false;
+        }
+      }
+
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+     {typedef xml::atbs atbs_t;
+      typedef std::vector< std::pair<std::string,atbs_t> > text_t;
+      const text_t& txt = m_sno.m_text;
+      std::vector<std::string> vs;
+      text_t::const_iterator it2;
+      for(it2=txt.begin();it2!=txt.end();++it2){
+        vs.push_back((*it2).first);
+      }
+      add_text(m_gv,*_evd,vs); //used in <slide>
+      if(vs.size()) m_gv.hide_main_menu();}
+
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////////
+
+      return sg::return_to_render;     
+
+    } else {
+      m_gv.map_warn("unknown action.");
+      return sg::return_to_render;     
+    }
+
+    return sg::return_none;     
+  }
+
+  virtual sg::bcbk* copy() const {return new scenario(*this);}
+public:
+  typedef std::pair<std::string,iopener*> named_opener_t;
+  typedef xml::scenario sno_t;
+  scenario(sg::gui_viewer& a_gv,
+           const std::vector<named_opener_t>& a_ops,
+           const args& a_args,
+           sno_t& a_sno,
+           unsigned int a_action = action_main())
+  :sg::acbk(a_action)
+  ,m_gv(a_gv)
+  ,m_args(a_args)
+  ,m_sno(a_sno)
+  ,m_entries(0)  
+  {
+    copy_openers(a_ops);
+  }
+  virtual ~scenario(){
+    clear_openers();
+  }
+protected:
+  scenario(const scenario& a_from)
+  :sg::acbk(a_from)
+  ,m_gv(a_from.m_gv)
+  ,m_args(a_from.m_args)
+  ,m_sno(a_from.m_sno)
+
+  ,m_entries(a_from.m_entries)
+  {
+    copy_openers(a_from.m_openers);
+  }
+  scenario& operator=(const scenario& a_from){
+    sg::acbk::operator=(a_from);
+    if(&a_from==this) return *this;
+    copy_openers(a_from.m_openers);
+    m_args = a_from.m_args;
+    m_entries = a_from.m_entries;
+    return *this;
+  }
+
+protected:
+
+  template <class T>
+  static bool cam_set_prop(sg::gui_viewer& a_gv,
+                           T& a_field,
+                           const std::string& a_name,
+                           const std::string& a_value){
+    if(a_value.empty()) return true;
+    float val;
+    if(!to(a_value,val)) {
+      a_gv.map_warn("bad value "+sout(a_value)+" for "+sout(a_name)+".");
+      return false;
+    }
+    a_field = val;
+    return true;
+  }
+  
+  static sg::base_camera* create_scenario_camera(sg::gui_viewer& a_gv,
+                                                 const xml::scenario& a_sno) {
+    //////////////////////////////////////////////////////////
+    /// camera ///////////////////////////////////////////////
+    //////////////////////////////////////////////////////////
+    sg::base_camera* camera = 0;
+  
+   {//try to set camera from XML file :
+    if(a_sno.m_camera.m_class=="perspective"){
+  
+      float height_angle;
+      if(!to(a_sno.m_camera.m_height_angle,height_angle)) {
+        a_gv.map_warn("bad value "+sout(a_sno.m_camera.m_height_angle)+
+                      " for height_angle.");
+        return 0;
+      }
+  
+      float znear = 1;
+      float near_height = 2.0f*znear*ftan(height_angle*0.5f);
+  
+      camera = a_gv.create_camera(sg::camera_perspective,near_height,znear);
+  
+    } else if(a_sno.m_camera.m_class=="ortho"){
+  
+      float height;
+      if(!to(a_sno.m_camera.m_height,height)) {
+        a_gv.map_warn("bad value "+sout(a_sno.m_camera.m_height)+
+                      " for height.");
+        return 0;
+      }
+  
+      float znear = 1;
+      camera = a_gv.create_camera(sg::camera_ortho,height,znear);
+    } else {
+      a_gv.map_warn("unknown camera class "+sout(a_sno.m_camera.m_class)+".");
+      return 0;
+    }}
+  
+    if(!camera) {
+      a_gv.map_warn("camera creation failed.");
+      return 0;
+    }
+   
+    if(!cam_set_prop(a_gv,camera->znear,"znear",a_sno.m_camera.m_znear)) {
+      delete camera;
+      return 0;
+    }
+    if(!cam_set_prop(a_gv,camera->zfar,"zfar",a_sno.m_camera.m_zfar)) {
+      delete camera;
+      return 0;
+    }
+    if(a_sno.m_camera.m_position.size()){
+      std::vector<float> vals;
+      if(values(a_sno.m_camera.m_position," ",false,vals)&&
+         (vals.size()==3)) {
+        camera->position = vec3f(vals[0],vals[1],vals[2]);
+      } else {
+        a_gv.map_warn(sout(a_sno.m_camera.m_position)+" is not a position.");
+        delete camera;
+        return 0;
+      }
+    }
+    if(a_sno.m_camera.m_orientation.size()){
+      std::vector<float> vals;
+      if(values(a_sno.m_camera.m_orientation," ",false,vals)&&
+         (vals.size()==4)) {
+        camera->orientation = rotf(vec3f(vals[0],vals[1],vals[2]),vals[3]);
+      } else {
+        a_gv.map_warn(sout(a_sno.m_camera.m_orientation)+
+                      " is not an orientation.");
+        delete camera;
+        return 0;
+      }
+    }
+    if(!cam_set_prop(a_gv,camera->dx,"dx",a_sno.m_camera.m_dx)) {
+      delete camera;
+      return 0;
+    }
+    if(!cam_set_prop(a_gv,camera->da,"da",a_sno.m_camera.m_da)) {
+      delete camera;
+      return 0;
+    }
+    if(!cam_set_prop(a_gv,camera->ds,"ds",a_sno.m_camera.m_ds)) {
+      delete camera;
+      return 0;
+    }
+    if(!cam_set_prop(a_gv,camera->focal,"focal",a_sno.m_camera.m_focal)) {
+      delete camera;
+      return 0;
+    }
+  
+    return camera;
+  }
+
+  static void add_text(sg::gui_viewer& a_gv,
+                       sg::view_evd& a_evd,
+                       const std::vector<std::string>& a_txt){
+    sg::separator& dsep = a_evd.detector_sg();
+
+    sg::separator* _sep = new sg::separator;
+    dsep.add(_sep);
+
+    //_sep->add(new sg::normal);
+
+    sg::rgba* mat = new sg::rgba();
+    mat->color = colorf_wheat();
+    _sep->add(mat);
+
+    sg::base_freetype* tft = sg::base_freetype::create(a_gv.ttf());
+    tft->font = sg::font_arialbd_ttf();
+
+    tft->strings = a_txt;
+
+    _sep->add(tft);
+  }
+
+protected:
+  void clear_openers(){
+    inlib_vforcit(named_opener_t,m_openers,it) delete (*it).second;
+    m_openers.clear();
+  }
+  void copy_openers(const std::vector<named_opener_t>& a_from) {
+    clear_openers();
+    inlib_vforcit(named_opener_t,a_from,it) {
+      m_openers.push_back(named_opener_t((*it).first,(*it).second->copy()));
+    }
+  }
+
+  bool open(const std::string& a_path,
+            const xml::scenario& a_sno,
+            sg::cmaps_t& a_cmaps,
+            const args& a_args) {
+
+    //m_gv.out() << "debug : cbk::scenario::open :"
+    //           << " path " << a_path << std::endl;
+
+    inlib_vforcit(named_opener_t,m_openers,it) {
+      //m_gv.out() << "debug : cbk::scenario::open :"
+      //           << " try " << (*it).first << std::endl;
+
+      bool is;
+      if(!(*it).second->is(a_path,is)) {
+        m_gv.map_warn("iopener::is() failed.");
+        return false;
+      }
+      if(is) {
+        //m_gv.out() << "debug : cbk::scenario::open :"
+        //           << " is ok." << std::endl;
+        bool done;
+        if(!(*it).second->open(a_path,m_gv,a_sno,a_cmaps,a_args,done)) {
+          m_gv.map_warn("iopener::open() failed.");
+          return false;
+        }
+        if(done) {
+          //m_gv.out() << "debug : cbk::scenario::open :"
+          //           << " opened." << std::endl;
+          return true;
+        }
+      }
+    }
+    m_gv.map_warn("no opener for "+a_path);
+    return false;
+  }
+protected:
+  sg::gui_viewer& m_gv;
+  std::vector<named_opener_t> m_openers;  
+  args m_args;
+  sno_t& m_sno;
+
+  sg::entries* m_entries; //not owner.
+};
+
+class scenario_cp : public scenario {
+  typedef scenario parent;
+  typedef std::pair<std::string,iopener*> named_opener_t;
+  typedef xml::scenario sno_t;
+public:
+  virtual sg::bcbk* copy() const {return new scenario_cp(*this);}
+public:
+  scenario_cp(sg::gui_viewer& a_gv,
+              const std::vector<named_opener_t>& a_ops,
+              const args& a_args,
+              const sno_t& a_sno,
+              unsigned int a_action = parent::action_main())
+  :parent(a_gv,a_ops,a_args,m_cp,a_action)
+  ,m_cp(a_sno)
+  //WARNING : the upper is ok as long as scenario constructor does nothing
+  //          else than keeping the ref to m_cp. Else it would do
+  //          something on an empty geo::scenario (and not on a copy of the
+  //          passed a_sno).
+  {}
+  virtual ~scenario_cp(){}
+protected:
+  scenario_cp(const scenario_cp& a_from)
+  :parent(a_from.m_gv,a_from.m_openers,a_from.m_args,m_cp,a_from.m_action)
+  ,m_cp(a_from.m_cp)
+  {}
+  scenario_cp& operator=(const scenario_cp& a_from){
+    parent::operator=(a_from);
+    m_cp = a_from.m_cp;
+    return *this;
+  }
+protected:
+  sno_t m_cp;
+};  
+
+}}
+
+//inlib_build_use kernel
+
+#endif

@@ -1,0 +1,31 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+. ${bush_home}/ourex_generic
+
+if [ ${build_app} = "yes" ] ; then
+
+  ccflags="${ccflags} -I./include"
+    
+  cfiles="./applications/getline.c"
+  
+  use_archive=yes
+  . ${bush_home}/preplib
+
+  objs=
+  app_exe=kuipcc
+  app_src=./applications/kuipcc.c
+  . ${bush_home}/application
+
+  objs=
+  cfiles="./applications/getline.c"
+  cfiles="${cfiles} ./applications/uprogcdf.c"
+  app_exe=kuipsh
+  app_src=./applications/kuipsh.c
+  . ${bush_home}/application
+
+fi

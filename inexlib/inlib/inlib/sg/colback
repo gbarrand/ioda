@@ -1,0 +1,62 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_colback
+#define inlib_sg_colback
+
+// colback = color background.
+
+#include "node"
+
+#include "sf_vec"
+#include "render_action"
+#include "../colorf"
+
+namespace inlib {
+namespace sg {
+
+class colback : public node {
+  INLIB_NODE(colback,inlib::sg::colback,node)
+public:
+  sf_vec<colorf,float> color;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::colback)
+    static const desc_fields s_v(parent::node_desc_fields(),1, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(color)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&color);
+  }
+public:
+  virtual void render(render_action& a_action) {
+    a_action.clear_color(color.value());
+  }
+public:
+  colback()
+  :parent()
+  ,color(colorf_default())
+  {
+    add_fields();
+  }
+  virtual ~colback(){}
+public:
+  colback(const colback& a_from)
+  :parent(a_from)
+  ,color(a_from.color)
+  {
+    add_fields();
+  }
+  colback& operator=(const colback& a_from){
+    parent::operator=(a_from);
+    color = a_from.color;
+    return *this;
+  }
+};
+
+}}
+
+#endif

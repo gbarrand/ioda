@@ -1,0 +1,69 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_cbk_unzip
+#define exlib_cbk_unzip
+
+#include <inlib/sg/file_chooser>
+#include <inlib/sg/gui_viewer>
+
+#include "../unzip"
+
+namespace exlib {
+namespace cbk {
+
+inline inlib::sg::return_action action_open_file(inlib::sg::gui_viewer& a_gv,inlib::sg::file_chooser& a_widget,const inlib::sg::pos_data& a_data) {
+  std::string path = a_widget.value.value();
+  std::string fmt = a_widget.format.value();
+
+/*
+     {bool is;
+      if(!inlib::file::is_zip(path,is)) {
+        m_gv.map_warn("is_zip failed.");
+        return inlib::sg::return_to_render;
+      }
+      if(!is) {
+        m_gv.map_warn("not a zip file.");
+        return inlib::sg::return_to_render;
+      }}
+*/
+
+  std::string data_dir;
+  a_gv.first_data_dir(data_dir);
+  if(data_dir.empty()) {
+    a_gv.pop_warn(a_data,"no data dir");
+    return inlib::sg::return_to_render;     
+  }
+  if(!unzip_from(a_gv.out(),data_dir,path)) {
+    a_gv.pop_warn(a_data,"unzip_from() failed");
+    return inlib::sg::return_to_render;     
+  }
+
+  a_gv.pop_warn(a_data,"done",false);
+
+  return inlib::sg::return_to_render;
+}
+
+inline inlib::sg::return_action action_unzip(inlib::sg::gui_viewer& a_gv,const inlib::sg::pos_data& a_data) {
+  inlib::sg::file_chooser* fch = new inlib::sg::file_chooser(a_gv.ttf());
+  a_gv.set_style(*fch);
+
+  fch->exts.add(".zip");
+
+  fch->dirs.add(a_gv.res_dir());
+  fch->dirs.add(a_gv.data_dirs());
+
+  inlib::sg::add_callback(a_gv,*fch,action_open_file,a_data);
+
+  fch->initialize(a_gv.out());
+
+  a_gv.show_widget(a_data,fch);
+
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib zip zlib kernel

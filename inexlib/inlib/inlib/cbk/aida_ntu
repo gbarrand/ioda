@@ -1,0 +1,442 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_aida_ntu
+#define inlib_cbk_aida_ntu
+
+#include "../sg/entries"
+
+#include "../aida_ntuple"
+#include "../histo/h1d"
+
+#include "../sg/view_plots"
+
+namespace inlib {
+namespace cbk {
+
+  template <class T>
+  class hist_looper : public aida::base_looper<T> {
+  protected:
+    virtual bool action(const T& a_v) {
+      m_histo.fill(double(a_v),1);
+      return true; //continue looping.
+    }
+  public:
+    hist_looper(aida::base_ntu& a_ntu,
+                       const aida::base_col& a_col,
+                       histo::h1d& a_histo)
+    :aida::base_looper<T>(a_ntu,a_col)
+    ,m_histo(a_histo)
+    {}
+    virtual ~hist_looper(){}
+  public:
+    hist_looper(const hist_looper& a_from)
+    :aida::base_looper<T>(a_from)
+    ,m_histo(a_from.m_histo)
+    {}
+    hist_looper& operator=(const hist_looper& a_from){
+      aida::base_looper<T>::operator=(a_from);
+      return *this;
+    }  
+  protected:
+    histo::h1d& m_histo;
+  };
+  
+template <class T>
+inline bool fill_histo(aida::base_ntu& a_ntu,const aida::base_col& a_x,histo::h1d& a_histo){
+  hist_looper<T> lpr(a_ntu,a_x,a_histo);
+  return lpr.process();
+}
+
+/*
+template <class T>
+inline bool fill_histo(aida::base_ntu& a_ntu,
+                       const aida::base_col<T>& a_x,
+                       const aida::base_col<T>& a_y,
+                       histo::h2d& a_histo){
+  T x,y;
+  a_ntu.start();
+  while(a_ntu.next()){
+    if(!a_x.get_entry(x)) return false;
+    if(!a_y.get_entry(y)) return false;
+    a_histo.fill(x,y);
+  }
+  return true;
+}
+*/
+
+class aida_ntu : public sg::acbk, public sg::pos_data {
+protected:
+  static unsigned int action_book()   {return 1;}
+public:
+  static unsigned int action_main()   {return 0;}
+public:
+  virtual sg::return_action action() {
+    //m_sd.m_out << "inlib::cbk::aida_ntu::action :" 
+    //           << std::endl;    
+
+
+    if(m_action==action_main()) {    
+      //histogram for a inlib::aida::aida_col<> column.
+ 
+      int64 nrow = m_ntu.rows();
+      if(nrow<=0) {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"empty");
+        return sg::return_to_render;     
+      }
+  
+      double mean,rms;
+      if(safe_cast<aida::base_col,aida::aida_col<float> >(m_col) ){
+        float mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<float>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs(double(S2)/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<double> >(m_col) ){
+
+        double mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<double>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        //::printf("debug : col_infos %g %g %g %g\n",mn,mx,S,S2);
+        mean = S/double(count);
+        rms = ::sqrt(::fabs(S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<char> >(m_col) ){
+
+        char mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<char>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned char> >(m_col) ){
+
+        unsigned char mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<unsigned char>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<short> >(m_col) ){
+
+        short mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<short>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned short> >(m_col)){
+
+        unsigned short mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<unsigned short>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<int> >(m_col) ){
+
+        int mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<int>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned int> >(m_col) ){
+
+        unsigned int mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<unsigned int>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<int64> >(m_col) ){
+
+        int64 mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<int64>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<uint64> >(m_col) ){
+
+        uint64 mn,mx,S,S2;
+        uint64 count;
+        if(!aida::column_infos<uint64>(m_ntu,m_col,mn,mx,S,S2,count)){
+          if(!count) {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"column empty");
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"find mean rms failed");
+          }
+          return sg::return_to_render;     
+        }
+        mean = double(S)/double(count);
+        rms = ::sqrt(::fabs((double)S2/double(count)-mean*mean));
+
+      } else if(aida::aida_col_ntu* lntu = safe_cast<aida::base_col,aida::aida_col_ntu>(m_col) ){
+        //display sub leaves :
+
+        aida::base_ntu* ntu = lntu->get_to_fill();
+        if(!ntu) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"get_to_fill() failed");
+          return sg::return_to_render;     
+        }
+
+        sg::list* list = new sg::list(m_gv.ttf());
+        m_gv.set_style(*list);
+
+        const std::vector<aida::base_col*>& cols = ntu->cols();
+       {std::vector<aida::base_col*>::const_iterator it;
+        for(it=cols.begin();it!=cols.end();++it) {
+          aida::base_col* col = (*it);
+          list->add(col->name(),new aida_ntu(m_gv,m_ntu,*col,action_main(),m_popup,m_ex,m_ey));
+        }}
+
+        if(!list->items.size()) {
+          delete list;
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"empty");
+        } else {
+          m_gv.show_widget(*this,list);
+        }
+        return sg::return_to_render;     
+
+      } else {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"leaf type not treated.");
+        return sg::return_to_render;     
+      }
+
+      double hmn = mean-rms*5;
+      double hmx = mean+rms*5;
+  
+      sg::entries* entries = new sg::entries(m_gv.ttf());
+      m_gv.set_style(*entries);
+      entries->add_string("title",m_col.name());
+      entries->add_uint("bins",100);
+      entries->add_double("min",hmn);
+      entries->add_double("max",hmx);
+      entries->add_not_editable<double>("mean",mean);
+      entries->add_not_editable<double>("rms",rms);
+
+      aida_ntu* _cbk = new aida_ntu(m_gv,m_ntu,m_col,action_book(),m_popup,m_ex,m_ey);
+      _cbk->m_entries = entries;
+      entries->add_callback(_cbk);
+
+      m_gv.show_widget(*this,entries);
+  
+    } else if(m_action==action_book()) {    
+
+      //atime begin = atime::now();
+
+      // get booking infos from entries panel :
+      std::string htit = m_entries->values[0];
+      unsigned int nbin;
+      if(!to<unsigned int>(m_entries->values[1],nbin)) {
+        m_entries = 0;
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"nbin not a number");
+        return sg::return_to_render;     
+      }
+      double mn;
+      if(!to<double>(m_entries->values[2],mn)) {
+        m_entries = 0;
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"min not a number");
+        return sg::return_to_render;     
+      }
+      double mx;
+      if(!to<double>(m_entries->values[3],mx)) {
+        m_entries = 0;
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"max not a number");
+        return sg::return_to_render;     
+      }
+      m_entries = 0;
+
+      if(!nbin) {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"nbin must be > 0");
+        return sg::return_to_render;     
+      }
+      if(mn>=mx) {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"min must be < max");
+        return sg::return_to_render;     
+      }
+      histo::h1d h(htit,nbin,mn,mx);
+  
+      if(safe_cast<aida::base_col, aida::aida_col<float> >(m_col) ){
+        if(!fill_histo<float>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<double> >(m_col) ){
+        if(!fill_histo<double>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<char> >(m_col) ){
+        if(!fill_histo<char>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned char> >(m_col) ){
+        if(!fill_histo<unsigned char>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<short> >(m_col) ){
+        if(!fill_histo<short>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned short> >(m_col)){
+        if(!fill_histo<unsigned short>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<int> >(m_col) ){
+        if(!fill_histo<int>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<unsigned int> >(m_col) ){
+        if(!fill_histo<unsigned int>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<int64> >(m_col) ){
+        if(!fill_histo<int64>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else if(safe_cast<aida::base_col, aida::aida_col<uint64> >(m_col) ){
+        if(!fill_histo<uint64>(m_ntu,m_col,h)) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"fill histo failed");
+          return sg::return_to_render;     
+        }
+
+      } else {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"column type not treated");
+        return sg::return_to_render;     
+      }
+
+      sg::plot(m_gv,h);
+
+      //m_gv.pop_warn(m_popup,m_ex,m_ey,atime2s(atime::elapsed(begin)));
+
+      if(!m_popup) m_gv.hide_main_menu();
+
+    }
+
+    return sg::return_to_render;     
+  }
+
+  virtual sg::bcbk* copy() const {return new aida_ntu(*this);}
+public:
+  aida_ntu(sg::gui_viewer& a_gv,aida::base_ntu& a_ntu,aida::base_col& a_col,unsigned int a_action,bool a_popup,int a_ex,int a_ey)
+  :sg::acbk(a_action)
+  ,sg::pos_data(a_popup,a_ex,a_ey)
+  ,m_gv(a_gv)
+  ,m_ntu(a_ntu)
+  ,m_col(a_col)
+
+  ,m_entries(0)
+  {}
+  virtual ~aida_ntu(){}
+protected:
+  aida_ntu(const aida_ntu& a_from)
+  :sg::acbk(a_from)
+  ,sg::pos_data(a_from)
+  ,m_gv(a_from.m_gv)
+  ,m_ntu(a_from.m_ntu)
+  ,m_col(a_from.m_col)
+
+  ,m_entries(a_from.m_entries)
+  {}
+  aida_ntu& operator=(const aida_ntu& a_from){
+    sg::acbk::operator=(a_from);
+    pos_data::operator=(a_from);
+
+    m_entries = a_from.m_entries;
+    return *this;
+  }
+protected:
+  sg::gui_viewer& m_gv;
+  aida::base_ntu& m_ntu;
+  aida::base_col& m_col;
+public: // per action parameters :
+  sg::entries* m_entries; //not owner.
+};
+
+}}
+
+//inlib_build_use kernel
+
+#endif

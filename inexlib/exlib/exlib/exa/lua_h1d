@@ -1,0 +1,48 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_exa_lua_h1d
+#define exlib_exa_lua_h1d
+
+#include "../sg/view_lua"
+
+#include <inlib/sg/gui_viewer>
+
+namespace exlib {
+namespace exa {
+
+inline inlib::sg::return_action lua_h1d(inlib::sg::gui_viewer& a_gv){
+  exlib::sg::view_lua* _view_lua = exlib::sg::cast_view_lua(a_gv);
+  if(!_view_lua) return inlib::sg::return_none;
+  lua_State* _lua = _view_lua->lua_state();
+  if(!_lua) return inlib::sg::return_none;
+
+  std::string s = "\n\
+h = inlib.histo_h1d('Rand gauss',100,-5,5)\n\
+r = inlib.rgaussd(0,1)\n\
+for I = 1,10000,1 do\n\
+  h:fill(r:shoot(),1)\n\
+end\n\
+print(h:entries(),h:mean(),h:rms())\n\
+";
+  int status = ::luaL_loadstring(_lua,s.c_str());
+  if(!status) {
+    // execute Lua program
+    status = ::lua_pcall(_lua,0,LUA_MULTRET,0);
+  }
+
+  if(status) {
+    a_gv.out() << ::lua_tostring(_lua,-1) << std::endl;
+    a_gv.map_warn(::lua_tostring(_lua,-1));
+    ::lua_pop(_lua,1); // remove error message
+  }
+
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib exlib lua kernel
+

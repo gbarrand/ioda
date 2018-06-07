@@ -1,0 +1,754 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_manager
+#define inlib_rroot_geo_manager
+
+#include "../sout"
+#include "../vpair"
+#include "named"
+#include "list"
+#include "dummy"
+
+#include "geo_matrices"
+#include "geo_shapes"
+#include "geo_xtru"
+#include "geo_bool_node"
+#include "geo_volume"
+#include "geo_medium"
+#include "geo_material"
+#include "geo_node_matrix"
+#include "geo_polygon"
+#include "geo_pattern_finder"
+#include "geo_scaled_shape"
+
+#include "geo_colors"
+
+namespace inlib {
+namespace rroot {
+
+class geo_fac : public virtual ifac {
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_fac");
+    return s_v;
+  }
+public: //ifac
+  virtual iro* create(const std::string& a_class,const args& a_args) {     
+    //from atlas.root, most frequents :
+    //   geo_nodes
+    //   combi_trans,translation
+  
+    //geo_node :
+    if(rcmp(a_class,"TGeoNodeMatrix")) {
+      return create<geo_node_matrix>();
+    } else if(rcmp(a_class,"TGeoNodeOffset")) {
+      return create<geo_node_offset>();
+
+    //geo_matrix :
+    } else if(rcmp(a_class,"TGeoCombiTrans")) {
+      return create<geo_combi_trans>();
+    } else if(rcmp(a_class,"TGeoTranslation")) {
+      return create<geo_translation>();
+    } else if(rcmp(a_class,"TGeoRotation")) {
+      return create<geo_rotation>();
+    } else if(rcmp(a_class,"TGeoHMatrix")) {
+      return create<geo_hmatrix>();
+    } else if(rcmp(a_class,"TGeoScale")) {
+      return create<geo_scale>();
+    } else if(rcmp(a_class,"TGeoIdentity")) {
+      return create<geo_identity>();
+
+    } else if(rcmp(a_class,"TGeoVolume")) {
+      return create<geo_volume>();
+
+    } else if(rcmp(a_class,"TObjArray")) {
+      std::string* sc = ifac::arg_class(a_args);
+      if(sc) {
+        if((*sc)==geo_node::s_class()){
+          iro* obj = new obj_array<geo_node>(*this,false,false);
+          m_objs.push_back(obj);
+          return obj;
+        } else {
+          m_out << "inlib::rroot::geo_fac::create :"
+                << " Can't create TObjArray of " << *sc << "."
+                << std::endl;
+          return 0; 
+        }
+      } else {
+        iro* obj = new iros(*this,false,false);
+        m_objs.push_back(obj);
+        return obj;
+      }
+
+    //geo_shape :
+    } else if(rcmp(a_class,"TGeoBBox")) {
+      return create<geo_bbox>();
+    } else if(rcmp(a_class,"TGeoTube")) {
+      return create<geo_tube>();
+    } else if(rcmp(a_class,"TGeoTubeSeg")) {
+      return create<geo_tube_seg>();
+    } else if(rcmp(a_class,"TGeoCone")) {
+      return create<geo_cone>();
+    } else if(rcmp(a_class,"TGeoConeSeg")) {
+      return create<geo_cone_seg>();
+    } else if(rcmp(a_class,"TGeoTrd1")) {
+      return create<geo_trd1>();
+    } else if(rcmp(a_class,"TGeoTrd2")) {
+      return create<geo_trd2>();
+    } else if(rcmp(a_class,"TGeoSphere")) {
+      return create<geo_sphere>();
+    } else if(rcmp(a_class,"TGeoPcon")) {
+      return create<geo_pcon>();
+    } else if(rcmp(a_class,"TGeoPgon")) {
+      return create<geo_pgon>();
+    } else if(rcmp(a_class,"TGeoHype")) {
+      return create<geo_hype>();
+    } else if(rcmp(a_class,"TGeoTrap")) {
+      return create<geo_trap>();
+    } else if(rcmp(a_class,"TGeoGtra")) {
+      return create<geo_gtra>();
+    } else if(rcmp(a_class,"TGeoCtub")) {
+      return create<geo_ctub>();
+    } else if(rcmp(a_class,"TGeoPara")) {
+      return create<geo_para>();
+    } else if(rcmp(a_class,"TGeoXtru")) {
+      return create<geo_xtru>();
+    } else if(rcmp(a_class,"TGeoTorus")) {
+      return create<geo_torus>();
+    } else if(rcmp(a_class,"TGeoEltu")) {
+      return create<geo_eltu>();
+    } else if(rcmp(a_class,"TGeoArb8")) {
+      return create<geo_arb8>();
+    } else if(rcmp(a_class,"TGeoHalfSpace")) {
+      return create<geo_half_space>();
+    } else if(rcmp(a_class,"TGeoCompositeShape")) {
+      return create<geo_composite_shape>();
+    } else if(rcmp(a_class,"TGeoShapeAssembly")) {
+      return create<geo_shape_assembly>();
+    } else if(rcmp(a_class,"TGeoScaledShape")) {
+      return create<geo_scaled_shape>();
+
+    //geo_bool_node :
+    } else if(rcmp(a_class,"TGeoUnion")) {
+      return create<geo_union>();
+    } else if(rcmp(a_class,"TGeoIntersection")) {
+      return create<geo_intersection>();
+    } else if(rcmp(a_class,"TGeoSubtraction")) {
+      return create<geo_subtraction>();
+
+    //geo_volume :
+  //} else if(rcmp(a_class,"TGeoVolume")) {
+  //  return create<geo_volume>();
+    } else if(rcmp(a_class,"TGeoVolumeAssembly")) {
+      return create<geo_volume_assembly>();
+    } else if(rcmp(a_class,"TGeoVolumeMulti")) {
+      return create<geo_volume_multi>();
+
+    //geo_medium :
+    } else if(rcmp(a_class,"TGeoMedium")) {
+      return create<geo_medium>();
+
+    //geo_material :
+    } else if(rcmp(a_class,"TGeoMaterial")) {
+      return create<geo_material>();
+    } else if(rcmp(a_class,"TGeoMixture")) {
+      return create<geo_mixture>();
+
+    //geo_pattern_finder :
+    } else if(rcmp(a_class,"TGeoPatternFinder")) {
+      return create<geo_pattern_finder>();
+    } else if(rcmp(a_class,"TGeoPatternCylPhi")) {
+      return create<geo_pattern_cyl_phi>();
+    } else if(rcmp(a_class,"TGeoPatternCylR")) {
+      return create<geo_pattern_cyl_r>();
+    } else if(rcmp(a_class,"TGeoPatternX")) {
+      return create<geo_pattern_x>();
+    } else if(rcmp(a_class,"TGeoPatternY")) {
+      return create<geo_pattern_y>();
+    } else if(rcmp(a_class,"TGeoPatternZ")) {
+      return create<geo_pattern_z>();
+    } else if(rcmp(a_class,"TGeoPatternParaX")) {
+      return create<geo_pattern_para_x>();
+    } else if(rcmp(a_class,"TGeoPatternParaY")) {
+      return create<geo_pattern_para_y>();
+    } else if(rcmp(a_class,"TGeoPatternParaZ")) {
+      return create<geo_pattern_para_z>();
+    } else if(rcmp(a_class,"TGeoPatternTrapZ")) {
+      return create<geo_pattern_trap_z>();
+
+    //TObject :
+    } else if(rcmp(a_class,"TGeoPolygon")) {
+      return create<geo_polygon>();
+    } else if(rcmp(a_class,"TGeoPatternFinder")) {
+      return create<geo_pattern_finder>();
+    } else if(rcmp(a_class,"TGeoVoxelFinder")) {
+      iro* obj = new dummy();
+      m_objs.push_back(obj);
+      return obj;
+
+    } else {
+      m_out << "inlib::rroot::geo_fac::create :"
+            << " dummy. Can't create object of class " << sout(a_class) << "."
+            << std::endl;
+    }
+    return 0;
+  }
+  virtual void destroy(iro*& a_obj) {
+    removep<iro>(m_objs,a_obj);
+    delete a_obj;
+    a_obj = 0;
+  }
+public:
+  geo_fac(std::ostream& a_out):m_out(a_out){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_fac(){
+    raw_clear<iro>(m_objs);
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_fac(const geo_fac& a_from)
+  :ifac(a_from)
+  ,m_out(a_from.m_out)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    copy<iro>(m_objs,a_from.m_objs);    
+  }
+  geo_fac& operator=(const geo_fac& a_from){
+    if(&a_from==this) return *this;
+    copy<iro>(m_objs,a_from.m_objs);    
+    return *this;
+  }
+public:
+  void dump() const {
+    std::vector< std::pair<std::string,unsigned int> > v;
+
+   {std::vector<iro*>::const_iterator it;
+    for(it=m_objs.begin();it!=m_objs.end();++it){
+      const std::string& scls = (*it)->s_cls();
+      bool found = false;
+      std::vector< std::pair<std::string,unsigned int> >::iterator it2;
+      for(it2=v.begin();it2!=v.end();++it2){
+        if((*it2).first==scls) {
+          (*it2).second++;
+          found=true;
+          break;
+        }
+      }
+      if(!found) {
+        v.push_back(std::pair<std::string,unsigned int>((*it)->s_cls(),0));
+      }     
+      
+    }}
+
+    sort_by_second(v);
+
+   {std::vector< std::pair<std::string,unsigned int> >::const_iterator it;
+    for(it=v.begin();it!=v.end();++it){
+      m_out << (*it).first << " " << (*it).second << std::endl;
+    }}
+  }
+protected:
+  template <class T>
+  iro* create(){
+    iro* obj = new T(*this);
+    m_objs.push_back(obj);
+    return obj;
+  }
+protected:
+  std::ostream& m_out;
+  std::vector<iro*> m_objs;
+};
+
+class geo_manager : public virtual iro {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoManager");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_manager");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_manager>(this,a_class)) return p;
+    return 0;
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+public:
+  static cid id_class() {return geo_manager_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_manager>(this,a_class)) {return p;}
+    return 0;
+  }
+public:
+  virtual iro* copy() const {return new geo_manager(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    m_master = 0;
+  
+    //uint32 startpos = a_buffer.length(); //debug : to skip data.
+  
+    short v;
+    unsigned int s, c;
+    if(!a_buffer.read_version(v,s,c)) return false;
+  
+    // version 12 handled (ROOT/v5-18-00d).
+  
+    // lhcb_mag.root needs version 9.
+  
+    //a_buffer.out() << "debug : GeoManager : version " << v << std::endl;
+  
+    if(!Named_stream(a_buffer,m_name,m_title)) return false;
+  
+    //a_buffer.out() << "debug : name " << m_name << std::endl;
+    //a_buffer.out() << "debug : title " << m_title << std::endl;
+  
+    //typedef int Int_t;
+    //typedef double Double_t;
+    //typedef bool Bool_t;
+  
+    if(!a_buffer.read(m_nnodes)) return false;
+    if(!a_buffer.read(m_vis_density)) return false;
+    if(!a_buffer.read(m_exploded_view)) return false;
+    if(!a_buffer.read(m_vis_option)) return false;
+    if(!a_buffer.read(m_vis_level)) return false;
+    if(!a_buffer.read(m_nsegments)) return false;
+    if(!a_buffer.read(m_ntracks)) return false;
+    if(!a_buffer.read(m_max_vis_nodes)) return false;
+    if(!a_buffer.read(m_npdg)) return false;
+    if(!a_buffer.read_fast_array(m_pdgId,256)) return false;
+    if(!a_buffer.read(m_stream_voxels)) return false;
+    if(!a_buffer.read(m_phi_cut)) return false;
+    if(!a_buffer.read(m_time_cut)) return false;
+  
+    ifac::args args;
+
+    //TObjArray* fMatrices;         //-> list of local transformations
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fMatrices."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fShapes;           //-> list of shapes
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fShapes."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fVolumes;          //-> list of volumes
+    m_volumes.clear();
+    if(!m_volumes.stream(a_buffer,args)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fVolumes."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fPhysicalNodes;    //-> list of physical nodes
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fPhysicalNodes."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fTracks;           //-> list of tracks attached to geometry
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fTracks."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fPdgNames;         //-> list of pdg names for tracks
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fPdgNames."
+                     << std::endl;
+      return false;
+    }
+  
+    //TList* fMaterials;        //-> list of materials
+    if(!dummy_TList_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fMaterials."
+                     << std::endl;
+      return false;
+    }
+  
+    //TList* fMedia;            //-> list of tracking media
+    if(!dummy_TList_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fMedia."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fNodes;            //-> current branch of nodes
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fNodes."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fOverlaps;         //-> list of geometrical overlaps
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fOverlaps."
+                     << std::endl;
+      return false;
+    }
+  
+    //TGeoVolume* fMasterVolume;     // master volume
+    geo_volume* master_vol = 0;
+    if(!pointer_stream(a_buffer,m_fac,args,master_vol)) {
+      a_buffer.out() << "inlib::rroot::geo_composite_shape::stream : "
+                     << "can't read fMasterVolume."
+                     << std::endl;
+      return false;
+    }
+  
+    //TGeoHMatrix* fGLMatrix; // matrix to be used for view transformations
+    if(!dummy_TXxx_pointer_stream(a_buffer,m_fac,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fGLMatrix."
+                     << std::endl;
+      return false;
+    }
+  
+    //TObjArray* fUniqueVolumes;    //-> list of unique volumes
+    if(!dummy_TObjArray_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fUniqueVolumes."
+                     << std::endl;
+      return false;
+    }
+  
+    if(!a_buffer.read(m_nLevel)) return false;
+  
+    //THashList* fHashPNE;          //-> hash list of phisical node entries
+    if(!dummy_THashList_pointer_stream(a_buffer,m_fac,false,false)) {
+      a_buffer.out() << "inlib::rroot::GeoManager_stream : "
+                     << "can't read fHashPNE."
+                     << std::endl;
+      return false;
+    }
+  
+    if(!a_buffer.read(m_size_PNEId)) return false;
+    if(!a_buffer.read(m_nPNEId)) return false;
+
+    //Int_t* fKeyPNEId;   //[fSizePNEId] array of uid values for PN entries
+    if(!dummy_array_stream<int>(a_buffer,m_size_PNEId)) return false;
+  
+    //Int_t* fValuePNEId;//[fSizePNEId] array of pointers to PN entries with ID's
+    if(!dummy_array_stream<int>(a_buffer,m_size_PNEId)) return false;
+  
+    //a_buffer.set_offset(startpos+c+sizeof(unsigned int)); //debug : skip.
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+  
+    m_master = master_vol;
+  
+    return true;
+  }
+
+public:
+  geo_manager(std::ostream& a_out)
+  :m_fac(a_out)
+  ,m_master(0) //not owner
+
+  ,m_nnodes(0)
+  ,m_vis_density(0)
+  ,m_exploded_view(0)
+  ,m_vis_option(1)
+  ,m_vis_level(3)
+  ,m_nsegments(20)
+  ,m_ntracks(0)
+  ,m_max_vis_nodes(10000)
+  ,m_npdg(0)
+  ,m_stream_voxels(false)
+  ,m_phi_cut(false)
+  ,m_time_cut(false)
+
+  ,m_volumes(m_fac,false,false) //objects managed by m_fac.
+
+  ,m_nLevel(0)
+  ,m_size_PNEId(0)
+  ,m_nPNEId(0)
+  ,m_key_PNEId(0)
+  ,m_value_PNEId(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    ::memset(m_pdgId,0,256*sizeof(int));
+  }
+  virtual ~geo_manager(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }	
+public:
+  geo_manager(const geo_manager& a_from)
+  :iro(a_from)
+  ,m_fac(a_from.m_fac)
+  ,m_name(a_from.m_name)
+  ,m_title(a_from.m_title)
+  ,m_master(a_from.m_master)
+  ,m_vds(a_from.m_vds)
+
+  ,m_vis_level(a_from.m_vis_level)
+  ,m_nsegments(a_from.m_nsegments)
+  ,m_ntracks(a_from.m_ntracks)
+  ,m_max_vis_nodes(a_from.m_max_vis_nodes)
+  ,m_npdg(a_from.m_npdg)
+  ,m_stream_voxels(a_from.m_stream_voxels)
+  ,m_phi_cut(a_from.m_phi_cut)
+  ,m_time_cut(a_from.m_time_cut)
+
+  ,m_volumes(a_from.m_volumes)
+
+  ,m_nLevel(a_from.m_nLevel)
+  ,m_size_PNEId(a_from.m_size_PNEId)
+  ,m_nPNEId(a_from.m_nPNEId)
+  ,m_key_PNEId(a_from.m_key_PNEId)
+  ,m_value_PNEId(a_from.m_value_PNEId)
+  {
+    for(int i=0;i<256;i++) m_pdgId[i] = a_from.m_pdgId[i];
+  }
+  geo_manager& operator=(const geo_manager& a_from){
+    m_fac = a_from.m_fac;
+
+    m_name = a_from.m_name;
+    m_title = a_from.m_title;
+    m_master = a_from.m_master;
+    m_vds = a_from.m_vds;
+
+    m_vis_level = a_from.m_vis_level;
+    m_nsegments = a_from.m_nsegments;
+    m_ntracks = a_from.m_ntracks;
+    m_max_vis_nodes = a_from.m_max_vis_nodes;
+    m_npdg = a_from.m_npdg;
+    m_stream_voxels = a_from.m_stream_voxels;
+    m_phi_cut = a_from.m_phi_cut;
+    m_time_cut = a_from.m_time_cut;
+
+    m_volumes = a_from.m_volumes;
+
+    m_nLevel = a_from.m_nLevel;
+    m_size_PNEId = a_from.m_size_PNEId;
+    m_nPNEId = a_from.m_nPNEId;
+
+    //FIXME : not correct. Should be owner.
+    m_key_PNEId = a_from.m_key_PNEId;
+    m_value_PNEId = a_from.m_value_PNEId;
+
+    for(int i=0;i<256;i++) m_pdgId[i] = a_from.m_pdgId[i];
+
+    return *this;
+  }
+public:
+  const std::string& name() const {return m_name;}
+  const std::string& title() const {return m_title;}
+public:
+  const geo_volume* master() const {return m_master;}
+  geo_volume* master() {return m_master;}
+
+  int vis_level() const {return m_vis_level;}
+  int nlevel() const {return m_nLevel;}
+  int max_vis_nodes() const {return m_max_vis_nodes;}
+
+public:
+  const geo_fac& factory() const {return m_fac;}
+  //geo_fac& factory() {return m_fac;}
+
+  void dump_volumes(std::ostream& a_out) {
+    a_out << "volume number " << m_volumes.size() << std::endl;
+    std::vector<iro*>::const_iterator it;
+    for(it=m_volumes.begin();it!=m_volumes.end();++it) {
+      const geo_volume* vol = safe_cast<iro,geo_volume>(*(*it));
+      if(vol) {
+        a_out << " name " << vol->name() << " shape " << vol->shape()->s_cls() << std::endl;
+      }
+    }
+  }
+
+  void volumes(std::vector<std::string>& a_names) {
+    a_names.clear();
+    std::vector<std::string>::const_iterator its;
+    bool found;
+    std::vector<iro*>::const_iterator it;
+    for(it=m_volumes.begin();it!=m_volumes.end();++it) {
+      const geo_volume* vol = safe_cast<iro,geo_volume>(*(*it));
+      if(vol) {
+        const std::string& _name = vol->name();
+        found = false; 
+        for(its=a_names.begin();its!=a_names.end();++its) {
+          if(rcmp(*its,_name)) {found=true;break;}
+        }
+        if(!found) {
+          a_names.push_back(_name);
+        }
+      }
+    }
+  }
+
+  void volumes(std::vector<std::string>& a_names,std::vector<std::string>& a_shapes) {
+    a_names.clear();
+    a_shapes.clear();
+    std::vector<std::string>::const_iterator its;
+    bool found;
+    std::vector<iro*>::const_iterator it;
+    for(it=m_volumes.begin();it!=m_volumes.end();++it) {
+      const geo_volume* vol = safe_cast<iro,geo_volume>(*(*it));
+      if(vol) {
+        const std::string& _name = vol->name();
+        found = false; 
+        for(its=a_names.begin();its!=a_names.end();++its) {
+          if(rcmp(*its,_name)) {found=true;break;}
+        }
+        if(!found) {
+          a_names.push_back(_name);
+          const rroot::geo_shape* shape = vol->shape();
+          a_shapes.push_back(shape?shape->s_cls():"no shape");
+        }
+      }
+    }
+  }
+
+  void set_volumes_color(const std::string& a_name,unsigned int a_line,unsigned int a_fill){
+    std::vector<iro*>::iterator it;
+    for(it=m_volumes.begin();it!=m_volumes.end();++it) {
+      geo_volume* vol = safe_cast<iro,geo_volume>(*(*it));
+      if(vol && (vol->name()==a_name)) {
+        vol->set_line_color(a_line);
+        vol->set_fill_color(a_fill);
+      }
+    }
+  }
+
+  void set_default_colors(/*std::ostream& a_out*/) {
+    // Set default volume colors according to A of material
+    // The color index are the one of style_ROOT_colormap.
+
+    std::vector<unsigned int> cols;
+    geo_colors(cols);
+  
+    std::vector<iro*>::iterator it;
+    for(it=m_volumes.begin();it!=m_volumes.end();++it) {
+      geo_volume* vol = safe_cast<iro,geo_volume>(*(*it));
+      if(vol) {
+        const geo_medium* med = vol->medium();
+        if(!med) {
+          //a_out << "inlib::rroot::geo_manager::set_default_colors :"
+          //      << " geo_volume " << vol->name() << " without geo_medium." << std::endl;        
+          vol->set_line_color(18); //grey18
+        } else {
+          const geo_material* mat = med->material();
+          if(mat) vol->set_line_color(cols[(int)mat->A()]);
+        }
+      }
+    }
+  }
+
+  bool vol_depth(const std::string& a_name,unsigned int& a_depth) {
+    if(!m_master) {a_depth=0;return false;}
+    int depth = -1;
+    rroot::vol_depth(*m_master,0,a_name,depth);
+    if(depth==-1) {a_depth=0;return false;} //not found.
+    a_depth = depth;
+    return true;
+  }
+
+  bool max_depth(unsigned int& a_depth) {
+    a_depth = 0;
+    if(!m_master) return false;
+    rroot::max_depth(*m_master,0,a_depth);
+    return true;
+  }
+
+  bool vds(std::vector< std::pair<std::string,unsigned int> >& a_vds) {
+    a_vds.clear();
+    if(!m_master) return false;
+    rroot::vds(*m_master,0,a_vds);
+    return true;
+  }
+
+  bool tree_voln(unsigned int& a_number) {
+    a_number = 0;
+    if(!m_master) return false;
+    rroot::tree_voln(*m_master,0,a_number);
+    return true;
+  }
+
+  typedef std::vector< std::pair<std::string,unsigned int> > vds_t;
+  void set_vds(const vds_t& a_v) {m_vds = a_v;}
+  const vds_t vds() const {return m_vds;}
+  bool vds_get_depth(const std::string& a_vol,int& a_depth) const {
+    vds_t::const_iterator it;
+    for(it=m_vds.begin();it!=m_vds.end();++it){
+      if(rcmp((*it).first,a_vol)) {
+        a_depth = (*it).second;
+        return true;
+      }
+    }
+    a_depth = -1;
+    return false;
+  }
+
+protected:
+  geo_fac m_fac;
+  std::string m_name;
+  std::string m_title;
+  geo_volume* m_master;
+  vds_t m_vds;
+
+  int m_nnodes;            // total number of physical nodes
+  double m_vis_density;    // transparency threshold by density
+  int m_exploded_view;     // exploded view mode
+  int m_vis_option;        // global visualization option
+  int m_vis_level;         // maximum visualization depth
+  int m_nsegments;         // number of segments to approximate circles
+  int m_ntracks;           // number of tracks
+  int m_max_vis_nodes;     // maximum number of visible nodes
+  int m_npdg;              // number of different pdg's stored
+  int m_pdgId[256];        // pdg conversion table
+  bool m_stream_voxels;    // flag to allow voxelization I/O
+  bool m_phi_cut;          // flag for phi cuts
+  bool m_time_cut;          // time cut for tracks
+  //TObjArray* fMatrices;         //-> list of local transformations
+  //TObjArray* fShapes;           //-> list of shapes
+  iros m_volumes;                 //-> list of volumes
+  //TObjArray* fPhysicalNodes;    //-> list of physical nodes
+  //TObjArray* fTracks;           //-> list of tracks attached to geometry
+  //TObjArray* fPdgNames;         //-> list of pdg names for tracks
+  //TList* fMaterials;        //-> list of materials
+  //TList* fMedia;            //-> list of tracking media
+  //TObjArray* fNodes;            //-> current branch of nodes
+  //TObjArray* fOverlaps;         //-> list of geometrical overlaps
+  //TGeoVolume* fMasterVolume;     // master volume
+  //TGeoHMatrix* fGLMatrix;     // matrix to be used for view transformations
+  //TObjArray* fUniqueVolumes;    //-> list of unique volumes
+  int m_nLevel;           // maximum accepted level in geometry
+  //THashList* fHashPNE;  //-> hash list of phisical node entries
+  int m_size_PNEId;       // size of the array of unique ID's for PN entries
+  int m_nPNEId;           // number of PN entries having a unique ID
+  int* m_key_PNEId;   //[fSizePNEId] array of uid values for PN entries
+  int* m_value_PNEId; //[fSizePNEId] array of pointers to PN entries with ID's
+};
+
+}}
+
+#endif

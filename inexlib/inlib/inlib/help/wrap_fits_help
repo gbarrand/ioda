@@ -1,0 +1,31 @@
+#ifndef wrap_fits_help
+#define wrap_fits_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    fits.help
+//
+
+inline const char** fits_help(unsigned int& a_linen){
+  static const char _0[] = "  BITPIX code :";
+  static const char _1[] = "      8 BYTE_IMG";
+  static const char _2[] = "     16 SHORT_IMG";
+  static const char _3[] = "     32 LONG_IMG";
+  static const char _4[] = "     64 LONGLONG_IMG";
+  static const char _5[] = "    -32 FLOAT_IMG";
+  static const char _6[] = "    -64 DOUBLE_IMG";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+};
+ a_linen = 7;
+ return _lines;
+}
+
+#endif

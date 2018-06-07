@@ -1,0 +1,263 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_app_Windows_main_DirectX
+#define exlib_app_Windows_main_DirectX
+
+#ifdef INLIB_MEM
+#include <inlib/mem>
+#endif
+
+#include "../../Windows/window"
+
+#include "../../Windows/pv_holder"
+//#include "../../png"
+//#include "../../jpeg"
+
+#include <inlib/sg/viewer> //for cursor_shape.
+//#include <inlib/sys/file>
+
+namespace app_Windows {
+
+template <class APP_MAIN>
+class main 
+:public exlib::Windows::window   //before pv_holder
+,protected exlib::Windows::pv_holder  //before APP_MAIN
+,public APP_MAIN
+{
+  typedef exlib::Windows::window parent_window;
+  typedef exlib::Windows::pv_holder parent_pv_holder;
+  typedef APP_MAIN parent;
+public:
+  //EXLIB_GL_VIEWER_METHODS
+  virtual void render() {
+    parent::check_gui_cursor();
+    if(!parent::m_ww||!parent::m_wh) return;
+    if(parent::m_vr_mode) {
+      unsigned int half_ww = parent::m_ww*0.5;
+      if(m_mgr_gra.begin_render(0,0,half_ww,parent::m_wh,
+                                       parent::m_clear_color.r(),
+                                       parent::m_clear_color.g(),
+                                       parent::m_clear_color.b(),
+                                       parent::m_clear_color.a(),true)) {
+        exlib::Windows::DirectX_action action(m_mgr_gra,parent::m_out,half_ww,parent::m_wh);
+        action.state().m_use_gsto = parent::m_use_gsto;
+        parent::m_sg.render(action);
+        if(!action.end()) parent::m_out << "app_Windows::main::render() : bad DirectX_action end."  << std::endl;
+      }
+      if(m_mgr_gra.begin_render(half_ww,0,half_ww,parent::m_wh,
+                                       parent::m_clear_color.r(),
+                                       parent::m_clear_color.g(),
+                                       parent::m_clear_color.b(),
+                                       parent::m_clear_color.a(),false)) {
+        exlib::Windows::DirectX_action action(m_mgr_gra,parent::m_out,half_ww,parent::m_wh);
+        action.state().m_use_gsto = parent::m_use_gsto;
+        parent::m_sg.render(action);
+        if(!action.end()) parent::m_out << "app_Windows::main::render() : bad DirectX_action end."  << std::endl;
+      }
+      m_mgr_gra.end_render();
+    } else {
+      if(m_mgr_gra.begin_render(0,0,parent::m_ww,parent::m_wh,
+                                       parent::m_clear_color.r(),
+                                       parent::m_clear_color.g(),
+                                       parent::m_clear_color.b(),
+                                       parent::m_clear_color.a())) {
+        exlib::Windows::DirectX_action action(m_mgr_gra,parent::m_out,parent::m_ww,parent::m_wh);
+        action.state().m_use_gsto = parent::m_use_gsto;
+        parent::m_sg.render(action);
+        if(!action.end()) parent::m_out << "app_Windows::main::render() : bad DirectX_action end."  << std::endl;
+        //after_render();
+        m_mgr_gra.end_render();
+      }
+    }
+  }
+public: //inlib::sg::gui_viewer
+  virtual bool set_cursor_shape(inlib::sg::cursor_shape a_shape) {
+    if(!parent::set_cursor_shape(a_shape)) return false;
+    if(a_shape==inlib::sg::cursor_default) {
+      HCURSOR r = ::LoadCursor(NULL,IDC_ARROW);   
+      if(r==NULL) return false;
+      ::SetCursor(r);
+      ::SetClassLongPtr(m_hwnd,GCLP_HCURSOR,(LONG_PTR)r);
+      return true;
+    } else if(a_shape==inlib::sg::cursor_target) {
+      HCURSOR r = ::LoadCursor(NULL,IDC_CROSS);   
+      if(r==NULL) return false;
+      ::SetCursor(r);
+      ::SetClassLongPtr(m_hwnd,GCLP_HCURSOR,(LONG_PTR)r);
+      return true;
+    } else {
+      return false;
+    }
+  }
+public: //APP_MAIN
+  virtual void win_render() {
+    //send_paint();
+    RECT rect;
+    ::GetClientRect(m_hwnd,&rect);
+    unsigned int w = rect.right-rect.left;
+    unsigned int h = rect.bottom-rect.top;
+    paint(w,h);
+    ::ValidateRect(m_hwnd,NULL);
+  }
+public: //exlib::Windows::window
+  virtual void key_up(){
+    if(do_key(inlib::sg::key_up,m_key_shift,m_key_ctrl)) win_render();
+  }
+  virtual void key_down(){
+    if(do_key(inlib::sg::key_down,m_key_shift,m_key_ctrl)) win_render();
+  }
+  virtual void key_left(){
+    if(do_key(inlib::sg::key_left,m_key_shift,m_key_ctrl)) win_render();
+  }
+  virtual void key_right(){
+    if(do_key(inlib::sg::key_right,m_key_shift,m_key_ctrl)) win_render();
+  }
+  virtual void key_escape(){
+    if(m_key_shift) {
+      toggle_param_viewing();
+    } else {
+      do_escape();
+    }
+    win_render();
+  }
+  virtual void close(){
+    set_to_exit();
+  }
+public: //WM_<events>
+  void resize(unsigned int a_w,unsigned int a_h){
+    //std::cout << "glarea::resize " << a_w << " " << a_h << std::endl;
+    //NOTE : this is not called at startup.
+    set_size(a_w,a_h);
+  }
+  void paint(unsigned int a_w,unsigned int a_h) {
+    if(!width() && !height()) set_size(a_w,a_h);
+    render();
+  }
+  void left_button_down(unsigned int a_x,unsigned int a_y) {touch_down(a_x,a_y);}
+  void left_button_up(unsigned int a_x,unsigned int a_y) {
+    add_work_check_arm_buttons();
+    touch_up(a_x,a_y);
+  }
+  void mouse_move(unsigned int a_x,unsigned int a_y,bool a_ldown) {
+    if(a_ldown) {
+      // part of the touch gesture :
+      if(touch_move(a_x,a_y)) win_render();
+    } else {
+      /* deprecated (moreover it slows down interactivity) :
+      // notify the viewer. Needed in case of wall cursor remote control.
+      if(mouse_motion(a_x,a_y)) win_render();
+      */
+    }
+  }
+public:
+  main(std::ostream& a_out,
+       const std::string& a_data_dir,
+       const std::string& a_res_dir,
+       const std::string& a_out_dir,
+       const std::string& a_tmp_dir,
+       unsigned int a_w,unsigned int a_h)
+  :parent_window(a_w,a_h)
+  ,parent_pv_holder(a_out,parent_window::m_hwnd)
+  ,parent(a_out,
+          parent_pv_holder::m_mgr_gra,parent_pv_holder::m_ttf,parent_pv_holder::selection(),
+          a_data_dir,a_res_dir,a_out_dir,a_tmp_dir,false,0)
+  ,m_old_proc(0)
+  {
+    parent_window::set_client_area_size(a_w,a_h);
+    ::SetWindowLongPtr(m_hwnd,GWLP_USERDATA,LONG_PTR(this));
+    m_old_proc = (WNDPROC)::GetWindowLongPtr(m_hwnd,GWLP_WNDPROC);
+    ::SetWindowLongPtr(m_hwnd,GWLP_WNDPROC,(LONG_PTR)proc);
+    push_home();
+  }
+  virtual ~main(){
+    ::SetWindowLongPtr(m_hwnd,GWLP_WNDPROC,(LONG_PTR)m_old_proc);
+    ::SetWindowLongPtr(m_hwnd,GWLP_USERDATA,LONG_PTR(&parent_window::get_me()));
+  }
+protected:  
+  main(const main& a_from)
+  :parent_pv_holder(a_from)
+  ,parent_window(a_from)
+  ,parent(a_from)
+  ,m_old_proc(0)
+  {}
+  main& operator=(const main& a_from){
+    parent::operator=(a_from);
+    return *this;
+  }
+protected:  
+  static LRESULT CALLBACK proc(HWND a_window,UINT a_msg,WPARAM a_wparam,LPARAM a_lparam) {
+    switch (a_msg) { 
+    case WM_SIZE:{
+      int width = LOWORD(a_lparam);
+      int height = HIWORD(a_lparam);
+      main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+      if(_this) {
+        _this->resize(width,height);
+      } else {
+        // CreateWindow send a WM_SIZE but GWLP_USERDATA not yet set.
+      }
+    }return 0;
+    
+    case WM_PAINT:{
+      RECT rect;
+      ::GetClientRect(a_window,&rect);
+      unsigned int w = rect.right-rect.left;
+      unsigned int h = rect.bottom-rect.top;
+      main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+      if(_this) _this->paint(w,h);
+    ::ValidateRect(a_window,NULL);
+    }return 0;
+
+    case WM_LBUTTONDOWN:{
+      main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+      if(_this) {
+        RECT rect;
+        //::GetWindowRect(hwnd,&rect); ???
+        ::GetClientRect(a_window,&rect);
+        unsigned int h = rect.bottom-rect.top;
+        _this->left_button_down(LOWORD(a_lparam),h-HIWORD(a_lparam));
+      }
+    }return 0;
+    case WM_LBUTTONUP:{
+      main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+      if(_this) {
+        RECT rect;
+        ::GetClientRect(a_window,&rect);
+        unsigned int h = rect.bottom-rect.top;
+        _this->left_button_up(LOWORD(a_lparam),h-HIWORD(a_lparam));
+      }
+    } return 0;
+    case WM_MOUSEMOVE:{
+      WPARAM state = a_wparam;
+      bool ldown = ((state & MK_LBUTTON)==MK_LBUTTON)?true:false;
+
+      main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+      if(_this) {
+        RECT rect;
+        ::GetClientRect(a_window,&rect);
+        unsigned int h = rect.bottom-rect.top;
+        _this->mouse_move(LOWORD(a_lparam),h-HIWORD(a_lparam),ldown);
+      }
+
+    }return 0;
+
+    }
+
+
+    main* _this = (main*)::GetWindowLongPtr(a_window,GWLP_USERDATA);
+    if(!_this) return 0;
+    return CallWindowProc(_this->m_old_proc,a_window,a_msg,a_wparam,a_lparam);
+  }
+protected:
+  WNDPROC m_old_proc;
+};
+
+}
+
+//exlib_build_use inlib inlib_glutess freetype zlib expat
+//exlib_build_not_use png jpeg
+//exlib_build_use Windows kernel DirectX
+
+#endif
+

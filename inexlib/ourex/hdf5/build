@@ -1,0 +1,91 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+
+use_zlib=yes
+use_thread=yes
+
+. ${bush_home}/use/zlib
+. ${bush_home}/use/thread
+
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+ccflags="${ccflags} -I./include"
+
+#//////////////////////////////////////////////
+#/// compile //////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_compile} = "yes" ] ; then
+
+empty_files="H5Dmpio.c H5FDgass.c H5Dmpio.c H5FDmpiposix.c"
+empty_files="${empty_files} H5FDsrb.c H5FS.c H5Obogus.c H5Smpio.c H5Zszip.c"
+empty_files="${empty_files} H5Zszip.c H5FDmpio.c"
+empty_files="${empty_files} H5FDstream.c" #related to H5_HAVE_STREAM
+
+#empty_files="${empty_files} H5TS.c"       #related to H5_HAVE_THREADSAFE
+
+/bin/rm -f tmp_0
+find ./src -name '*.c' -print > tmp_0
+for file in $(cat tmp_0) ; do
+  name="`basename ${file}`"
+  is_in=`echo ${empty_files} | sed -e "s:${name}::g"`
+  if [ "${is_in}" = "${empty_files}" ] ; then
+    cfiles="${cfiles} ${file}"
+  fi
+done
+/bin/rm -f tmp_0
+
+if [ ${build_visual} = "yes" ] ; then
+  echo dummy > /dev/null
+else
+  ccflags="${ccflags} -w"
+  if [ `uname` = "Linux" ] ; then
+    # NOTE : have the below local to the build of this package.
+    #        (And then not in the H4pubconf.h for Linux).
+    ccflags="${ccflags} -D_LARGEFILE_SOURCE"
+    ccflags="${ccflags} -D_LARGEFILE64_SOURCE"
+    ccflags="${ccflags} -D_FILE_OFFSET_BITS=64"
+    ccflags="${ccflags} -D_POSIX_SOURCE"
+    ccflags="${ccflags} -D_BSD_SOURCE"
+  fi
+fi
+
+. ${bush_home}/compile
+
+cfiles=
+
+fi # end build_compile
+ 
+if [ ${build_archive} = "yes" ] ; then . ${bush_home}/archive; fi
+
+if [ ${build_app} = "yes" ] ; then
+
+  . ${bush_home}/preplib
+
+  if [ ${build_visual} = "yes" ] ; then
+    if [ ${use_archive} = no ] ; then
+      ccflags="${ccflags} -D_HDF5USEDLL_"
+    fi
+  fi
+
+  objs=
+  app_exe=H5detect
+  app_src=./applications/H5detect.c
+  . ${bush_home}/application
+
+  objs=
+  app_exe=h5_array_compound
+  app_src=./examples/h5_array_compound.c
+  . ${bush_home}/application
+
+fi
+
+. ${bush_home}/clean

@@ -1,0 +1,593 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_col_valop
+#define inlib_col_valop
+
+#include "rntuple"
+#include "valop2s"
+#include "valop_exec"
+//#include "mnmx"
+#include "histo/h1d"
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+namespace inlib {
+
+class col_valop : public virtual read::icolumn<double> {
+  typedef read::icolumn<double> parent;
+protected:
+  typedef read::icol icol_t;
+  typedef read::icolumn<double> icold_t;
+  typedef read::icolumn<float> icolf_t;
+  typedef read::icolumn<int> icoli_t;
+  typedef read::icolumn< std::vector<double> > icolvd_t;
+  typedef read::icolumn< std::vector<float> > icolvf_t;
+  typedef read::icolumn< std::vector<int> > icolvi_t;
+public:
+  static cid id_class() {return 200+_cid(double());}
+public: //icol
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<col_valop>(this,a_class)) {return p;}
+    return parent::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::col_valop");
+    return s_v;
+  }
+public:
+  virtual const std::string& name() const {return m_name;}
+  virtual bool get_entry(double& a_value) const { 
+    value ret;
+    if(!get_value(ret)) {a_value=0;return false;}
+    if(ret.is_array()) {a_value=0;return false;}
+    return ret.to_double(a_value);
+  }
+public:
+  col_valop(read::intuple& a_ntu,const valop& a_valop)
+  :m_ntu(a_ntu)
+  ,m_valop(a_valop)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    initialize();
+  }
+  virtual ~col_valop(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  col_valop(const col_valop& a_from)
+  :read::icol(a_from)
+  ,parent(a_from)
+  ,m_ntu(a_from.m_ntu)
+  ,m_valop(a_from.m_valop)
+  { 
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    initialize();
+  }
+  col_valop& operator=(const col_valop& a_from){
+    m_valop = a_from.m_valop;
+    initialize();
+    return *this;
+  }
+public:
+  //read::intuple& ntu() {return m_ntu;}
+
+  bool get_value(value& a_ret) const { 
+    //std::vector<value> input(m_vars.size());
+
+    col_valop& self = const_cast<col_valop&>(*this);
+
+    std::vector< std::pair<icol_t*,int> >::const_iterator it;
+    for(it=m_cols.begin();it!=m_cols.end();++it) {
+      if(icold_t* cd = id_cast<icol_t,icold_t>(*(*it).first)){
+        double v;
+        if(!cd->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else if(icolf_t* cf = id_cast<icol_t,icolf_t>(*(*it).first)){
+        float v;
+        if(!cf->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else if(icoli_t* ci = id_cast<icol_t,icoli_t>(*(*it).first)){
+        int v;
+        if(!ci->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else if(icolvd_t* cvd = id_cast<icol_t,icolvd_t>(*(*it).first)){
+        std::vector<double> v;
+        if(!cvd->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else if(icolvf_t* cvf = id_cast<icol_t,icolvf_t>(*(*it).first)){
+        std::vector<float> v;
+        if(!cvf->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else if(icolvi_t* cvi = id_cast<icol_t,icolvi_t>(*(*it).first)){
+        std::vector<int> v;
+        if(!cvi->get_entry(v)) return false;
+        self.m_input[(*it).second].set(v);
+
+      } else {
+        return false;
+      }
+    }
+
+    std::string serror;
+    valop_exec v(m_input,serror);
+    if(!v.visit(m_valop)) return false;
+
+    a_ret = v.ret();
+    return true;
+  }
+
+  bool mean_rms(double& a_mean,double& a_rms,unsigned int& a_count) const { 
+
+    a_mean = 0;
+    a_rms = 0;
+    a_count = 0;
+
+    //double mn,mx;
+    double S = 0;
+    double S2 = 0;
+
+    m_ntu.start();
+    while(m_ntu.next()){
+
+      value ret;
+      if(!get_value(ret)) {
+        //::printf("debug : col_valop::mean_rms : get_value() failed.\n");
+        return false;
+      }
+  
+      if(ret.is_array()) {
+        switch(ret.type()){
+        //case ARRAY_UNSIGNED_SHORT:
+        //case ARRAY_SHORT:
+        //case ARRAY_UNSIGNED_INT:
+        case value::ARRAY_INT:{
+          const std::vector<int>& vec = ret.array_int();
+          std::vector<int>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+
+            double dv = double(*it);
+            if(!a_count) {
+              //mn = dv;
+              //mx = dv;
+              S = dv;
+              S2 = dv*dv;
+            } else {
+              //mn = mn<double>(mn,dv);
+              //mx = mx<double>(mx,dv);
+              S += dv;
+              S2 += dv*dv;
+            }
+            a_count++;
+
+          }
+          }break;
+        //case ARRAY_UNSIGNED_INT64:
+        //case ARRAY_INT64:
+        case value::ARRAY_FLOAT:{
+          const std::vector<float>& vec = ret.array_float();
+          std::vector<float>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+
+            double dv = double(*it);
+            if(!a_count) {
+              //mn = dv;
+              //mx = dv;
+              S = dv;
+              S2 = dv*dv;
+            } else {
+              //mn = mn<double>(mn,dv);
+              //mx = mx<double>(mx,dv);
+              S += dv;
+              S2 += dv*dv;
+            }
+            a_count++;
+
+          }
+          }break;
+        case value::ARRAY_DOUBLE:{
+          const std::vector<double>& vec = ret.array_double();
+          std::vector<double>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+
+            double dv = double(*it);
+            //::printf("debug : mean_rms : %g\n",dv);
+            if(!a_count) {
+              //mn = dv;
+              //mx = dv;
+              S = dv;
+              S2 = dv*dv;
+            } else {
+              //mn = mn<double>(mn,dv);
+              //mx = mx<double>(mx,dv);
+              S += dv;
+              S2 += dv*dv;
+            }
+            a_count++;
+
+          }
+          }break;
+        //case ARRAY_BOOL:
+        //case ARRAY_STRING:
+        default:
+          //::printf("debug : col_valop::mean_rms : array : unknow type\n");
+          return false;
+        };
+
+      } else {
+        double dv;
+        if(!ret.to_double(dv)) {
+         //::printf("debug : col_valop::mean_rms : ret.to_double() failed.\n");
+          return false;
+        }
+
+        if(!a_count) {
+          //mn = dv;
+          //mx = dv;
+          S = dv;
+          S2 = dv*dv;
+        } else {
+          //mn = mn<double>(mn,dv);
+          //mx = mx<double>(mx,dv);
+          S += dv;
+          S2 += dv*dv;
+        }
+        a_count++;
+      }
+    }
+
+    if(!a_count) {
+      //::printf("debug : col_valop::mean_rms : empty\n");
+      a_mean = 0;
+      a_rms = 0;
+      return false;
+    }
+    //::printf("debug : %d : %g %g\n",count,S,S2);
+
+    a_mean = S/double(a_count);
+    a_rms = ::sqrt(::fabs(S2/double(a_count)-a_mean*a_mean));
+
+    return true;
+  }
+
+  bool fill_histo(histo::h1d& a_histo) const {
+    m_ntu.start();
+    while(m_ntu.next()){
+
+      value ret;
+      if(!get_value(ret)) return false;
+      if(ret.is_array()) {
+        switch(ret.type()){
+        //case ARRAY_UNSIGNED_SHORT:
+        //case ARRAY_SHORT:
+        //case ARRAY_UNSIGNED_INT:
+        case value::ARRAY_INT:{
+          const std::vector<int>& vec = ret.array_int();
+          std::vector<int>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+            a_histo.fill(*it);
+          }
+          }break;
+        //case ARRAY_UNSIGNED_INT64:
+        //case ARRAY_INT64:
+        case value::ARRAY_FLOAT:{
+          const std::vector<float>& vec = ret.array_float();
+          std::vector<float>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+            a_histo.fill(*it);
+          }
+          }break;
+        case value::ARRAY_DOUBLE:{
+          const std::vector<double>& vec = ret.array_double();
+          std::vector<double>::const_iterator it;
+          for(it=vec.begin();it!=vec.end();++it){
+            a_histo.fill(*it);
+          }
+          }break;
+        //case ARRAY_BOOL:
+        //case ARRAY_STRING:
+        default:
+          //::printf("debug : col_valop::visit : array : unknow type\n");
+          return false;
+        };
+      } else {
+        double dv;
+        if(!ret.to_double(dv)) return false;
+        a_histo.fill(dv);
+      }
+    }
+
+    return true;
+  }
+
+  static void workable_cols(read::intuple& a_ntu,std::vector<std::string>& a_v){
+    a_v.clear();
+    const std::vector<icol_t*>& cols = a_ntu.columns();
+    std::vector<icol_t*>::const_iterator it;
+    for(it=cols.begin();it!=cols.end();++it) {
+      if(  id_cast<icol_t,icold_t>(*(*it))
+         ||id_cast<icol_t,icolf_t>(*(*it))
+         ||id_cast<icol_t,icoli_t>(*(*it))
+         ||id_cast<icol_t,icolvd_t>(*(*it))
+         ||id_cast<icol_t,icolvf_t>(*(*it))
+         ||id_cast<icol_t,icolvi_t>(*(*it))
+      ){
+        a_v.push_back((*it)->name());
+      }
+    }
+  } 
+
+protected:
+  void initialize(){  // analyse m_valop :
+   {valop2s v;
+    m_name = v.visit(m_valop)?v.m_s:"?";}
+
+    workable_cols(m_ntu,m_vars);
+    m_input.resize(m_vars.size());
+
+    get_named v;
+    v.m_nodes.clear();
+    if(!v.visit(m_valop)) {/*throw*/}
+    m_cols.clear();
+
+   {std::vector<valop*>::const_iterator it;
+    //::printf("debug : ==== %lu\n",v.m_nodes.size());
+    for(it=v.m_nodes.begin();it!=v.m_nodes.end();++it){
+
+      //::printf("debug : \"%s\" %d\n",
+      //   (*it)->m_name.c_str(),(*it)->m_index);      
+
+      bool found = false;
+     {std::vector< std::pair<icol_t*,int> >::const_iterator pit;
+      for(pit=m_cols.begin();pit!=m_cols.end();++pit) {
+        if((*pit).second==(*it)->m_index) {found = true;break;}
+      }}
+      if(!found) {
+        const std::vector<icol_t*>& cols = m_ntu.columns();
+        std::vector<icol_t*>::const_iterator cit;
+        for(cit=cols.begin();cit!=cols.end();++cit) {
+          if(  id_cast<icol_t,icold_t>(*(*cit))
+             ||id_cast<icol_t,icolf_t>(*(*cit))
+             ||id_cast<icol_t,icoli_t>(*(*cit))
+             ||id_cast<icol_t,icolvd_t>(*(*cit))
+             ||id_cast<icol_t,icolvf_t>(*(*cit))
+             ||id_cast<icol_t,icolvi_t>(*(*cit))
+          ){
+            if((*cit)->name()==(*it)->m_name){
+              //m_index in m_vars and m_input.
+              m_cols.push_back(std::pair<icol_t*,int>(*cit,(*it)->m_index));
+              break;
+            }
+          } 
+        }
+      }
+    }}
+    
+  }
+protected:
+  read::intuple& m_ntu;
+  valop m_valop;
+
+  std::string m_name;
+  std::vector< std::pair<icol_t*,int> > m_cols;
+  std::vector<std::string> m_vars;
+  std::vector<value> m_input;
+};
+
+}
+
+#include "histo/h2d"
+
+namespace inlib {
+
+inline bool fill_histo(read::intuple& a_ntu,
+                       const col_valop& a_x,const col_valop& a_y,
+                       histo::h2d& a_histo) {
+
+  a_ntu.start();
+  while(a_ntu.next()){
+
+    value x_ret;
+    if(!a_x.get_value(x_ret)) return false;
+  
+    value y_ret;
+    if(!a_y.get_value(y_ret)) return false;
+  
+    if(!x_ret.is_array()&&!y_ret.is_array()) {
+      double x;
+      if(!x_ret.to_double(x)) return false;
+      double y;
+      if(!y_ret.to_double(y)) return false;
+      a_histo.fill(x,y);
+      continue;
+    }
+
+    if(x_ret.is_array()&&!y_ret.is_array()) {
+      double y;
+      if(!y_ret.to_double(y)) return false;
+
+#define INLIB_COL_VALOP_FILL(a_what,a_get_what) \
+     {const std::vector<a_what>& vec = x_ret.a_get_what();\
+      std::vector<a_what>::const_iterator it;\
+      for(it=vec.begin();it!=vec.end();++it){\
+        a_histo.fill(double(*it),y);\
+      }}
+
+      switch(x_ret.type()){
+      case value::ARRAY_UNSIGNED_SHORT:
+        INLIB_COL_VALOP_FILL(unsigned short,array_unsigned_short)
+        break;
+      case value::ARRAY_SHORT:
+        INLIB_COL_VALOP_FILL(short,array_short)
+        break;
+      case value::ARRAY_UNSIGNED_INT:
+        INLIB_COL_VALOP_FILL(unsigned int,array_unsigned_int)
+        break;
+      case value::ARRAY_INT:
+        INLIB_COL_VALOP_FILL(int,array_int)
+        break;
+      case value::ARRAY_UNSIGNED_INT64:
+        INLIB_COL_VALOP_FILL(uint64,array_unsigned_int64)
+        break;
+      case value::ARRAY_INT64:
+        INLIB_COL_VALOP_FILL(int64,array_int64)
+        break;
+      case value::ARRAY_FLOAT:
+        INLIB_COL_VALOP_FILL(float,array_float)
+        break;
+      case value::ARRAY_DOUBLE:
+        INLIB_COL_VALOP_FILL(double,array_double)
+        break;
+      case value::ARRAY_BOOL:
+        INLIB_COL_VALOP_FILL(bool,array_bool)
+        break;
+      //case ARRAY_STRING:
+      default:
+        //::printf("debug : col_valop::visit : array : unknow type\n");
+        return false;
+      };
+#undef INLIB_COL_VALOP_FILL
+
+      continue;
+    }
+
+    if(!x_ret.is_array()&&y_ret.is_array()) {
+      double x;
+      if(!x_ret.to_double(x)) return false;
+
+#define INLIB_COL_VALOP_FILL2(a_what,a_get_what) \
+     {const std::vector<a_what>& vec = y_ret.a_get_what();\
+      std::vector<a_what>::const_iterator it;\
+      for(it=vec.begin();it!=vec.end();++it){\
+        a_histo.fill(x,double(*it));\
+      }}
+
+      switch(y_ret.type()){
+      case value::ARRAY_UNSIGNED_SHORT:
+        INLIB_COL_VALOP_FILL2(unsigned short,array_unsigned_short)
+        break;
+      case value::ARRAY_SHORT:
+        INLIB_COL_VALOP_FILL2(short,array_short)
+        break;
+      case value::ARRAY_UNSIGNED_INT:
+        INLIB_COL_VALOP_FILL2(unsigned int,array_unsigned_int)
+        break;
+      case value::ARRAY_INT:
+        INLIB_COL_VALOP_FILL2(int,array_int)
+        break;
+      case value::ARRAY_UNSIGNED_INT64:
+        INLIB_COL_VALOP_FILL2(uint64,array_unsigned_int64)
+        break;
+      case value::ARRAY_INT64:
+        INLIB_COL_VALOP_FILL2(int64,array_int64)
+        break;
+      case value::ARRAY_FLOAT:
+        INLIB_COL_VALOP_FILL2(float,array_float)
+        break;
+      case value::ARRAY_DOUBLE:
+        INLIB_COL_VALOP_FILL2(double,array_double)
+        break;
+      case value::ARRAY_BOOL:
+        INLIB_COL_VALOP_FILL2(bool,array_bool)
+        break;
+      //case ARRAY_STRING:
+      default:
+        //::printf("debug : col_valop::visit : array : unknow type\n");
+        return false;
+      };
+#undef INLIB_COL_VALOP_FILL2
+
+      continue;
+    }
+
+    if(x_ret.is_array()&&y_ret.is_array()) {
+
+      if(x_ret.array_size()!=y_ret.array_size()) return false;
+
+#define INLIB_COL_VALOP_FILL3(a_xw,a_xgw,a_yw,a_ygw) \
+     {const std::vector<a_xw>& xvec = x_ret.a_xgw();\
+      const std::vector<a_yw>& yvec = y_ret.a_ygw();\
+      std::vector<a_xw>::const_iterator xit = xvec.begin();\
+      std::vector<a_yw>::const_iterator yit = yvec.begin();\
+      for(;xit!=xvec.end();++xit,++yit){\
+        a_histo.fill(double(*xit),double(*yit));\
+      }}
+
+      switch(x_ret.type()){
+      case value::ARRAY_INT:
+        switch(y_ret.type()){
+        case value::ARRAY_INT:
+          INLIB_COL_VALOP_FILL3(int,array_int,int,array_int)
+          break;
+        case value::ARRAY_FLOAT:
+          INLIB_COL_VALOP_FILL3(int,array_int,float,array_float)
+          break;
+        case value::ARRAY_DOUBLE:
+          INLIB_COL_VALOP_FILL3(int,array_int,double,array_double)
+          break;
+        default:
+          return false;
+        };
+        break;
+      case value::ARRAY_FLOAT:
+        switch(y_ret.type()){
+        case value::ARRAY_INT:
+          INLIB_COL_VALOP_FILL3(float,array_float,int,array_int)
+          break;
+        case value::ARRAY_FLOAT:
+          INLIB_COL_VALOP_FILL3(float,array_float,float,array_float)
+          break;
+        case value::ARRAY_DOUBLE:
+          INLIB_COL_VALOP_FILL3(float,array_float,double,array_double)
+          break;
+        default:
+          return false;
+        };
+        break;
+      case value::ARRAY_DOUBLE:
+        switch(y_ret.type()){
+        case value::ARRAY_INT:
+          INLIB_COL_VALOP_FILL3(double,array_double,int,array_int)
+          break;
+        case value::ARRAY_FLOAT:
+          INLIB_COL_VALOP_FILL3(double,array_double,float,array_float)
+          break;
+        case value::ARRAY_DOUBLE:
+          INLIB_COL_VALOP_FILL3(double,array_double,double,array_double)
+          break;
+        default:
+          return false;
+        };
+        break;
+      default:
+        return false;
+      };
+
+#undef INLIB_COL_VALOP_FILL3
+
+      continue;
+    }
+
+  }
+
+  return true;
+}
+
+}
+
+#endif

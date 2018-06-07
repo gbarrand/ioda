@@ -1,0 +1,21 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_chars
+#define inlib_chars
+
+namespace inlib {
+
+// some char ASCII code :
+// \0      : 0
+// \n = LF : 10 
+// \r = CR : 13
+// \t = HT : 9
+// ,       : 44
+
+inline char LF() {return 10;}
+inline char CR() {return 13;}
+
+}
+
+#endif

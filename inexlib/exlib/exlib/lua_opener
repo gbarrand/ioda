@@ -1,0 +1,82 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_lua_opener
+#define exlib_lua_opener
+
+#include <inlib/sg/iopener>
+#include <inlib/file>
+#include "sg/view_lua"
+
+namespace exlib {
+
+class lua_opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::lua_opener)
+public:
+  virtual parent* copy() const {return new lua_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {return inlib::file::is_lua(a_path,a_is);}
+
+  virtual bool open(const std::string& a_path,inlib::sg::viewer& a_viewer,const inlib::args&,bool& a_done) const {
+    a_done = false;
+    sg::view_lua* _view_lua = sg::cast_view_lua(a_viewer);
+    if(!_view_lua) return false;
+    lua_State* _lua = _view_lua->lua_state();
+    if(!_lua) return false;
+    int status = ::luaL_loadfile(_lua,a_path.c_str());
+    if(!status) {
+      status = ::lua_pcall(_lua,0,LUA_MULTRET,0); // execute Lua program
+    }
+    if(status) {
+      a_viewer.out() << "-- " << ::lua_tostring(_lua, -1) << std::endl;
+      ::lua_pop(_lua,1); // remove error message
+      return false;
+    }
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,inlib::sg::viewer&,const inlib::args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+
+  virtual bool open(const std::string&,
+                    inlib::sg::viewer&,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  lua_opener() {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~lua_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  lua_opener(const lua_opener& a_from):parent(a_from) {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  lua_opener& operator=(const lua_opener&){return *this;}  
+};
+
+}
+
+//exlib_build_use inlib lua
+
+#endif

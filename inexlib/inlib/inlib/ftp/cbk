@@ -1,0 +1,264 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_ftp_cbk
+#define inlib_ftp_cbk
+
+#include "ftps"
+#include "file_chooser"
+#include "progress"
+
+#include "../sg/gui_viewer"
+
+namespace inlib {
+namespace ftp {
+
+class pos_data : public sg::pos_data {
+  typedef sg::pos_data parent;
+public:
+  pos_data(ftps& a_ftps,bool a_popup,int a_ex,int a_ey)
+  :parent(a_popup,a_ex,a_ey)
+  ,m_ftps(a_ftps)
+  {}
+  virtual ~pos_data(){}
+public:
+  pos_data(const pos_data& a_from)
+  :parent(a_from)
+  ,m_ftps(a_from.m_ftps)
+  ,m_ftp(a_from.m_ftp)
+  ,m_path(a_from.m_path)
+  {}
+  pos_data& operator=(const pos_data& a_from){
+    parent::operator=(a_from);
+    m_ftp = a_from.m_ftp;
+    m_path = a_from.m_path;
+    return *this;
+  }
+public:
+  ftps& m_ftps;
+  client m_ftp;
+  std::string m_path;
+};
+
+inline bool save_ftps(sg::gui_viewer& a_gv,const ftps& a_ftps) {
+  //save ftps in <first_data_dir>/<app>.ftp.
+  //(On devices the res_dir is not writeable).
+  std::string data_dir;
+  a_gv.first_data_dir(data_dir);
+  if(data_dir.empty()) return false;
+  std::string _path;
+  _path = data_dir;
+  _path += sep();
+  //_path += a_gv.app_name()+".ftp";
+  _path += "ftps";
+  return a_ftps.save(_path);
+}
+
+inline sg::return_action action_save(sg::gui_viewer& a_gv,const pos_data& a_data) {
+  if(!save_ftps(a_gv,a_data.m_ftps)) {
+    a_gv.pop_warn(a_data,"failed");
+  } else {
+    a_gv.pop_warn(a_data,"done",false);
+  }
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_open(sg::gui_viewer& a_gv,file_chooser& a_widget,const pos_data& a_data) {
+  std::string _s = a_widget.value.value();
+
+  std::string::size_type pos = _s.rfind('(');
+  if(pos==std::string::npos) {
+    a_gv.pop_warn(a_data,"size not found");
+    return sg::return_to_render;
+  }
+
+  std::string path = _s.substr(0,pos-1);
+  std::string ssz = _s.substr(pos+1,_s.size()-(pos+1)-1);
+
+  uint64 _sz = 0;
+  to<uint64>(ssz,_sz,0);
+    
+  bool verbose = a_gv.verbose();
+
+  // target path :
+  std::string data_dir;
+  a_gv.first_data_dir(data_dir);
+  if(data_dir.empty()) {
+    a_gv.pop_warn(a_data,"no data dir");
+    return sg::return_to_render;     
+  }
+
+  if(!check_dir(a_gv.out(),data_dir)) {
+    a_gv.pop_warn(a_data,"can't create data dir");
+    return sg::return_to_render;     
+  }
+
+  std::string _path = data_dir;
+  _path += sep();
+  _path += base_name(path);
+  //file::std_remove(_path);
+        
+ {progress _ftp(a_gv.out(),verbose,a_gv,a_gv.progress(),_sz);
+  if(!_ftp.start(a_data.m_ftp.host(),a_data.m_ftp.user(),a_data.m_ftp.pass())) {
+    a_gv.pop_warn(a_data,"progress.start() failed");
+    return sg::return_to_render;     
+  }
+  //unsigned int BLOCK = 65536;
+  //unsigned int BLOCK = 65536*4; //262 144
+  unsigned int BLOCK = 1048576; //65536*16
+
+  a_gv.progress().value = 0;
+  a_gv.show_progress();
+  a_gv.win_render();
+
+  if(!_ftp.fetch_file(path,_path,BLOCK,a_data.m_ftp.active())) {
+    a_gv.hide_progress();
+    a_gv.pop_warn(a_data,"progress.fetch_file() failed");
+    return sg::return_to_render;     
+  }}
+  
+  a_gv.hide_progress();
+
+  long sz;
+  if(!file::size(_path,sz)){
+    a_gv.pop_warn(a_data,"can't get file size");
+    return sg::return_to_render;     
+  }
+  if(_sz && (uint64(sz)!=_sz)){
+    std::string msg("bad size ");
+    if(!numas<uint64>(sz,msg)){}
+    msg += " / ";
+    if(!numas<uint64>(_sz,msg)){}
+    a_gv.pop_warn(a_data,msg);
+    return sg::return_to_render;     
+  }
+
+  //a_gv.pop_warn(a_data,"done",false);
+
+ {args _args;
+  std::string sv;b2s(a_data.m_popup,sv);
+  _args.add(sg::s_popup(),sv);
+  num2s(a_data.m_ex,sv);
+  _args.add(sg::s_ex(),sv);
+  num2s(a_data.m_ey,sv);
+  _args.add(sg::s_ey(),sv);
+  bool done;
+  a_gv.opener().open(_path,file::s_format_guessed(),_args,done);}
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_fch(sg::gui_viewer& a_gv,const pos_data& a_data) {
+  file_chooser* fch = new file_chooser(a_gv.out(),a_gv.ttf(),a_data.m_ftp);
+  a_gv.set_style(*fch);
+
+  fch->exts.add(a_gv.opener().exts());
+  fch->dirs.add(a_data.m_path);
+
+  sg::add_callback(a_gv,*fch,action_open,a_data);
+
+  fch->initialize(a_gv.out());
+
+  a_gv.show_widget(a_data,fch);
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_do_add(sg::gui_viewer& a_gv,sg::entries& a_widget,const pos_data& a_data) {
+  const std::vector<std::string>& vals = a_widget.values.values();
+  if(vals.size()!=5) {
+    a_gv.pop_warn(a_data,"five values expected.");
+    return sg::return_to_render;     
+  }
+  if(vals[0].empty()) { //host
+    a_gv.pop_warn(a_data,"host name expected.");
+    return sg::return_to_render;     
+  }
+  if(vals[1].empty()) { //dir
+    a_gv.pop_warn(a_data,"directory expected.");
+    return sg::return_to_render;     
+  }
+  if(vals[2].empty()) { //user
+    a_gv.pop_warn(a_data,"user expected.");
+    return sg::return_to_render;     
+  }
+  bool active;
+  if(!to(vals[4],active)) { //active
+    a_gv.pop_warn(a_data,"active bool expected.");
+    return sg::return_to_render;     
+  }
+  a_data.m_ftps.add(vals[0],vals[2],vals[3],vals[1],active);
+
+  a_gv.pop_warn(a_data,"done",false);
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_add(sg::gui_viewer& a_gv,const pos_data& a_data) {
+  sg::entries* node = new sg::entries(a_gv.ttf());
+  a_gv.set_style(*node);
+
+  node->add_string("host","ftp.host");
+  node->add_string("dir","/pub");
+  node->add_string("user",net::ftp::s_anonymous());
+  node->add_string("password","");
+  node->add_bool("active",true);
+
+  sg::add_callback(a_gv,*node,action_do_add,a_data);
+
+  a_gv.show_widget(a_data,node);
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_sites(sg::gui_viewer& a_gv,const pos_data& a_data) {
+  if(a_data.m_ftps.empty()) {
+    a_gv.pop_warn(a_data,"empty");
+    return sg::return_to_render;     
+  }
+
+  sg::list* list = new sg::list(a_gv.ttf());
+  a_gv.set_style(*list);
+
+  list->text_hmargin_factor = 0.8f;
+
+  inlib_vforcit(client,a_data.m_ftps,it) {
+
+    std::string _s;
+    _s  = (*it).host();
+    _s += " ";
+    _s += (*it).user();
+    _s += " ";
+    _s += (*it).dir();
+    _s += " ";
+    _s += ((*it).active()?"active":"passive");
+
+    pos_data _data(a_data);
+    _data.m_ftp = *it;
+    _data.m_path = (*it).dir(); //expect a UNIX dir.
+    sg::add_item(a_gv,*list,_s,action_fch,_data);
+  }
+  
+  a_gv.show_widget(a_data,list);
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action action_ftp(sg::gui_viewer& a_gv,const pos_data& a_data) {
+  sg::list* list = new sg::list(a_gv.ttf());
+  a_gv.set_style(*list);
+
+  sg::add_item(a_gv,*list,"known sites",action_sites,a_data);
+  sg::add_item(a_gv,*list,"add",action_add,a_data);
+  sg::add_item(a_gv,*list,"save",action_save,a_data);
+  
+  a_gv.show_widget(a_data,list);
+
+  return sg::return_to_render;     
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

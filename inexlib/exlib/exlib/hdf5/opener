@@ -1,0 +1,152 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_opener
+#define exlib_hdf5_opener
+
+#include "hdf5_h"
+#include "osc_is"
+#include "keys"
+
+#include <inlib/S_STRING>
+#include <string>
+
+#ifdef INLIB_MEM
+#include <inlib/mem>
+#endif
+
+namespace exlib {
+namespace hdf5 {
+
+class id_holder {
+public:
+  INLIB_SCLASS(exlib::hdf5::id_holder)
+public:
+  id_holder(hid_t a_id):m_FID(a_id){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~id_holder() {
+    ::H5Fclose(m_FID);
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  id_holder(const id_holder&){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  id_holder& operator=(const id_holder&){return *this;}
+protected:
+  hid_t m_FID;
+};
+
+}}
+
+#include <inlib/sg/iopener>
+#include "cbk"
+
+namespace exlib {
+namespace hdf5 {
+
+class opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::hdf5::opener)
+private:
+public:
+  virtual parent* copy() const {return new opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return inlib::file::is_hdf(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,inlib::sg::viewer& a_viewer,const inlib::args& a_args,bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    //popup :
+    bool popup;
+    if(!a_args.find(inlib::sg::s_popup(),popup,false)) {}
+    int ex;
+    if(!a_args.find<int>(inlib::sg::s_ex(),ex)) {}
+    int ey;
+    if(!a_args.find<int>(inlib::sg::s_ey(),ey)) {}
+
+    // Open the file :
+    hid_t fid = ::H5Fopen(a_path.c_str(),H5F_ACC_RDONLY, H5P_DEFAULT);
+    if(fid<0) {
+      a_gv.pop_warn(popup,ex,ey,"H5Fopen failed");
+      return false;
+    }
+  
+    std::string _path("/");
+  
+    std::vector<std::string> objs;
+    std::vector<std::string> dirs;
+    bool is_osc = exlib::hdf5::is_osc(fid);
+    if(is_osc) {
+      hdf5::osc_keys(a_gv.out(),fid,_path,objs,dirs);
+    } else {
+      hdf5::get_keys(a_gv.out(),fid,_path,objs,dirs);
+    }
+
+    cbk::cbk_fact fac;
+    menu_sids(fid,is_osc,_path,objs,dirs,a_gv,fac,inlib::sg::pos_data(popup,ex,ey));
+  
+    a_gv.remove_in_tmp_group<id_holder>(a_path);
+    a_gv.add_in_tmp_group<id_holder>(a_path,new id_holder(fid));
+  
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string&,
+                    inlib::sg::viewer&,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  opener(){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  opener(const opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  opener& operator=(const opener&){return *this;}  
+};
+
+}}
+
+//exlib_build_use inlib hdf5 inlib_glutess freetype kernel
+
+#endif

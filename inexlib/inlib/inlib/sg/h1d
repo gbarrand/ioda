@@ -1,0 +1,73 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_h1d
+#define inlib_sg_h1d
+
+//
+// In z the scene is within [0,0.5]
+//
+
+#include "selectable"
+#include "text"
+
+namespace inlib {
+namespace sg {
+
+class h1d : public selectable<text> {
+  INLIB_NODE(h1d,inlib::sg::h1d,selectable<text>)
+public:
+  sf<unsigned int> xbins;
+  sf<double> xmin;
+  sf<double> xmax;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::h1d)
+    static const desc_fields s_v(parent::node_desc_fields(),3, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(xbins),
+      INLIB_ARG_FIELD_DESC(xmin),
+      INLIB_ARG_FIELD_DESC(xmax)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&xbins);
+    add_field(&xmin);
+    add_field(&xmax);
+  }
+public:
+  h1d(const base_freetype& a_ttf)
+  :parent(a_ttf)
+  ,xbins(100)
+  ,xmin(0)
+  ,xmax(1)
+  {
+    //parent::node().set_arconf("h1d");
+    m_node.strings.add("h1d");
+    m_node.confine = true;
+    m_node.hjust = center;
+    add_fields();
+  }
+  virtual ~h1d(){}
+public:
+  h1d(const h1d& a_from)
+  :parent(a_from)
+  ,xbins(a_from.xbins)
+  ,xmin(a_from.xmin)
+  ,xmax(a_from.xmax)
+  {
+    add_fields();
+  }
+  h1d& operator=(const h1d& a_from){
+    parent::operator=(a_from);
+    xbins = a_from.xbins;
+    xmin = a_from.xmin;
+    xmax = a_from.xmax;
+    return *this;
+  }
+};
+
+}}
+
+#endif

@@ -1,0 +1,318 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_rbsg_factories
+#define inlib_sg_rbsg_factories
+
+// it coworks with add_all.
+
+#include "../fog/scene"
+
+#include "_switch"
+#include "arrow_button"
+#include "atb_vertices"
+#include "axis"
+#include "back_area"
+//#include "base_camera"
+//#include "base_fch"
+//#include "base_freetype"
+//#include "base_list"
+//#include "base_text"
+#include "bcub"
+#include "button_grid"
+#include "circle"
+#include "circle_arc"
+#include "colback"
+#include "color"
+#include "colors"
+#include "cube"
+#include "cube_manip"
+#include "depth_test"
+#include "doc_anim"
+#include "draw_style"
+#include "dummy_freetype"
+#include "edvalop"
+#include "entries"
+#include "entry"
+#include "facet"
+#include "frustum"
+#include "geo"
+#include "ghost"
+#include "icosahedron_sphere"
+#include "image_button"
+#include "image_text_button"
+#include "infos"
+#include "infos_box"
+#include "keyboard"
+#include "legend"
+#include "line_set"
+#include "line_style"
+#include "list"
+#include "lrbt"
+#include "markers"
+#include "matrix"
+#include "normal"
+#include "numeric"
+#include "ortho"
+#include "parabolic_anim"
+#include "perspective"
+#include "plots"
+#include "plotter"
+#include "progress"
+#include "rgba"
+#include "ring"
+#include "rotate_anim"
+#include "screens"
+#include "scroll_infos"
+#include "scroll_text"
+#include "selection"
+#include "simple_button"
+#include "slider"
+#include "snow_anim"
+#include "sphere"
+#include "style"
+#include "switch_anim"
+#include "tex_rect"
+#include "tex_sphere"
+#include "tex_quadrilateral"
+//#include "tex_rect_anim"
+//#include "tex_sphere_anim"
+#include "healpix"
+#include "text"
+#include "text_button"
+#include "text_hershey"
+#include "text_hershey_marker"
+#include "text_style"
+#include "torche"
+#include "vertices"
+#include "xmas_tree"
+#include "field_cut"
+#include "field3d"
+#include "dummy"
+#include "cfitsio"
+#include "cfitsio_stars"
+#include "polyhedron"
+
+#include "head_light"
+#include "event_dispatcher"
+#include "holder"
+
+#include "bsg_factories"
+
+namespace inlib {
+namespace sg {
+
+class rbsg_dummy {
+public:
+  INLIB_SCLASS(inlib::sg::rbsg_dummy)
+};
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+template <class T>
+inline node* create_node_ttf(fac_args& a_args,bool& a_composite) {
+  a_composite = false;
+  return new T(a_args.ttf());
+}
+template <class T>
+inline void add_factory_ttf(bsg_factories& a_fac) {
+  a_fac.add_factory(T::s_class(),create_node_ttf<T>);
+}
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+template <class T>
+inline node* create_node_time(fac_args& a_args,bool& a_composite) {
+  atime _now(0,0);
+  if(!a_args.get_time_now(_now)) {
+    a_args.out() << "inlib::sg::read_bsg::create_node_time :"
+               << " ui.get_time_now() failed."
+               << std::endl;
+  }
+  a_composite = false;
+  return new T(_now);
+}
+template <class T>
+inline void add_factory_time(bsg_factories& a_fac) {
+  a_fac.add_factory(T::s_class(),create_node_time<T>);
+}
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+template <class T>
+inline node* create_node_ui_time(fac_args& a_args,bool& a_composite) {
+  atime _now(0,0);
+  if(!a_args.get_time_now(_now)) {
+    a_args.out() << "inlib::sg::read_bsg::create_node_ui_time :"
+                   << " ui.get_time_now() failed."
+                   << std::endl;
+  }
+  a_composite = false;
+  return new T(a_args.ui(),_now);
+}
+template <class T>
+inline void add_factory_ui_time(bsg_factories& a_fac) {
+  a_fac.add_factory(T::s_class(),create_node_ui_time<T>);
+}
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+template <class T>
+inline node* create_node_wget_catalog_ttf_marker(fac_args& a_args,bool& a_composite) {
+  const wget* simbad_wget = a_args.get_simbad_wget();
+  if(!simbad_wget) return 0;
+  const wget* stars_wget = a_args.get_stars_wget();
+  if(!stars_wget) return 0;
+  SDSS::catalog* stars_catalog = a_args.get_stars_catalog();
+  if(!stars_catalog) return 0;
+  std::string stars_host;
+  a_args.get_stars_host(stars_host);
+  std::string stars_dir;
+  a_args.get_stars_dir(stars_dir);
+  a_composite = false;  
+  return new T(a_args.ttf_marker(),
+               *simbad_wget,
+               a_args.get_stars_local(),*stars_wget,stars_host,a_args.get_stars_port(),stars_dir,
+               *stars_catalog);
+}
+template <class T>
+inline void add_factory_wget_catalog_ttf_marker(bsg_factories& a_fac) {
+  a_fac.add_factory(T::s_class(),create_node_wget_catalog_ttf_marker<T>);
+}
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
+INLIB_GLOBAL_STRING_VALUE(back_inlib_sg_image,inlib::sg::image)
+INLIB_GLOBAL_STRING_VALUE(back_inlib_sg_todel,inlib::sg::todel)
+
+INLIB_GLOBAL_STRING_VALUE(back_exlib_sg_image,exlib::sg::image)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_sg_axis,exlib::sg::axis)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_sg_infos,exlib::sg::infos)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_sg_text,exlib::sg::text)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_sg_polyhedron,exlib::sg::polyhedron)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_povama_scene,exlib::povama::scene)
+INLIB_GLOBAL_STRING_VALUE(back_exlib_povama,exlib::povama)
+
+inline void add_factories(bsg_factories& a_fac) {
+
+  a_fac.add_factory_composite<inlib::sg::group>();
+  a_fac.add_factory_composite<inlib::sg::separator>();
+
+  a_fac.add_factory<inlib::fog::scene>();
+  a_fac.add_factory_composite<inlib::sg::_switch>();
+  a_fac.add_factory<inlib::sg::arrow_button>();
+  a_fac.add_factory<inlib::sg::atb_vertices>();
+  add_factory_ttf<inlib::sg::axis>(a_fac);
+  a_fac.add_factory<inlib::sg::back_area>();
+//  a_fac.add_factory<inlib::sg::base_camera>();
+//  a_fac.add_factory<inlib::sg::base_fch>();
+//  a_fac.add_factory<inlib::sg::base_freetype>();
+//  a_fac.add_factory<inlib::sg::base_list>();
+//  a_fac.add_factory<inlib::sg::base_text>();
+  a_fac.add_factory<inlib::sg::bcub>();
+//  a_fac.add_factory<inlib::sg::button_grid>();
+  a_fac.add_factory<inlib::sg::circle>();
+  a_fac.add_factory<inlib::sg::circle_arc>();
+  a_fac.add_factory<inlib::sg::colback>();
+  a_fac.add_factory<inlib::sg::color>();
+  add_factory_ttf<inlib::sg::colors>(a_fac);
+  a_fac.add_factory<inlib::sg::cube>();
+  a_fac.add_factory<inlib::sg::cube_manip>();
+  a_fac.add_factory<inlib::sg::depth_test>();
+//  add_factory_time<inlib::sg::doc_anim>(a_fac);
+  a_fac.add_factory<inlib::sg::draw_style>();
+  a_fac.add_factory<inlib::sg::dummy_freetype>();
+  add_factory_ttf<inlib::sg::edvalop>(a_fac);
+  add_factory_ttf<inlib::sg::entries>(a_fac);
+  add_factory_ttf<inlib::sg::entry>(a_fac);
+  a_fac.add_factory<inlib::sg::facet>();
+  a_fac.add_factory<inlib::sg::frustum>();
+//  a_fac.add_factory<inlib::sg::geo>();
+  a_fac.add_factory<inlib::sg::ghost>();
+  a_fac.add_factory<inlib::sg::icosahedron_sphere>();
+  a_fac.add_factory<inlib::sg::image_button>();
+  add_factory_ttf<inlib::sg::image_text_button>(a_fac);
+  a_fac.add_factory<inlib::sg::infos>();
+  add_factory_ttf<inlib::sg::infos_box>(a_fac);
+  add_factory_ttf<inlib::sg::keyboard>(a_fac);
+  add_factory_ttf<inlib::sg::legend>(a_fac);
+  a_fac.add_factory<inlib::sg::line_set>();
+  a_fac.add_factory<inlib::sg::line_style>();
+  add_factory_ttf<inlib::sg::list>(a_fac);
+  a_fac.add_factory<inlib::sg::lrbt>();
+  a_fac.add_factory<inlib::sg::markers>();
+  a_fac.add_factory<inlib::sg::matrix>();
+  a_fac.add_factory<inlib::sg::normal>();
+  add_factory_ttf<inlib::sg::numeric>(a_fac);
+  a_fac.add_factory<inlib::sg::ortho>();
+  add_factory_ui_time<inlib::sg::parabolic_anim>(a_fac);
+  a_fac.add_factory<inlib::sg::perspective>();
+  add_factory_ttf<inlib::sg::plots>(a_fac);
+  add_factory_ttf<inlib::sg::plotter>(a_fac);
+  a_fac.add_factory<inlib::sg::progress>();
+  a_fac.add_factory<inlib::sg::rgba>();
+  a_fac.add_factory<inlib::sg::ring>();
+  add_factory_time<inlib::sg::rotate_anim>(a_fac);
+  a_fac.add_factory<inlib::sg::screens>();
+  add_factory_ttf<inlib::sg::scroll_infos>(a_fac);
+  add_factory_ttf<inlib::sg::scroll_text>(a_fac);
+  a_fac.add_factory_composite<inlib::sg::selection>();
+  a_fac.add_factory<inlib::sg::simple_button>();
+  a_fac.add_factory<inlib::sg::slider>();
+  add_factory_ui_time<inlib::sg::snow_anim>(a_fac);
+  a_fac.add_factory<inlib::sg::sphere>();
+  a_fac.add_factory<inlib::sg::style>();
+//  a_fac.add_factory<inlib::sg::switch_anim>();
+  a_fac.add_factory<inlib::sg::tex_rect>();
+//  a_fac.add_factory<inlib::sg::tex_rect_anim>();
+  a_fac.add_factory<inlib::sg::tex_sphere>();
+//  a_fac.add_factory<inlib::sg::tex_sphere_anim>();
+  a_fac.add_factory<inlib::sg::tex_quadrilateral>();
+  a_fac.add_factory<inlib::sg::healpix>();
+  add_factory_ttf<inlib::sg::text>(a_fac);
+  add_factory_ttf<inlib::sg::text_button>(a_fac);
+  a_fac.add_factory<inlib::sg::text_hershey>();
+  a_fac.add_factory<inlib::sg::text_hershey_marker>();
+  a_fac.add_factory<inlib::sg::text_style>();
+  a_fac.add_factory<inlib::sg::torche>();
+  a_fac.add_factory<inlib::sg::vertices>();
+  a_fac.add_factory<inlib::sg::xmas_tree>();
+  a_fac.add_factory<inlib::sg::field_cut>();
+  a_fac.add_factory<inlib::sg::field3d>();
+  a_fac.add_factory<inlib::sg::dummy>();
+  a_fac.add_factory<inlib::sg::cfitsio>();
+  add_factory_wget_catalog_ttf_marker<inlib::sg::cfitsio_stars>(a_fac);
+  a_fac.add_factory<inlib::sg::polyhedron>();
+  a_fac.add_factory< inlib::sg::holder<rbsg_dummy> >();
+
+  a_fac.add_factory<inlib::sg::head_light>();
+  a_fac.add_factory<inlib::sg::event_dispatcher>();
+
+  ///////////////////////////////////////////////////
+  /// backcomp : ////////////////////////////////////
+  ///////////////////////////////////////////////////
+  a_fac.add_factory(s_back_inlib_sg_todel(),bsg_factories::create_node<inlib::sg::dummy>);
+  a_fac.add_factory(s_back_inlib_sg_image(),bsg_factories::create_node<inlib::sg::tex_rect>);
+
+  a_fac.add_factory(s_back_exlib_sg_image(),bsg_factories::create_node<inlib::sg::tex_rect>);
+  a_fac.add_factory(s_back_exlib_sg_polyhedron(),bsg_factories::create_node<inlib::sg::polyhedron>);
+  a_fac.add_factory(s_back_exlib_povama_scene(),bsg_factories::create_node<inlib::fog::scene>);
+  a_fac.add_factory(s_back_exlib_povama(),bsg_factories::create_node<inlib::fog::scene>);
+
+  a_fac.add_factory(s_back_exlib_sg_axis(),create_node_ttf<inlib::sg::axis>);
+  a_fac.add_factory(s_back_exlib_sg_infos(),create_node_ttf<inlib::sg::infos_box>);
+  a_fac.add_factory(s_back_exlib_sg_text(),create_node_ttf<inlib::sg::text>);
+
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

@@ -1,0 +1,74 @@
+#!/bin/sh -f
+
+from=/usr/local/cfitsio/3.25/build/cfitsio
+
+cp ${from}/buffers.c ./src/.
+cp ${from}/cfileio.c ./src/.
+cp ${from}/checksum.c ./src/.
+cp ${from}/compress.c ./src/.
+cp ${from}/drvrfile.c ./src/.
+cp ${from}/drvrmem.c ./src/.
+cp ${from}/drvrnet.c ./src/.
+cp ${from}/drvrsmem.c ./src/.
+cp ${from}/drvrgsiftp.c ./src/.
+cp ${from}/editcol.c ./src/.
+cp ${from}/edithdu.c ./src/.
+cp ${from}/eval_l.c ./src/.
+cp ${from}/eval_y.c ./src/.
+cp ${from}/eval_f.c ./src/.
+cp ${from}/fitscore.c ./src/.
+cp ${from}/getcol.c ./src/.
+cp ${from}/getcolb.c ./src/.
+cp ${from}/getcold.c ./src/.
+cp ${from}/getcole.c ./src/.
+cp ${from}/getcoli.c ./src/.
+cp ${from}/getcolj.c ./src/.
+cp ${from}/getcolk.c ./src/.
+cp ${from}/getcoll.c ./src/.
+cp ${from}/getcols.c ./src/.
+cp ${from}/getcolsb.c ./src/.
+cp ${from}/getcoluk.c ./src/.
+cp ${from}/getcolui.c ./src/.
+cp ${from}/getcoluj.c ./src/.
+cp ${from}/getkey.c ./src/.
+cp ${from}/group.c ./src/.
+cp ${from}/grparser.c ./src/.
+cp ${from}/histo.c ./src/.
+cp ${from}/iraffits.c ./src/.
+cp ${from}/modkey.c ./src/.
+cp ${from}/putcol.c ./src/.
+cp ${from}/putcolb.c ./src/.
+cp ${from}/putcold.c ./src/.
+cp ${from}/putcole.c ./src/.
+cp ${from}/putcoli.c ./src/.
+cp ${from}/putcolj.c ./src/.
+cp ${from}/putcolk.c ./src/.
+cp ${from}/putcoluk.c ./src/.
+cp ${from}/putcoll.c ./src/.
+cp ${from}/putcols.c ./src/.
+cp ${from}/putcolsb.c ./src/.
+cp ${from}/putcolu.c ./src/.
+cp ${from}/putcolui.c ./src/.
+cp ${from}/putcoluj.c ./src/.
+cp ${from}/putkey.c ./src/.
+cp ${from}/region.c ./src/.
+cp ${from}/scalnull.c ./src/.
+cp ${from}/swapproc.c ./src/.
+cp ${from}/wcssub.c ./src/.
+cp ${from}/wcsutil.c ./src/.
+cp ${from}/imcompress.c ./src/.
+cp ${from}/quantize.c ./src/.
+cp ${from}/ricecomp.c ./src/.
+cp ${from}/pliocomp.c ./src/.
+cp ${from}/fits_hcompress.c ./src/.
+cp ${from}/fits_hdecompress.c ./src/.
+
+#cp ${from}/f77_wrap1.c ./src/.
+#cp ${from}/f77_wrap2.c ./src/.
+#cp ${from}/f77_wrap3.c ./src/.
+#cp ${from}/f77_wrap4.c ./src/.
+
+cp ${from}/testprog.c ./.
+cp ${from}/testprog.out ./.
+cp ${from}/testprog.std ./.
+cp ${from}/testprog.tpt ./.

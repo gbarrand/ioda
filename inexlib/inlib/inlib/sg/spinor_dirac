@@ -1,0 +1,421 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_spinor_dirac
+#define inlib_sg_spinor_dirac
+
+#include "arrow"
+#include "sf_enum"
+
+#include <cmath>
+#include "../matTs"
+#include "../mathz"
+
+//#include "../matout"
+//#include <iostream>
+
+namespace inlib {
+namespace sg {
+
+class spinor_dirac : public node {
+  typedef mat<double,8> m8d;
+  INLIB_NODE(spinor_dirac,inlib::sg::spinor_dirac,node)
+public:
+  sf<float> phi_u_x;
+  sf<float> phi_u_y;
+  sf<float> xi_u_x;
+  sf<float> xi_u_y;
+  sf<float> phi_d_x;
+  sf<float> phi_d_y;
+  sf<float> xi_d_x;
+  sf<float> xi_d_y;
+  sf<float> length_head;
+  sf<float> radius;
+  enum rep_type {
+    rep_dirac = 0,
+    rep_majorana = 1,
+    rep_chiral = 2
+  };
+  sf_enum<rep_type> representation;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::spinor_dirac)
+    static const desc_fields s_v(parent::node_desc_fields(),11, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(phi_u_x),
+      INLIB_ARG_FIELD_DESC(phi_u_y),
+      INLIB_ARG_FIELD_DESC(xi_u_x),
+      INLIB_ARG_FIELD_DESC(xi_u_y),
+      INLIB_ARG_FIELD_DESC(phi_d_x),
+      INLIB_ARG_FIELD_DESC(phi_d_y),
+      INLIB_ARG_FIELD_DESC(xi_d_x),
+      INLIB_ARG_FIELD_DESC(xi_d_y),
+      INLIB_ARG_FIELD_DESC(length_head),
+      INLIB_ARG_FIELD_DESC(radius),
+      INLIB_ARG_FIELD_DESC_ENUMS_BEG(representation,3)
+        INLIB_ARG_ENUM(rep_dirac),
+        INLIB_ARG_ENUM(rep_majorana),
+	INLIB_ARG_ENUM(rep_chiral)
+      INLIB_ARG_FIELD_DESC_ENUMS_END
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&phi_u_x);
+    add_field(&phi_u_y);
+    add_field(&xi_u_x);
+    add_field(&xi_u_y);
+    add_field(&phi_d_x);
+    add_field(&phi_d_y);
+    add_field(&xi_d_x);
+    add_field(&xi_d_y);
+    add_field(&length_head);
+    add_field(&radius);
+    add_field(&representation);
+  }
+
+public:
+  virtual void render(render_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.render(a_action);
+  }
+  virtual void pick(pick_action& a_action) { 
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    nodekit_pick(a_action,m_group,this);
+  }
+  virtual void search(search_action& a_action) { 
+    node::search(a_action);
+    if(a_action.done()) return;
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.search(a_action);
+  }
+  virtual void bbox(bbox_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.bbox(a_action);
+  }
+  virtual bool write(write_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    //if(!write_fields(a_action)) return false;
+    return m_group.write(a_action);
+  }
+  virtual void event(event_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.event(a_action);
+  }
+  //virtual bool get_matrix(get_matrix_action&);
+  //virtual bool read(read_action& a_action)
+  //virtual void is_visible(visible_action&)
+public:
+  spinor_dirac()
+  :parent()
+  ,phi_u_x(1)
+  ,phi_u_y(0)
+  ,xi_u_x(1)
+  ,xi_u_y(0)
+  ,phi_d_x(1)
+  ,phi_d_y(0)
+  ,xi_d_x(1)
+  ,xi_d_y(0)
+  ,length_head(0.1f)
+  ,radius(0.05f)
+  ,representation(rep_dirac)
+  {
+    add_fields();
+    init_sg(); // skeleton of scene graph.
+  }
+  virtual ~spinor_dirac(){}
+public:
+  spinor_dirac(const spinor_dirac& a_from)
+  :parent(a_from)
+  ,phi_u_x(a_from.phi_u_x)
+  ,phi_u_y(a_from.phi_u_y)
+  ,xi_u_x(a_from.xi_u_x)
+  ,xi_u_y(a_from.xi_u_y)
+  ,phi_d_x(a_from.phi_d_x)
+  ,phi_d_y(a_from.phi_d_y)
+  ,xi_d_x(a_from.xi_d_x)
+  ,xi_d_y(a_from.xi_d_y)
+  ,length_head(a_from.length_head)
+  ,radius(a_from.radius)
+  ,representation(a_from.representation)
+  {
+    add_fields();
+    init_sg(); // skeleton of scene graph.
+  }
+  spinor_dirac& operator=(const spinor_dirac& a_from){
+    parent::operator=(a_from);
+    if(&a_from==this) return *this;
+    phi_u_x = a_from.phi_u_x;
+    phi_u_y = a_from.phi_u_y;
+    xi_u_x = a_from.xi_u_x;
+    xi_u_y = a_from.xi_u_y;
+    phi_d_x = a_from.phi_d_x;
+    phi_d_y = a_from.phi_d_y;
+    xi_d_x = a_from.xi_d_x;
+    xi_d_y = a_from.xi_d_y;
+    length_head = a_from.length_head;
+    radius = a_from.radius;
+    representation = a_from.representation;
+    return *this;
+  }
+
+public:
+protected:
+  void init_sg(){
+    ////////////////////////////////////////////
+    /// phi up vector : ////////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_phi_u_sep));
+    m_phi_u_sep.add(new noderef(m_phi_u_matrix));
+    m_phi_u_sep.add(new noderef(m_phi_u_color));
+    m_phi_u_sep.add(new noderef(m_phi_u));
+  
+    ////////////////////////////////////////////
+    /// xi up vector : /////////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_xi_u_sep));
+    m_xi_u_sep.add(new noderef(m_xi_u_matrix));
+    m_xi_u_sep.add(new noderef(m_xi_u_color));
+    m_xi_u_sep.add(new noderef(m_xi_u));
+
+    ////////////////////////////////////////////
+    /// phi down vector : //////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_phi_d_sep));
+    m_phi_d_sep.add(new noderef(m_phi_d_matrix));
+    m_phi_d_sep.add(new noderef(m_phi_d_color));
+    m_phi_d_sep.add(new noderef(m_phi_d));
+  
+    ////////////////////////////////////////////
+    /// xi down vector : ///////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_xi_d_sep));
+    m_xi_d_sep.add(new noderef(m_xi_d_matrix));
+    m_xi_d_sep.add(new noderef(m_xi_d_color));
+    m_xi_d_sep.add(new noderef(m_xi_d));
+
+    update_sg();
+  }
+  
+  void update_sg(){
+    ////////////////////////////////////////////
+    /// matrices : /////////////////////////////
+    ////////////////////////////////////////////
+    m_I8.set_identity();
+    
+    typedef std::complex<double> z;
+    typedef mat<z,4> m4z;
+
+    std::vector<m4z> diracs;
+    switch(representation.value()) {
+    case rep_dirac:set_diracs(diracs);break;
+    case rep_majorana:set_majoranas(diracs);break;
+    case rep_chiral:set_chirals(diracs);break;
+    };
+
+    // lorentz 4 vec = exp(theta[a]*E[a]*eta)
+    std::vector<m4z> Ds;
+    set_G_rot_boost_rep(diracs,1.0/8.0,Ds);
+
+    if(!decomplex(Ds,m_dc_Ds,inlib::creal,inlib::cimag)) {}
+    set_decomplex_to_vector_8(m_Z);
+    m_Z.invert(m_Z_inv);
+    
+    ////////////////////////////////////////////
+    /// phi up vector : ////////////////////////
+    ////////////////////////////////////////////
+    float phi_u_length = ::sqrtf(phi_u_x*phi_u_x+phi_u_y*phi_u_y);
+    float phi_u_theta = ::atan2f(phi_u_y,phi_u_x);
+   
+    m_phi_u_matrix.set_rotate(0,0,1,phi_u_theta);
+    m_phi_u_matrix.mul_rotate(0,1,0,fhalf_pi());
+    
+    m_phi_u_color.color = colorf_red();
+    
+    m_phi_u.length_base = phi_u_length-length_head;
+    m_phi_u.length_head = length_head;
+    m_phi_u.radius = radius;
+
+    ////////////////////////////////////////////
+    /// xi up vector : /////////////////////////
+    ////////////////////////////////////////////
+    float xi_u_length = ::sqrtf(xi_u_x*xi_u_x+xi_u_y*xi_u_y);
+    float xi_u_theta = ::atan2f(xi_u_y,xi_u_x);
+
+    m_xi_u_matrix.set_rotate(0,0,1,xi_u_theta);
+    m_xi_u_matrix.mul_rotate(0,1,0,fhalf_pi());
+
+    m_xi_u_color.color = colorf_blue();
+
+    m_xi_u.length_base = xi_u_length-length_head;
+    m_xi_u.length_head = length_head;
+    m_xi_u.radius = radius;
+    
+    ////////////////////////////////////////////
+    /// phi down vector : //////////////////////
+    ////////////////////////////////////////////
+    float phi_d_length = ::sqrtf(phi_d_x*phi_d_x+phi_d_y*phi_d_y);
+    float phi_d_theta = ::atan2f(phi_d_y,phi_d_x);
+   
+    m_phi_d_matrix.set_rotate(0,0,1,phi_d_theta);
+    m_phi_d_matrix.mul_rotate(0,1,0,fhalf_pi());
+    
+    m_phi_d_color.color = colorf_magenta();
+    
+    m_phi_d.length_base = phi_d_length-length_head;
+    m_phi_d.length_head = length_head;
+    m_phi_d.radius = radius;
+
+    ////////////////////////////////////////////
+    /// xi down vector : ///////////////////////
+    ////////////////////////////////////////////
+    float xi_d_length = ::sqrtf(xi_d_x*xi_d_x+xi_d_y*xi_d_y);
+    float xi_d_theta = ::atan2f(xi_d_y,xi_d_x);
+
+    m_xi_d_matrix.set_rotate(0,0,1,xi_d_theta);
+    m_xi_d_matrix.mul_rotate(0,1,0,fhalf_pi());
+
+    m_xi_d_color.color = colorf_cyan();
+    
+    m_xi_d.length_base = xi_d_length-length_head;
+    m_xi_d.length_head = length_head;
+    m_xi_d.radius = radius;
+  }
+
+  void rotate(float a_x,float a_y,float a_z,float a_theta,
+              float& a_phi_u_x,float& a_phi_u_y,float& a_xi_u_x,float& a_xi_u_y,
+              float& a_phi_d_x,float& a_phi_d_y,float& a_xi_d_x,float& a_xi_d_y) {
+    // exp(theta*n.Z_inv*dc_Ds[0,1,2]*Z)
+
+    m8d n_dc_Ds;
+    n_dc_Ds = double(a_x)*m_dc_Ds[0]+double(a_y)*m_dc_Ds[1]+double(a_z)*m_dc_Ds[2];
+
+    m8d exp_M;
+    exp_M = ::cos(a_theta*0.5)*m_I8+2.0*::sin(a_theta*0.5)*m_Z_inv*n_dc_Ds*m_Z;
+
+   //m8d tmp = double(a_theta)*m_Z_inv*n_dc_Ds*m_Z;
+   //tmp.exp(40,exp_M);
+    
+    double v[8];
+    v[0] = a_phi_u_x;
+    v[1] = a_phi_u_y;
+    v[2] = a_xi_u_x;
+    v[3] = a_xi_u_y;
+    v[4] = a_phi_d_x;
+    v[5] = a_phi_d_y;
+    v[6] = a_xi_d_x;
+    v[7] = a_xi_d_y;
+
+    double dtmp[8];
+    exp_M.mul_array(v,dtmp);
+
+    //::printf("debug : v after : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    a_phi_u_x = float(v[0]);
+    a_phi_u_y = float(v[1]);
+    a_xi_u_x  = float(v[2]);
+    a_xi_u_y  = float(v[3]);
+    a_phi_d_x = float(v[4]);
+    a_phi_d_y = float(v[5]);
+    a_xi_d_x  = float(v[6]);
+    a_xi_d_y  = float(v[7]);
+  }
+  
+  void boost(float a_x,float a_y,float a_z,float a_theta,
+             float& a_phi_u_x,float& a_phi_u_y,float& a_xi_u_x,float& a_xi_u_y,
+             float& a_phi_d_x,float& a_phi_d_y,float& a_xi_d_x,float& a_xi_d_y) {
+    // exp(theta*n.Z_inv*dc_Ds[3,4,5]*Z)
+
+    m8d n_dc_Ds;
+    n_dc_Ds = double(a_x)*m_dc_Ds[1]+double(a_y)*m_dc_Ds[2]+double(a_z)*m_dc_Ds[3];
+
+    m8d exp_M;
+    exp_M = ::cosh(a_theta*0.5)*m_I8+2.0*::sinh(a_theta*0.5)*m_Z_inv*n_dc_Ds*m_Z;
+
+/*
+    m8d tmp = m_Z_inv*n_dc_Ds*m_Z;
+    inlib::mat_dump(std::cout,"tmp*tmp",tmp*tmp);
+    double depsilon = 1e-10;
+    m8d _exp_M;
+    m8d tmp = double(a_theta)*m_Z_inv*n_dc_Ds*m_Z;
+    tmp.exp(80,_exp_M);
+    if(!_exp_M.equal_prec(exp_M,depsilon,inlib::dfabs)) {
+      inlib::mat_dump(std::cout,"exp_M",exp_M);
+      inlib::mat_dump(std::cout,"_exp_M",_exp_M);
+      ::exit(0);
+    }
+*/
+
+    double v[8];
+    v[0] = a_phi_u_x;
+    v[1] = a_phi_u_y;
+    v[2] = a_xi_u_x;
+    v[3] = a_xi_u_y;
+    v[4] = a_phi_d_x;
+    v[5] = a_phi_d_y;
+    v[6] = a_xi_d_x;
+    v[7] = a_xi_d_y;
+
+    double dtmp[8];
+    exp_M.mul_array(v,dtmp);
+
+    //::printf("debug : v after : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    a_phi_u_x = float(v[0]);
+    a_phi_u_y = float(v[1]);
+    a_xi_u_x  = float(v[2]);
+    a_xi_u_y  = float(v[3]);
+    a_phi_d_x = float(v[4]);
+    a_phi_d_y = float(v[5]);
+    a_xi_d_x  = float(v[6]);
+    a_xi_d_y  = float(v[7]);
+  }
+  
+protected:
+  group m_group;
+  
+  separator m_phi_u_sep;
+  matrix m_phi_u_matrix;
+  rgba m_phi_u_color;
+  arrow m_phi_u;
+  
+  separator m_xi_u_sep;
+  matrix m_xi_u_matrix;
+  rgba m_xi_u_color;
+  arrow m_xi_u;
+
+  separator m_phi_d_sep;
+  matrix m_phi_d_matrix;
+  rgba m_phi_d_color;
+  arrow m_phi_d;
+  
+  separator m_xi_d_sep;
+  matrix m_xi_d_matrix;
+  rgba m_xi_d_color;
+  arrow m_xi_d;
+protected:  
+  std::vector<m8d> m_dc_Ds;
+  m8d m_I8,m_Z,m_Z_inv;
+};
+
+}}
+
+#endif

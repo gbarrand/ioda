@@ -1,0 +1,201 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_cfitsio_opener
+#define exlib_cfitsio_opener
+
+#include "cbk/cfitsio"
+#include <inlib/sg/load_img>
+
+namespace exlib {
+
+inline bool cfitsio_menu_sids(const std::string& a_file,
+                              const std::vector< std::pair<unsigned int,std::string> >& a_ids,
+                              inlib::sg::gui_viewer& a_gv,
+                              const inlib::sg::pos_data& a_data){
+  if(a_ids.empty()) {
+    a_gv.pop_warn(a_data,"empty");
+    return false;
+  } else {
+    inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+    a_gv.set_style(*list);
+
+    typedef std::pair<unsigned int,std::string> id_t;
+    inlib_vforcit(id_t,a_ids,it) {
+
+      exlib::cbk::_data tag(a_data.m_popup,a_data.m_ex,a_data.m_ey);
+      tag.m_file = a_file;
+      tag.m_ihdu = (*it).first;
+      tag.m_hdu_type = (*it).second;
+
+      std::string label;
+      if(!inlib::numas<unsigned int>((*it).first,label)){}
+      label += " "+(*it).second;
+
+      list->add(label,new inlib::sg::fundata_cbk<inlib::sg::gui_viewer,inlib::sg::list,exlib::cbk::_data>(a_gv,*list,cbk::action_cfitsio,tag));
+    }
+
+    a_gv.show_widget(a_data,list);
+    return true;
+  }
+}
+}
+
+#include <inlib/sg/iopener>
+
+namespace exlib {
+
+class cfitsio_opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::cfitsio_opener)
+private:
+  INLIB_CLASS_STRING(hdu)
+  INLIB_CLASS_STRING(slice)
+  INLIB_CLASS_STRING(min)
+  INLIB_CLASS_STRING(max)
+  INLIB_CLASS_STRING(ncolor)
+  INLIB_CLASS_STRING(cmap)
+public:
+  virtual parent* copy() const {return new cfitsio_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return inlib::file::is_fits(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    if(a_args.is_arg(s_hdu())) {
+      unsigned int hdu;
+      if(!a_args.find<unsigned int>(s_hdu(),hdu,1)) {}
+      unsigned int slice;
+      if(!a_args.find<unsigned int>(s_slice(),slice,0)) {}
+
+      //lut :
+      double mn;
+      if(!a_args.find<double>(s_min(),mn,0)) {}
+      double mx;
+      if(!a_args.find<double>(s_max(),mx,1)) {}
+      std::string cmap;
+      if(!a_args.find(s_cmap(),cmap,"")) {}
+
+      if(!_open(a_path,
+                hdu,slice,
+                mn,mx,cmap,
+                a_gv)) return false;
+
+    } else {
+      std::ostream& out = a_gv.out();
+ 
+      std::vector< std::pair<unsigned int,std::string> > ids;
+      cfitsio::ls(out,a_path,ids);
+
+      //popup :
+      bool popup;
+      if(!a_args.find(inlib::sg::s_popup(),popup,false)) {}
+      int ex;
+      if(!a_args.find<int>(inlib::sg::s_ex(),ex)) {}
+      int ey;
+      if(!a_args.find<int>(inlib::sg::s_ey(),ey)) {}
+
+      cfitsio_menu_sids(a_path,ids,a_gv,inlib::sg::pos_data(popup,ex,ey));
+
+    }
+
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_gv,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    return open(a_path,a_gv,a_args,a_done);
+  }
+public:
+  cfitsio_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~cfitsio_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  cfitsio_opener(const cfitsio_opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  cfitsio_opener& operator=(const cfitsio_opener&){return *this;}  
+protected:
+  static bool _open(const std::string& a_path,
+                    unsigned int a_hdu,
+                    unsigned int a_slice,
+                    double a_mn,double a_mx,
+                    const std::string& a_cmap,
+                    inlib::sg::gui_viewer& a_gv) {
+
+    unsigned int width,height;
+    size_t sz;
+    int bitpix;
+    char* buffer = fits_image::read_slice(a_gv.out(),a_path,a_hdu,a_slice,width,height,sz,bitpix);
+    if(!buffer) {
+      a_gv.map_warn_failed();
+      return false;
+    }
+
+    inlib::SOPI::cmap _cmap(0);
+    inlib::SOPI::stocmap(a_cmap,_cmap);
+
+    inlib::lut<double> lut(a_mn,a_mx,_cmap.size());
+   
+    bool yswap = false;
+
+    inlib::img<inlib::byte> img;
+    if(!fits_image::buffer2img(a_gv.out(),buffer,width,height,bitpix,yswap,lut,_cmap,img)) {}
+    delete [] buffer;
+#ifdef INLIB_MEM
+    inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+    if(img.is_empty()) {
+      a_gv.map_warn_failed();
+      return false;
+    }
+
+    load_img(a_gv,img,inlib::colorf_lightgrey());
+
+    //if(!a_aopts.is_arg(s_no_hide_menu())) a_gv.hide_main_menu();
+    a_gv.hide_main_menu();
+    return true;
+  }
+
+};
+
+}
+
+//exlib_build_use inlib cfitsio wcslib kernel freetype
+
+#endif
+

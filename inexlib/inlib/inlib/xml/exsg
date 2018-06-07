@@ -1,0 +1,429 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_xml_exsg
+#define inlib_xml_exsg
+
+#include "../sg/vertices"
+#include "../sg/markers"
+#include "../sg/color"
+#include "../sg/draw_style"
+#include "../sg/line_set"
+#include "../sg/atb_vertices"
+#include "../sg/separator"
+#include "../sg/selection"
+#include "../sg/torche"
+#include "../sg/head_light"
+#include "../sg/ortho"
+#include "../sg/perspective"
+#include "../sg/normal"
+#include "../sg/matrix"
+#include "../sg/cube"
+#include "../sg/circle_arc"
+#include "../sg/sphere"
+#include "../sg/icosahedron_sphere"
+#include "../sg/text_hershey"
+#include "../sg/text_hershey_marker"
+#include "../sg/xmas_tree"
+#include "../sg/tex_rect"
+#include "../sg/tex_sphere"
+#include "../sg/tex_quadrilateral"
+//#include "../sg/tex_rect_anim"
+//#include "../sg/tex_sphere_anim"
+#include "../sg/healpix"
+
+#include "../sg/event_dispatcher"
+#include "../sg/infos"
+#include "../sg/back_area"
+#include "../sg/_switch"
+
+#include "../sg/dummy"
+
+#include "../io/xrbuf"
+#include "../S_STRING"
+
+#include "../sg/axis"
+#include "../sg/infos_box"
+#include "../sg/text"
+#include "../sg/polyhedron"
+#include "../fog/scene"
+
+#include "../forit"
+
+//#include "text_freetype"
+//#include "text_freetype_marker"
+
+#include "tree"
+
+namespace inlib {
+namespace xml {
+
+class exsg {
+public:
+  INLIB_CLASS_STRING_VALUE(back_inlib_sg_image,inlib::sg::image)
+  INLIB_CLASS_STRING_VALUE(back_inlib_sg_todel,inlib::sg::todel)
+
+  INLIB_CLASS_STRING_VALUE(back_exlib_sg_image,exlib::sg::image)
+  INLIB_CLASS_STRING_VALUE(back_exlib_povama,exlib::povama)
+  INLIB_CLASS_STRING_VALUE(back_exlib_povama_scene,exlib::povama::scene)
+  INLIB_CLASS_STRING_VALUE(back_exlib_sg_axis,exlib::sg::axis)
+  INLIB_CLASS_STRING_VALUE(back_exlib_sg_infos,exlib::sg::infos)
+  INLIB_CLASS_STRING_VALUE(back_exlib_sg_text,exlib::sg::text)
+  INLIB_CLASS_STRING_VALUE(back_exlib_sg_polyhedron,exlib::sg::polyhedron)
+public:  
+  //tree,out,verbose,path.
+  typedef bool (*reader)(tree&,std::ostream&,bool,exsg*);
+  typedef std::map<std::string,reader> readers;
+  typedef std::pair<std::string,reader> named_reader;
+  typedef std::vector<named_reader> vreaders;
+public:
+  exsg(const vreaders& a_readers,sg::separator& a_sep,const sg::base_freetype& a_ttf)
+  :m_ttf(a_ttf)
+  ,m_sep(a_sep)
+  ,m_group(0)
+  {
+    //set_compressed_reader(new exlib::gzip_reader());
+    add_default_readers();
+/*
+    set_default_tags();
+    typedef std::pair<std::string,reader> reader_t;
+    inlib_vforcit(reader_t,a_readers,it){
+      add_tag((*it).first);
+      add_reader((*it).first,(*it).second);
+    }
+*/
+  }
+  virtual ~exsg(){}
+protected:
+  exsg(const exsg& a_from)
+  :m_ttf(a_from.m_ttf)
+  ,m_readers(a_from.m_readers)
+  ,m_sep(a_from.m_sep)
+  ,m_group(0)
+  {}
+  exsg& operator=(const exsg& a_from){
+    if(&a_from==this) return *this;
+    m_readers = a_from.m_readers;
+    m_group = 0;    
+    return *this;
+  }
+public:
+  template <class T>
+  void add_reader(){add_reader(T::s_class(),read_node<T>);}
+
+  template <class T>
+  void add_reader_ttf(){add_reader(T::s_class(),read_node_ttf<T>);}
+
+  template <class T>
+  void add_reader_composite(){add_reader(T::s_class(),read_composite<T>);}
+protected:
+  void clear_readers() {m_readers.clear();}
+  void add_reader(const std::string& a_class,
+                         reader a_reader,
+                         bool a_check = false){
+    if(a_check) {if(find_reader(a_class)) return;}
+    m_readers[a_class] = a_reader;
+  }
+
+  reader find_reader(const std::string& a_class) const {
+   {std::map<std::string,reader>::const_iterator it = m_readers.find(a_class);
+    if(it!=m_readers.end()) return (*it).second;}
+
+    //for protocol 1 todel<T> :
+   {std::string::size_type pos = a_class.find('<');
+    if(pos!=std::string::npos){
+      std::string scls = a_class.substr(0,pos);
+      std::map<std::string,reader>::const_iterator it = m_readers.find(scls);
+      if(it!=m_readers.end()) return (*it).second;
+    }}
+
+    return 0;
+  }
+
+protected:
+  void set_default_tags(std::vector<std::string>& a_tags) {
+    a_tags.clear();    
+    a_tags.push_back(s_exsg());
+    a_tags.push_back(sg::infos::s_class());
+    a_tags.push_back(sg::vertices::s_class());
+    a_tags.push_back(sg::markers::s_class());
+    a_tags.push_back(sg::draw_style::s_class());
+    a_tags.push_back(sg::color::s_class());
+    a_tags.push_back(sg::rgba::s_class());
+    a_tags.push_back(sg::line_set::s_class());
+    a_tags.push_back(sg::atb_vertices::s_class());
+
+    a_tags.push_back(sg::group::s_class());
+    a_tags.push_back(sg::_switch::s_class());
+    a_tags.push_back(sg::separator::s_class());
+    a_tags.push_back(sg::selection::s_class());
+    a_tags.push_back(sg::torche::s_class());
+    a_tags.push_back(sg::head_light::s_class());
+    a_tags.push_back(sg::ortho::s_class());
+    a_tags.push_back(sg::perspective::s_class());
+    a_tags.push_back(sg::normal::s_class());
+    a_tags.push_back(sg::matrix::s_class());
+    a_tags.push_back(sg::cube::s_class());
+    a_tags.push_back(sg::circle_arc::s_class());
+    a_tags.push_back(sg::sphere::s_class());
+    a_tags.push_back(sg::icosahedron_sphere::s_class());
+    a_tags.push_back(sg::text_hershey::s_class());
+    a_tags.push_back(sg::text_hershey_marker::s_class());
+    a_tags.push_back(sg::xmas_tree::s_class());
+    a_tags.push_back(sg::tex_rect::s_class());
+    a_tags.push_back(sg::tex_sphere::s_class());
+    a_tags.push_back(sg::tex_quadrilateral::s_class());
+    //a_tags.push_back(sg::tex_rect_anim::s_class());
+    //a_tags.push_back(sg::tex_sphere_anim::s_class());
+    a_tags.push_back(sg::healpix::s_class());
+
+    a_tags.push_back(sg::event_dispatcher::s_class());
+    a_tags.push_back(sg::back_area::s_class());
+
+    a_tags.push_back(sg::axis::s_class());
+    a_tags.push_back(sg::infos_box::s_class());
+    a_tags.push_back(sg::text::s_class());
+    a_tags.push_back(sg::polyhedron::s_class());
+    a_tags.push_back(fog::scene::s_class());
+
+    //a_tags.push_back(exlib::sg::text_freetype::s_class());
+    //a_tags.push_back(exlib::sg::text_freetype_marker::s_class());
+
+    // backcomp :
+    a_tags.push_back(s_back_inlib_sg_todel());
+    a_tags.push_back(s_back_exlib_sg_axis());
+    a_tags.push_back(s_back_exlib_sg_infos());
+    a_tags.push_back(s_back_exlib_sg_text());
+    a_tags.push_back(s_back_exlib_povama());
+    a_tags.push_back(s_back_exlib_povama_scene());
+    a_tags.push_back(s_back_exlib_sg_polyhedron());
+  }
+
+  void add_default_readers(){
+    add_reader_composite<sg::group>();
+    add_reader_composite<sg::_switch>();
+    add_reader_composite<sg::separator>();
+    add_reader_composite<sg::selection>();
+
+    add_reader<sg::infos>();
+    add_reader<sg::vertices>();
+    add_reader<sg::markers>();
+    add_reader<sg::color>();
+    add_reader<sg::rgba>();
+    add_reader<sg::draw_style>();
+    add_reader<sg::line_set>();
+    add_reader<sg::atb_vertices>();
+
+    add_reader<sg::torche>();
+    add_reader<sg::head_light>();
+    add_reader<sg::ortho>();
+    add_reader<sg::perspective>();
+    add_reader<sg::normal>();
+    add_reader<sg::matrix>();
+    add_reader<sg::cube>();
+    add_reader<sg::sphere>();
+    add_reader<sg::icosahedron_sphere>();
+    add_reader<sg::text_hershey>();
+    add_reader<sg::text_hershey_marker>();
+    add_reader<sg::xmas_tree>();
+    add_reader<sg::tex_rect>();
+    add_reader<sg::tex_sphere>();
+    add_reader<sg::tex_quadrilateral>();
+    //add_reader<sg::tex_rect_anim>();
+    //add_reader<sg::tex_sphere_anim>();
+    add_reader<sg::healpix>();
+
+    add_reader<sg::event_dispatcher>();
+    add_reader<sg::back_area>();
+    add_reader<sg::polyhedron>();
+    add_reader<fog::scene>();
+
+    add_reader_ttf<sg::axis>();
+    add_reader_ttf<sg::infos_box>();
+    add_reader_ttf<sg::text>();
+
+    //add_reader<exlib::sg::text_freetype>();
+    //add_reader<exlib::sg::text_freetype_marker>();
+
+    // backcomp :
+    add_reader(s_back_inlib_sg_todel(),read_node<sg::dummy>);
+    add_reader(s_back_inlib_sg_image(),read_node<sg::tex_rect>);
+    add_reader(s_back_exlib_sg_image(),read_node<sg::tex_rect>);
+    add_reader(s_back_exlib_povama()  ,read_node<fog::scene>);
+    add_reader(s_back_exlib_povama_scene() ,read_node<fog::scene>);
+    add_reader(s_back_exlib_sg_polyhedron(),read_node<sg::polyhedron>);
+
+    add_reader(s_back_exlib_sg_axis(),read_node_ttf<sg::axis>);
+    add_reader(s_back_exlib_sg_infos(),read_node_ttf<sg::infos_box>);
+    add_reader(s_back_exlib_sg_text(),read_node_ttf<sg::text>);
+
+  }
+
+  template <class T>
+  static bool read_composite(tree& a_tree,std::ostream& a_out,bool a_verbose,exsg* a_this){
+    if(a_verbose) {
+      a_out << "inlib::xml::exsg::read_composite : " << T::s_class() 
+            << "..." << std::endl;
+    }
+    T* node = new T;    
+
+    if(!read_fields(a_tree,a_out,a_verbose,*node)) {
+      a_out << "inlib::xml::exsg::read_composite : " << T::s_class() 
+            << " failed."
+            << std::endl;
+      delete node;
+      return false;
+    }
+
+    sg::group* old_group = a_this->m_group;
+    a_this->m_group->add(node);
+    a_this->m_group = node;
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      reader rder = a_this->find_reader(tag_name);
+      if(!rder) {
+        a_out << "inlib::xml::exsg::read_composite : " << T::s_class() 
+              << " reader not found for " << sout(tag_name)
+              << std::endl;        
+        a_this->m_group = old_group;
+        return false;
+      }
+      if(!rder(*_tree,a_out,a_verbose,a_this)) {
+        a_out << "inlib::xml::exsg::read_composite :"
+              << " read failed for " << sout(tag_name)
+              << std::endl;        
+        a_this->m_group = old_group;
+        return false;
+      }
+
+    }}
+
+    a_this->m_group = old_group;
+
+    return true;
+  }
+
+public:
+  template <class T>
+  static bool read_node(tree& a_tree,std::ostream& a_out,bool a_verbose,exsg* a_this){
+    if(a_verbose) {
+      a_out << "inlib::xml::exsg::read_node : " << T::s_class() 
+            << " ..." << std::endl;
+    }
+    T* node = new T;
+    if(!read_fields(a_tree,a_out,a_verbose,*node)) {
+      a_out << "inlib::xml::exsg::read_node : " << T::s_class() 
+            << " failed."
+            << std::endl;
+      delete node;
+      return false;
+    }
+    a_this->m_group->add(node);
+    return true;
+  }
+protected:
+  template <class T>
+  static bool read_node_ttf(tree& a_tree,std::ostream& a_out,bool a_verbose,exsg* a_this){
+    if(a_verbose) {
+      a_out << "inlib::xml::exsg::read_node : " << T::s_class() 
+            << " ..." << std::endl;
+    }
+    T* node = new T(a_this->m_ttf);
+    if(!read_fields(a_tree,a_out,a_verbose,*node)) {
+      a_out << "inlib::xml::exsg::read_node : " << T::s_class() 
+            << " failed."
+            << std::endl;
+      delete node;
+      return false;
+    }
+    a_this->m_group->add(node);
+    return true;
+  }
+
+  INLIB_CLASS_STRING(exsg)
+  INLIB_CLASS_STRING(array)
+  INLIB_CLASS_STRING(cstrs)
+  INLIB_CLASS_STRING(vecs)
+
+  static bool read_fields(tree& a_tree,
+                                 std::ostream& a_out,
+                                 bool a_verbose,
+                                 sg::node& a_node){
+    io::xrbuf xbuffer(a_out);
+
+    //NOTE : we expect one xml::element per field.
+
+    std::vector<sg::field*> fields;
+    a_node.protocol_one_fields(fields);
+    
+    std::vector<sg::field*>::iterator fit = fields.begin();
+
+    const std::list<ielem*>& list = a_tree.childs();
+    std::list<ielem*>::const_iterator eit = list.begin();
+
+    for(;((fit!=fields.end())&&(eit!=list.end()));++fit,++eit) {
+
+      if(element* _elem = id_cast<ielem,element>(*(*eit))) {
+
+        if( (_elem->name()==s_array()) ){
+
+          if(a_verbose) 
+            a_out << "inlib::xml::exsg::read_fields(array) : "
+                  << _elem->name()
+                  << " value " << _elem->value()
+                  << std::endl;
+
+          uint32 sz = (uint32)(_elem->value().size()+1);
+          if(!xbuffer.set(sz,_elem->value().c_str())) return false;
+
+          if(!(*fit)->read(xbuffer)) {
+            a_out << "inlib::xml::exsg::read_fields(array) :"
+                  << " failed for " << _elem->name()
+                  << ", and value " << sout(_elem->value())
+                  << std::endl;
+            return false;
+          }
+
+          if(a_verbose) (*fit)->dump(a_out);
+
+        } else {
+          std::string svalue;
+          if(!_elem->attribute_value("v",svalue)) return false;
+
+          if(a_verbose)
+            a_out << "inlib::xml::exsg::read_fields :" 
+                  << " " << _elem->name() << " = " << svalue
+                  << std::endl;
+
+          if(!xbuffer.set((uint32)svalue.size()+1,svalue.c_str())) return false;
+
+          if(!(*fit)->read(xbuffer)) {
+            a_out << "inlib::xml::exsg::read_fields :"
+                  << " failed for " << _elem->name()
+                  << ", and value " << sout(svalue)
+                  << std::endl;
+            return false;
+          }
+
+          if(a_verbose) (*fit)->dump(a_out);
+        }
+ 
+      }
+    }
+
+    return true;
+  }
+
+protected:
+  const sg::base_freetype& m_ttf;
+  readers m_readers;
+  sg::separator& m_sep;
+  sg::group* m_group;
+};
+
+}}
+
+#endif

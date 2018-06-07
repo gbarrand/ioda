@@ -1,0 +1,318 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_exa_Sp4
+#define inlib_exa_Sp4
+
+#include "../displace_transporter"
+
+#include "../sg/transporter_anim"
+#include "../sg/view_evd"
+
+namespace inlib {
+namespace exa {
+
+inline sg::return_action action_Lorentz_displace(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));
+    a_gv.set_plane_viewer(true);
+  }
+
+  float sz_cube = 0.07f;
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+ {sg::separator* _sep = new sg::separator;
+  dsep.add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_green();
+  _sep->add(mat);
+
+  sg::cube* node = new sg::cube();   
+  node->width = 0.005f;
+  node->height = 2.0f;
+  node->depth = 0.005f;
+  _sep->add(node);}
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+  vec4f x0(0,1,0,0); //on x axis.
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_red();
+  _sep->add(mat);
+
+  atime _now(0,0);
+  if(!a_gv.get_time_now(_now)) {}
+
+  //typedef long double real;
+  typedef double real;
+
+  Lorentz_displace<real>* tsp = new Lorentz_displace<real>(a_gv.out());
+
+  sg::transporter_anim<real>* m = new sg::transporter_anim<real>(a_gv,_now,*tsp);
+  m->x0 = x0;
+  //m->m_steps = 1; //steps per action().
+  _sep->add(m);
+
+  sg::cube* node = new sg::cube();   
+  node->width = sz_cube;
+  node->height = sz_cube;
+  node->depth = sz_cube;
+  _sep->add(node);
+
+  _sep->add(new sg::holder< Lorentz_displace<real> >(tsp));
+
+  a_gv.enable_anim();
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_Sp4_displace(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));
+    a_gv.set_plane_viewer(true);
+  }
+
+  float sz_cube = 0.07f;
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+ {sg::separator* _sep = new sg::separator;
+  dsep.add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_green();
+  _sep->add(mat);
+
+  sg::cube* node = new sg::cube();   
+  node->width = 0.005f;
+  node->height = 2.0f;
+  node->depth = 0.005f;
+  _sep->add(node);}
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+  vec4f x0(0,1,0,0); //on x axis.
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_blue();
+  _sep->add(mat);
+
+  atime _now(0,0);
+  if(!a_gv.get_time_now(_now)) {}
+
+  //typedef long double real;
+  typedef double real;
+
+  Sp4_displace<real>* tsp = new Sp4_displace<real>(a_gv.out());
+
+  sg::transporter_anim<real>* m = new sg::transporter_anim<real>(a_gv,_now,*tsp);
+  m->x0 = x0;
+  //m->m_steps = 1; //steps per action().
+  _sep->add(m);
+
+  sg::cube* node = new sg::cube();   
+  node->width = sz_cube;
+  node->height = sz_cube;
+  node->depth = sz_cube;
+  _sep->add(node);
+
+  _sep->add(new sg::holder< Sp4_displace<real> >(tsp));
+
+  a_gv.enable_anim();
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_RU2_displace(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));
+    a_gv.set_plane_viewer(true);
+  }
+
+  float sz_cube = 0.07f;
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+ {sg::separator* _sep = new sg::separator;
+  dsep.add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_green();
+  _sep->add(mat);
+
+  sg::cube* node = new sg::cube();   
+  node->width = 0.005f;
+  node->height = 2.0f;
+  node->depth = 0.005f;
+  _sep->add(node);}
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+  vec4f x0(0,1,0,0); //on x axis.
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_blue();
+  _sep->add(mat);
+
+  atime _now(0,0);
+  if(!a_gv.get_time_now(_now)) {}
+
+  //typedef long double real;
+  typedef double real;
+
+  RU2_displace<real>* tsp = new RU2_displace<real>(a_gv.out());
+
+  sg::transporter_anim<real>* m = new sg::transporter_anim<real>(a_gv,_now,*tsp);
+  m->x0 = x0;
+  //m->m_steps = 1; //steps per action().
+  _sep->add(m);
+
+  sg::cube* node = new sg::cube();   
+  node->width = sz_cube;
+  node->height = sz_cube;
+  node->depth = sz_cube;
+  _sep->add(node);
+
+  _sep->add(new sg::holder< RU2_displace<real> >(tsp));
+
+  a_gv.enable_anim();
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_SO_131_displace(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));
+    a_gv.set_plane_viewer(true);
+  }
+
+  float sz_cube = 0.07f;
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+ {sg::separator* _sep = new sg::separator;
+  dsep.add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_magenta();
+  _sep->add(mat);
+
+  sg::cube* node = new sg::cube();   
+  node->width = 0.005f;
+  node->height = 2.0f;
+  node->depth = 0.005f;
+  _sep->add(node);}
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+  vec4f x0(0,1,0,0); //on x axis.
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_blue();
+  _sep->add(mat);
+
+  atime _now(0,0);
+  if(!a_gv.get_time_now(_now)) {}
+
+  //typedef long double real;
+  typedef double real;
+
+  SO_131_displace<real>* tsp = new SO_131_displace<real>(a_gv.out());
+
+  sg::transporter_anim<real>* m = new sg::transporter_anim<real>(a_gv,_now,*tsp);
+  m->x0 = x0;
+  //m->m_steps = 1; //steps per action().
+  _sep->add(m);
+
+  sg::cube* node = new sg::cube();   
+  node->width = sz_cube;
+  node->height = sz_cube;
+  node->depth = sz_cube;
+  _sep->add(node);
+
+  _sep->add(new sg::holder< SO_131_displace<real> >(tsp));
+
+  a_gv.enable_anim();
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_Lorentz_and_Sp4_displace(sg::gui_viewer& a_gv) {
+  action_Lorentz_displace(a_gv);
+  action_Sp4_displace(a_gv);
+  a_gv.show_console("Lorentz red, Sp4 blue");
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_Lorentz_and_SO_131_displace(sg::gui_viewer& a_gv) {
+  action_Lorentz_displace(a_gv);
+  action_SO_131_displace(a_gv);
+  a_gv.show_console("Lorentz red, SO_131 magenta");
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_Lorentz_and_RU2_displace(sg::gui_viewer& a_gv) {
+  action_Lorentz_displace(a_gv);
+  action_RU2_displace(a_gv);
+  a_gv.show_console("Lorentz red, RU2 blue");
+  return sg::return_to_render;
+}
+
+}}
+
+#endif

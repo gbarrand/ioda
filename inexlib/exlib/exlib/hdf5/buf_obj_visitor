@@ -1,0 +1,237 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_buf_obj_visitor
+#define exlib_hdf5_buf_obj_visitor
+
+#include <inlib/store/iobj_visitor>
+
+#include <inlib/typedefs>
+
+#include <cstring> //memcpy
+
+namespace exlib {
+namespace hdf5 {
+
+class buf_obj_visitor : public virtual inlib::iobj_visitor {
+public:
+  virtual std::ostream& out() const {return m_out;}
+  //virtual bool begin(Slash::Store::IStorable&){return true;}
+  //virtual bool end(Slash::Store::IStorable&){return true;}
+
+  virtual bool visit(bool& aData){
+    if((m_pos+inlib::size_char())>m_end) return false;
+    unsigned char data;
+    ::memcpy(&data,m_pos,inlib::size_char());
+    m_pos += inlib::size_char();
+    aData = (data==1?true:false);
+    return true;
+  }
+  virtual bool visit(char& aData){
+    if((m_pos+inlib::size_char())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_char());
+    m_pos += inlib::size_char();
+    return true;
+  }
+  virtual bool visit(short& aData){
+    if((m_pos+inlib::size_short())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_short());
+    m_pos += inlib::size_short();
+    return true;
+  }
+  virtual bool visit(int& aData){
+    if((m_pos+inlib::size_int())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+    return true;
+  }
+  virtual bool visit(inlib::int64& aData){
+    if((m_pos+inlib::size_int64())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_int64());
+    m_pos += inlib::size_int64();
+    return true;
+  }
+  virtual bool visit(inlib::uint64& aData){
+    if((m_pos+inlib::size_int64())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_int64());
+    m_pos += inlib::size_int64();
+    return true;
+  }
+  virtual bool visit(unsigned int& aData){
+    if((m_pos+inlib::size_int())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+    return true;
+  }
+  virtual bool visit(float& aData){
+    if((m_pos+inlib::size_float())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_float());
+    m_pos += inlib::size_float();
+    return true;
+  }
+  virtual bool visit(double& aData){
+    if((m_pos+inlib::size_double())>m_end) return false;
+    ::memcpy(&aData,m_pos,inlib::size_double());
+    m_pos += inlib::size_double();
+    return true;
+  }
+  virtual bool visit(std::vector<bool>& aData){ 
+    std::vector<unsigned char> data;
+    if(!read<unsigned char>(m_pos,m_end,data,inlib::size_char())) {
+      aData.clear();
+      return false;
+    }
+    size_t number = data.size();
+    aData.resize(number);
+    for(size_t index=0;index<number;index++) aData[index] = (data[index]==1?true:false);  
+    return true;
+  }
+  virtual bool visit(std::vector<char>& aData){ 
+    return read<char>(m_pos,m_end,aData,inlib::size_char());
+  }
+  virtual bool visit(std::vector<short>& aData){ 
+    return read<short>(m_pos,m_end,aData,inlib::size_short());
+  }
+  virtual bool visit(std::vector<inlib::int64>& aData){ 
+    return read<inlib::int64>(m_pos,m_end,aData,inlib::size_int64());
+  }
+  virtual bool visit(std::vector<int>& aData){ 
+    return read<int>(m_pos,m_end,aData,inlib::size_int());
+  }
+  virtual bool visit(std::vector<float>& aData){ 
+    return read<float>(m_pos,m_end,aData,inlib::size_float());
+  }
+  virtual bool visit(std::vector<double>& aData){ 
+    return read<double>(m_pos,m_end,aData,inlib::size_double());
+  }
+  virtual bool visit(std::vector<unsigned char>& aData){ 
+    return read<unsigned char>(m_pos,m_end,aData,inlib::size_char());
+  }
+  virtual bool visit(std::vector< std::vector<double> >& aData){ 
+    if((m_pos+2*inlib::size_int())>m_end) {aData.clear();return false;}
+    unsigned int n;
+    ::memcpy(&n,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+
+    unsigned int dim;
+    ::memcpy(&dim,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+  
+    unsigned int number = n*dim;
+    unsigned int array_sz = number*inlib::size_double();
+  
+    if((m_pos+array_sz)>m_end) {aData.clear();return false;}
+  
+    aData.clear();
+    aData.resize(n);
+    if(number) {
+      array_sz = dim*inlib::size_double();
+      for(unsigned int index=0;index<n;index++) {
+        std::vector<double>& v = aData[index];
+        v.resize(dim);
+        ::memcpy(&(v[0]),m_pos,array_sz);
+        m_pos += array_sz;
+      }
+    }
+  
+    return true;
+  }
+
+  virtual bool visit(std::vector<std::string>& aData){
+    // Exa : if ab0cde00, then aData should contain two strings ab and cde.
+    aData.clear();
+
+    if((m_pos+inlib::size_int())>m_end) return false;
+    unsigned int sz;
+    ::memcpy(&sz,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+  
+    if((m_pos+sz)>m_end) return false;
+  
+    char* begin = m_pos;
+    unsigned int number = sz-1;
+    for(unsigned int index=0;index<number;index++) {
+      if((*m_pos)=='\0') {
+        size_t l = m_pos - begin;
+        std::string s(l,0);
+        char* data = (char*)s.c_str();
+        ::memcpy(data,begin,l);
+        //printf("debug : xx \"%s\"\n",s.c_str());
+        aData.push_back(s);
+        begin = m_pos+1;
+      }
+      m_pos++;
+    }
+    m_pos++;
+  
+    return true;
+  }
+
+  virtual bool visit(std::string& aData){
+    if((m_pos+inlib::size_int())>m_end) {aData.clear();return false;}
+    unsigned int number;
+    ::memcpy(&number,m_pos,inlib::size_int());
+    m_pos += inlib::size_int();
+  
+    if((m_pos+number+1)>m_end) {aData.clear();return false;}
+  
+    aData.resize(number);
+    ::memcpy((char*)aData.c_str(),m_pos,number);
+    m_pos += (number+1)*inlib::size_char();
+  
+    return true;
+  }
+
+/*
+  virtual bool visit_double(Slash::Store::IArray& aData){ 
+    Slash::Store::IArray::Orders orders;
+    if(!read<unsigned int>(m_pos,m_end,orders,inlib::size_int())) return false;
+    if(!aData.read(orders,m_pos,m_end)) return false;
+    return true;  
+  }
+*/
+public:
+  buf_obj_visitor(std::ostream& a_out,char*& a_pos,char* a_end)
+  :m_out(a_out),m_pos(a_pos),m_end(a_end){}
+  virtual ~buf_obj_visitor(){}
+protected:
+  buf_obj_visitor(const buf_obj_visitor& a_from)
+  :inlib::iobj_visitor(a_from)
+  ,m_out(a_from.m_out)
+  ,m_pos(a_from.m_pos)
+  ,m_end(a_from.m_end)
+  {}
+  buf_obj_visitor& operator=(const buf_obj_visitor&){return *this;}
+private:
+  template <class T>
+  static bool read(char*& aPos,char* aEnd,std::vector<T>& aData,unsigned int aSize){ 
+    if((aPos+inlib::size_int())>aEnd) {aData.clear();return false;}
+    unsigned int number;
+    ::memcpy(&number,aPos,inlib::size_int());
+    aPos += inlib::size_int();
+  
+    unsigned int array_sz = number*aSize;
+    if((aPos+array_sz)>aEnd) {aData.clear();return false;}
+  
+    aData.clear();
+    aData.resize(number);
+    if(number) {
+      T* data = &(aData[0]);
+      ::memcpy(data,aPos,array_sz);
+      aPos += array_sz;
+    }
+
+    return true;
+  }
+protected:
+  std::ostream& m_out;
+private:
+  char*& m_pos;
+  char* m_end;
+};
+
+}}
+
+#endif
+
+//exlib_build_use inlib

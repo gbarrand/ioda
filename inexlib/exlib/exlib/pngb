@@ -1,0 +1,226 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_pngb
+#define exlib_pngb
+
+#include <cstdio> //FILE,size_t
+
+#ifdef EXLIB_USE_NATIVE_PNG
+#include <png.h>
+#else
+#include <ourex_png.h> //enforce ourex png
+#endif
+
+#include <ostream>
+#include <inlib/typedefs>
+#include <cstddef>
+
+namespace exlib {
+namespace pngb {
+
+inline bool is(inlib::uint64 a_sz,const char* a_buffer){
+  if(a_sz<8) return false;
+  return ::png_sig_cmp((png_byte*)a_buffer,0,8)?false:true;
+}
+
+typedef struct {
+  size_t m_sz;
+  png_byte* m_buffer;
+  size_t m_read;
+} source_mgr;
+
+inline void fill_buffer(png_structp a_png,png_bytep a_buffer,png_size_t a_length) {
+  source_mgr* src = (source_mgr*)a_png->io_ptr;
+
+  ptrdiff_t nbytes = src->m_sz-src->m_read;
+  if(nbytes<0) {
+    ::png_error(a_png,"exlib::pngb::fill_buffer : nbytes<0");
+  }
+  if(a_length>size_t(nbytes)) {
+    ::png_error(a_png,"exlib::pngb::fill_buffer : a_length>nbytes\n");
+  }
+
+  ::png_memcpy(a_buffer,src->m_buffer+src->m_read,a_length);
+
+  src->m_read += a_length;
+}
+
+inline unsigned char* read_buffer(size_t a_sz,const char* a_buffer,
+                                  unsigned int& a_width,unsigned int& a_height,
+                                  unsigned int& a_bpp) {
+  if((a_sz<8)||::png_sig_cmp((png_byte*)a_buffer,0,8)) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  png_structp png_ptr = ::png_create_read_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
+  if(!png_ptr) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  png_infop info_ptr = ::png_create_info_struct(png_ptr);
+  if(!info_ptr) {
+    ::png_destroy_read_struct(&png_ptr,NULL,NULL);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  if(::setjmp(png_jmpbuf(png_ptr))) {
+    ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  //::png_init_io(png_ptr,a_file);
+  source_mgr src;
+  src.m_sz = a_sz;
+  src.m_buffer = (png_byte*)a_buffer;
+  src.m_read = 0;
+  ::png_set_read_fn(png_ptr,&src,fill_buffer);
+
+  ::png_read_info(png_ptr,info_ptr);
+
+  int width = info_ptr->width;
+  int height = info_ptr->height;
+  int bpp = info_ptr->width?info_ptr->rowbytes/info_ptr->width:0;
+
+  if((width<=0)||(height<=0)||(bpp<=0)) {
+    ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  a_bpp = bpp; //avoid the clobbered -W warning.
+
+  //png_byte color_type = info_ptr->color_type;
+  //info_ptr->bit_depth;
+
+  //int number_of_passes = ::png_set_interlace_handling(png_ptr);
+  ::png_read_update_info(png_ptr,info_ptr);
+
+  if(::setjmp(png_jmpbuf(png_ptr))) {
+    ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  unsigned char* buffer = new unsigned char[info_ptr->rowbytes * height];
+  if(!buffer) {
+    ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+    a_height = 0;
+    a_width = 0;
+    a_bpp = 0;
+    return 0;
+  }  
+  
+ {png_bytep* row_pointers = new png_bytep[height];
+  png_byte* pos = buffer+info_ptr->rowbytes*(height-1);
+  for(int y=0;y<height;y++) {
+    row_pointers[y] = pos;
+    pos -= info_ptr->rowbytes;
+  }
+  ::png_read_image(png_ptr,row_pointers);
+  delete [] row_pointers;}
+
+  ::png_read_end(png_ptr,info_ptr);
+
+  ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+
+  a_width = width;
+  a_height = height;
+  //a_bpp = bpp; //avoid the clobbered -W warning.
+
+  return buffer;
+}
+
+inline bool infos_buffer(size_t a_sz,const char* a_buffer,
+                         unsigned int& a_width,unsigned int& a_height,
+                         unsigned int& a_bpp) {
+  if((a_sz<8)||::png_sig_cmp((png_byte*)a_buffer,0,8)) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  png_structp png_ptr = 
+    ::png_create_read_struct(PNG_LIBPNG_VER_STRING,NULL,NULL,NULL);
+  if(!png_ptr) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return false;
+  }
+
+  png_infop info_ptr = ::png_create_info_struct(png_ptr);
+  if(!info_ptr) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return false;
+  }
+
+  if(::setjmp(png_jmpbuf(png_ptr))) {
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return false;
+  }
+
+  source_mgr src;
+  src.m_sz = a_sz;
+  src.m_buffer = (png_byte*)a_buffer;
+  src.m_read = 0;
+  ::png_set_read_fn(png_ptr,&src,fill_buffer);
+
+  ::png_read_info(png_ptr,info_ptr);
+
+  int width = info_ptr->width;
+  int height = info_ptr->height;
+  a_bpp = info_ptr->width?info_ptr->rowbytes/info_ptr->width:0;
+
+  ::png_destroy_read_struct(&png_ptr,&info_ptr,NULL);
+
+  a_width = width;
+  a_height = height;
+  //a_bpp = bpp; //avoid the clobbered -W warning.
+
+  return true;
+}
+
+inline unsigned char* read_part(std::ostream& a_out,
+                                unsigned int,const char*,
+                                unsigned int //a_sx
+                               ,unsigned int //a_sy
+                               ,unsigned int //a_sw
+                               ,unsigned int //a_sh
+                               ,unsigned int& a_rw,unsigned int& a_rh,
+                                unsigned int& a_rbpp) {
+  a_out << "exlib::pngb::read_part :"
+        << " not yet implemented."
+        << std::endl;
+  a_rw = 0;
+  a_rh = 0;
+  a_rbpp = 0;  
+  return 0;
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib png zlib

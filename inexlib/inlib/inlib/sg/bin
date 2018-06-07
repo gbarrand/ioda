@@ -1,0 +1,239 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_bin
+#define inlib_sg_bin
+
+#include <cstddef>
+
+namespace inlib {
+namespace sg {
+
+enum bin_modeling {
+  bin_flat_point = 0,
+  bin_flat_line = 1,
+  bin_flat_triangle = 2,
+  bin_lego = 3
+};
+
+inline void bin_elem_number(sg::bin_modeling a_modeling,bool a_draw_edges,
+                            size_t& a_num_pts,size_t& a_num_segs,size_t& a_num_tris) {
+  if(a_modeling==bin_flat_point) {
+    a_num_pts += 4;
+  } else if(a_modeling==bin_flat_line) {
+    a_num_segs += 4*2;
+  } else if(a_modeling==bin_flat_triangle) {
+    a_num_tris += 4*3;
+  } else if(a_modeling==bin_lego) {
+    a_num_tris += 6*2*3;
+    if(a_draw_edges) a_num_segs += 5*4*2;
+  } 
+}
+
+}}
+
+#include "atb_vertices"
+
+namespace inlib {
+namespace sg {
+
+inline void bin_allocate(sg::bin_modeling a_modeling,bool a_draw_edges,size_t a_number,
+                         atb_vertices& a_pts,atb_vertices& a_segs,atb_vertices& a_tris) {
+  size_t num_pts = 0;
+  size_t num_segs = 0;
+  size_t num_tris = 0;
+  bin_elem_number(a_modeling,a_draw_edges,num_pts,num_segs,num_tris);
+  num_pts *= a_number;
+  num_segs *= a_number;
+  num_tris *= a_number;
+  //::printf("debug : xxx : %lu %lu %lu\n",num_pts,num_segs,num_tris);
+  a_pts.allocate_pos_color(num_pts);
+  a_segs.allocate_pos_color(num_segs);
+  a_tris.allocate_pos_color_normal(num_tris);
+}
+
+inline void bin(bool a_draw_edges,
+                const colorf& a_color,const colorf& a_color_edges,const colorf& a_color_back,
+                const vec3f& b0,const vec3f& b1,const vec3f& b2,const vec3f& b3,
+                const vec3f& e0,const vec3f& e1,const vec3f& e2,const vec3f& e3,
+                atb_vertices& a_segs,atb_vertices& a_tris,
+                // tmps :
+                vec3f& a_nm,vec3f& tmp1,vec3f& tmp2) {
+  // 01 side :
+  get_normal(b0,b1,e1,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b0,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(b1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e1,a_color,a_nm);
+  
+  get_normal(b0,e1,e0,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b0,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e0,a_color,a_nm);
+
+  // 12 side :
+  get_normal(b1,b2,e2,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(b2,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e2,a_color,a_nm);
+
+  get_normal(b1,e2,e1,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e2,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e1,a_color,a_nm);
+
+  // 23 side :
+  get_normal(b2,b3,e3,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b2,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(b3,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e3,a_color,a_nm);
+
+  get_normal(b2,e3,e2,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b2,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e3,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e2,a_color,a_nm);
+
+  // 30 side :
+  get_normal(b3,b0,e0,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b3,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(b0,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e0,a_color,a_nm);
+
+  get_normal(b3,e0,e3,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b3,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e0,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e3,a_color,a_nm);
+
+  // top :
+  get_normal(e0,e1,e3,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(e0,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e3,a_color,a_nm);
+
+  get_normal(e1,e2,e3,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(e1,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e2,a_color,a_nm);
+  a_tris.add_pos_color_normal_allocated(e3,a_color,a_nm);
+
+  if(a_draw_edges) {
+    // 01 side :
+    a_segs.add_pos_color_allocated(b0,a_color_edges);
+    a_segs.add_pos_color_allocated(b1,a_color_edges);
+    a_segs.add_pos_color_allocated(b1,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+    a_segs.add_pos_color_allocated(b0,a_color_edges);
+
+    // 12 side :
+    a_segs.add_pos_color_allocated(b1,a_color_edges);
+    a_segs.add_pos_color_allocated(b2,a_color_edges);
+    a_segs.add_pos_color_allocated(b2,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(b1,a_color_edges);
+
+    // 23 side :
+    a_segs.add_pos_color_allocated(b2,a_color_edges);
+    a_segs.add_pos_color_allocated(b3,a_color_edges);
+    a_segs.add_pos_color_allocated(b3,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(b2,a_color_edges);
+
+    // 30 side :
+    a_segs.add_pos_color_allocated(b3,a_color_edges);
+    a_segs.add_pos_color_allocated(b0,a_color_edges);
+    a_segs.add_pos_color_allocated(b0,a_color_edges);
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(b3,a_color_edges);
+
+    // top :
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(e1,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(e2,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(e3,a_color_edges);
+    a_segs.add_pos_color_allocated(e0,a_color_edges);
+  }
+
+  // back :
+  get_normal(b0,b3,b1,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b0,a_color_back,a_nm);
+  a_tris.add_pos_color_normal_allocated(b3,a_color_back,a_nm);
+  a_tris.add_pos_color_normal_allocated(b1,a_color_back,a_nm);
+
+  get_normal(b1,b3,b2,a_nm,tmp1,tmp2);
+  a_tris.add_pos_color_normal_allocated(b1,a_color_back,a_nm);
+  a_tris.add_pos_color_normal_allocated(b3,a_color_back,a_nm);
+  a_tris.add_pos_color_normal_allocated(b2,a_color_back,a_nm);
+}
+
+inline void bin(sg::bin_modeling a_modeling,
+                bool a_draw_edges,
+                const colorf& a_color,const colorf& a_color_edges,const colorf& a_color_back,
+                const vec3f& b0,const vec3f& b1,const vec3f& b2,const vec3f& b3,
+                const vec3f& e0,const vec3f& e1,const vec3f& e2,const vec3f& e3,
+                atb_vertices& a_pts,atb_vertices& a_segs,atb_vertices& a_tris,
+                // tmps :
+                vec3f& a_nm,vec3f& tmp1,vec3f& tmp2) {
+
+  if(a_modeling==bin_flat_point) {
+    a_pts.add_pos_color_allocated(b0,a_color);
+    a_pts.add_pos_color_allocated(b1,a_color);
+    a_pts.add_pos_color_allocated(b2,a_color);
+    a_pts.add_pos_color_allocated(b3,a_color);
+
+  } else if(a_modeling==bin_flat_line) {
+    a_segs.add_pos_color_allocated(b0,a_color);
+    a_segs.add_pos_color_allocated(b1,a_color);
+
+    a_segs.add_pos_color_allocated(b1,a_color);
+    a_segs.add_pos_color_allocated(b2,a_color);
+
+    a_segs.add_pos_color_allocated(b2,a_color);
+    a_segs.add_pos_color_allocated(b3,a_color);
+
+    a_segs.add_pos_color_allocated(b3,a_color);
+    a_segs.add_pos_color_allocated(b0,a_color);
+
+  } else if(a_modeling==bin_flat_triangle) {
+    get_normal(b0,b1,b3,a_nm,tmp1,tmp2);
+    a_tris.add_pos_color_normal_allocated(b0,a_color,a_nm);
+    a_tris.add_pos_color_normal_allocated(b1,a_color,a_nm);
+    a_tris.add_pos_color_normal_allocated(b3,a_color,a_nm);
+
+    get_normal(b1,b2,b3,a_nm,tmp1,tmp2);
+    a_tris.add_pos_color_normal_allocated(b1,a_color,a_nm);
+    a_tris.add_pos_color_normal_allocated(b2,a_color,a_nm);
+    a_tris.add_pos_color_normal_allocated(b3,a_color,a_nm);
+
+    get_normal(b0,b3,b1,a_nm,tmp1,tmp2);
+    a_tris.add_pos_color_normal_allocated(b0,a_color_back,a_nm);
+    a_tris.add_pos_color_normal_allocated(b3,a_color_back,a_nm);
+    a_tris.add_pos_color_normal_allocated(b1,a_color_back,a_nm);
+
+    get_normal(b1,b3,b2,a_nm,tmp1,tmp2);
+    a_tris.add_pos_color_normal_allocated(b1,a_color_back,a_nm);
+    a_tris.add_pos_color_normal_allocated(b3,a_color_back,a_nm);
+    a_tris.add_pos_color_normal_allocated(b2,a_color_back,a_nm);
+
+  } else if(a_modeling==bin_lego) {
+    bin(a_draw_edges,a_color,a_color_edges,a_color_back,b0,b1,b2,b3,e0,e1,e2,e3,a_segs,a_tris,a_nm,tmp1,tmp2);
+
+  }
+ 
+}
+
+}}
+
+#endif

@@ -1,0 +1,800 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_healpix
+#define inlib_sg_healpix
+
+#include "tex_rect"
+
+#include "nodekit"
+
+#include "sf_enum"
+#include "sf_lut"
+#include "sf_string"
+#include "atb_vertices"
+#include "bin"
+
+#include "../HEALPix"
+#include "../colorfs"
+#include "../mathT"
+#include "../num2s"
+
+namespace inlib {
+namespace sg {
+
+class healpix : public tex_rect {
+  INLIB_NODE(healpix,inlib::sg::healpix,tex_rect)
+public:
+  mf<float> healpixs; //size should be 12*data_nside*data_nside.
+  enum ordering_type {
+    ordering_nested,
+    ordering_ring
+  };
+  sf_enum<ordering_type> ordering;
+
+  sf_enum<auto_lut_policy> auto_lut;
+  sf_lut<float> lut;
+  mf_vec<colorf,float> colors;
+  sf<float> hmax;  //max bin height.
+  sf_string infos;
+
+  sf<unsigned int> columns;
+  sf<unsigned int> rows;
+  sf_enum<sg::bin_modeling> bin_modeling;
+  sf<bool> dynamic;
+  enum _support {
+    support_moll_image = 0,
+    support_moll_heal = 1,
+    support_moll_rect = 2,
+    support_sphere = 3
+  };
+  sf_enum<_support> support;
+  sf<float> cut;
+  sf<unsigned int> order; //vis_nside = pow(2,order)
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::healpix)
+    static const desc_fields s_v(parent::node_desc_fields(),14, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(columns),
+      INLIB_ARG_FIELD_DESC(rows),
+
+      INLIB_ARG_FIELD_DESC_ENUMS_BEG(auto_lut,3)
+        INLIB_ARG_ENUM(auto_lut_none),
+        INLIB_ARG_ENUM(auto_lut_min_max),
+        INLIB_ARG_ENUM(auto_lut_mean_rms)
+      INLIB_ARG_FIELD_DESC_ENUMS_END,
+	
+      INLIB_ARG_FIELD_DESC(lut),
+      INLIB_ARG_FIELD_DESC(colors),
+      INLIB_ARG_FIELD_DESC(hmax),
+
+      INLIB_ARG_FIELD_DESC_ENUMS_BEG(bin_modeling,4)
+        "bin_flat_point",bin_flat_point,
+        "bin_flat_line",bin_flat_line,
+        "bin_flat_triangle",bin_flat_triangle,
+        "bin_lego",bin_lego
+      INLIB_ARG_FIELD_DESC_ENUMS_END,
+
+      INLIB_ARG_FIELD_DESC(dynamic),
+      
+      INLIB_ARG_FIELD_DESC_ENUMS_BEG(support,4)
+        "support_moll_image",support_moll_image,
+        "support_moll_heal",support_moll_heal,
+        "support_moll_rect",support_moll_rect,
+        "support_sphere",support_sphere
+      INLIB_ARG_FIELD_DESC_ENUMS_END,
+      
+      INLIB_ARG_FIELD_DESC(cut),
+      INLIB_ARG_FIELD_DESC(order),
+
+      INLIB_ARG_FIELD_DESC_NOT_EDITABLE(healpixs),
+      INLIB_ARG_FIELD_DESC_NOT_EDITABLE(ordering),
+      INLIB_ARG_FIELD_DESC_NOT_EDITABLE(infos)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&columns);
+    add_field(&rows);
+
+    add_field(&auto_lut);
+    add_field(&lut);
+    add_field(&colors);
+    add_field(&healpixs);
+    add_field(&hmax);
+    add_field(&ordering);
+    add_field(&infos);
+
+    add_field(&bin_modeling);
+    add_field(&dynamic);
+    add_field(&support);
+    add_field(&cut);
+    add_field(&order);
+  }
+public:
+  healpix()
+  :parent() 
+
+  ,auto_lut(auto_lut_none)
+  ,lut()
+  ,colors()
+  ,hmax(0)
+  ,healpixs()
+  ,ordering(ordering_ring)
+  ,infos()
+
+  ,columns(0)
+  ,rows(0)
+  ,bin_modeling(bin_flat_triangle)
+  ,dynamic(false)
+  ,support(support_sphere)
+  ,cut(1) //>=1 => cut nothing.
+  ,order(3) //vis_nside=8
+//  ,order(7) //vis_nside=128 (syncmap.fits)
+
+  ,m_draw_edges(false)
+  {
+    hmax = 0.1f;
+    add_fields();
+  }
+  virtual ~healpix(){}
+public:
+  healpix(const healpix& a_from)
+  :parent(a_from) 
+
+  ,auto_lut(a_from.auto_lut)
+  ,lut(a_from.lut)
+  ,colors(a_from.colors)
+  ,hmax(a_from.hmax)
+  ,healpixs(a_from.healpixs)
+  ,ordering(a_from.ordering)
+  ,infos(a_from.infos)
+
+  ,columns(a_from.columns)
+  ,rows(a_from.rows)
+  ,bin_modeling(a_from.bin_modeling)
+  ,dynamic(a_from.dynamic)
+  ,support(a_from.support)
+  ,cut(a_from.cut)
+  ,order(a_from.order)
+
+  ,m_draw_edges(a_from.m_draw_edges)
+  {
+    add_fields();
+  }
+  healpix& operator=(const healpix& a_from){
+    parent::operator=(a_from);
+
+    auto_lut = a_from.auto_lut;
+    lut = a_from.lut;
+    colors = a_from.colors;
+    hmax = a_from.hmax;
+    healpixs = a_from.healpixs;
+    ordering = a_from.ordering;
+    infos = a_from.infos;
+
+    columns = a_from.columns;
+    rows = a_from.rows;
+    bin_modeling = a_from.bin_modeling;
+    dynamic = a_from.dynamic;
+    support = a_from.support;
+    cut = a_from.cut;
+    order = a_from.order;
+
+    m_draw_edges = a_from.m_draw_edges;
+
+    return *this;
+  }
+public:
+  virtual void render(render_action& a_action) {
+    look_update_sg(a_action.out(),a_action.state());
+    if(support.value()==support_moll_image) {
+      parent::render(a_action);
+    } else {
+      m_pts.render(a_action);
+      m_tris.render(a_action);
+      m_segs.render(a_action);
+      a_action.set_polygon_offset(a_action.state().m_GL_POLYGON_OFFSET_FILL);
+    }     
+  }
+  virtual void pick(pick_action& a_action) {
+    look_update_sg(a_action.out(),a_action.state());
+    if(support.value()==support_moll_image) {
+      parent::pick(a_action);
+    } else {
+      nodekit_pick(a_action,m_pts,this);
+      nodekit_pick(a_action,m_segs,this);
+      nodekit_pick(a_action,m_tris,this);
+    }     
+  }
+  virtual void bbox(bbox_action& a_action) {
+    look_update_sg(a_action.out(),a_action.state());
+    if(dynamic.value()) {
+      // extend to more than the cut region to be able
+      // to grab all sides of a cube_manip :
+      float h2 = 0.5f*height.value();
+      float w2 = 2*h2;
+      float d2 = h2*0.1f;
+      a_action.box().extend_by(w2,h2,d2);
+      a_action.box().extend_by(-w2,-h2,-d2);
+    } else if(support.value()==support_moll_image) {
+      parent::bbox(a_action);
+    } else {
+      m_pts.bbox(a_action);
+      m_segs.bbox(a_action);
+      m_tris.bbox(a_action);
+    }     
+  }
+public:
+  template <class HISTO>
+  bool h1_fill(HISTO& a_histo) {
+    a_histo.reset();
+    const std::vector<float>& hpixs = healpixs.values();
+    if(hpixs.empty()) return false;
+    float* dpos = (float*)vec_data(hpixs);
+    typedef typename HISTO::coordinate_t TC;
+    size_t number = hpixs.size();
+    for(size_t ipix=0;ipix<number;ipix++,dpos++) a_histo.fill(TC(*dpos));
+    return true;
+  }
+
+protected:
+  static bool color_func(std::ostream& a_out,
+                         unsigned int a_nside,const std::vector<float>& a_hpixs,bool a_is_ring,
+                         const lut_float& a_lut,const std::vector<colorf>& a_colors,
+                         double a_theta,double a_phi,colorf& a_col,float& a_value) {
+    int ipix;
+    if(a_is_ring) {
+      if(!HEALPix::ang2pix_ring(a_out,a_nside,a_theta,a_phi,ipix)) {
+        a_col.set_value(0,0,0,1);a_value=0;
+        return false;
+      }
+    } else {
+      if(!HEALPix::ang2pix_nest(a_out,a_nside,a_theta,a_phi,ipix)) {
+        a_col.set_value(0,0,0,1);a_value=0;
+        return false;
+      }
+    }
+    a_value = a_hpixs[ipix];
+    size_t vlut = a_lut.apply(a_value);
+    if(vlut>=a_colors.size()) {
+      a_col.set_value(0,0,0,1);
+      return false;
+    }
+    a_col = a_colors[vlut];
+    return true;  
+  }
+
+  static bool color_func(std::ostream& a_out,
+                         unsigned int a_nside,const std::vector<float>& a_hpixs,bool a_is_ring,
+                         const lut_float& a_lut,const std::vector<colorf>& a_colors,
+                         double a_ux,double a_uy,double a_uz,colorf& a_col,float& a_value) {
+    double h = ::sqrt(a_ux*a_ux+a_uy*a_uy);
+    double _theta = ::atan2(h,a_uz);
+    double _phi = ::atan2(a_uy,a_ux);
+    return color_func(a_out,a_nside,a_hpixs,a_is_ring,a_lut,a_colors,_theta,_phi,a_col,a_value);
+  }
+protected:
+  void look_update_sg(std::ostream& a_out,const state& a_state) {
+    if(data_touched()) update_min_max_mean_rms();
+    bool draw_edges = false;
+    if((bin_modeling.value()==bin_flat_triangle)||
+       (bin_modeling.value()==bin_lego)) draw_edges = a_state.m_GL_LIGHTING?false:true;
+    if(dynamic.value()) {
+      if(m_not_dynamic==mat4_zero<float>()) m_not_dynamic = a_state.m_model;
+      const mat4f& mtx = a_state.m_model;
+      if(touched()||(m_draw_edges!=draw_edges)||(mtx!=m_old_model)) {
+        mat4f mtx_inv;
+        mtx.invert(mtx_inv);
+        mtx_inv *= m_not_dynamic;
+        update_sg(a_out,mtx_inv,draw_edges);
+        reset_touched();
+        m_draw_edges = draw_edges;
+        m_old_model = mtx;
+        m_dynamic = mtx_inv;
+      }
+    } else {
+      if(m_dynamic==mat4_zero<float>()) m_dynamic.set_identity();
+      if(touched()||(m_draw_edges!=draw_edges)) {
+        update_sg(a_out,m_dynamic,draw_edges);
+        reset_touched();
+        m_draw_edges = draw_edges;
+      }
+      m_not_dynamic = a_state.m_model*m_dynamic;
+    }
+  }
+
+  bool data_touched() const {
+    if(healpixs.touched()) return true;
+    if(ordering.touched()) return true;
+    return false;
+  }
+
+  void update_min_max_mean_rms() {
+    //::printf("debug : healpix::update_min_max_mean_rms()\n");
+    if(!min_max_mean_rms(healpixs.values(),m_min,m_max,m_mean,m_rms,::sqrtf,::fabsf)) {}
+    std::string _s;
+    _s += "min ";
+    if(!numas<float>(m_min,_s)){}
+    _s += ", max ";
+    if(!numas<float>(m_max,_s)){}
+    _s += ", mean ";
+    if(!numas<float>(m_mean,_s)){}
+    _s += ", rms ";
+    if(!numas<float>(m_rms,_s)){}
+    infos.value_no_cmp(_s);
+  }
+
+  void update_sg(std::ostream& a_out,const mat4f& a_mtx,bool a_draw_edges) {
+
+    img.value().clear(); //no touch().
+    m_pts.clear();
+    m_pts.mode = gl::points();
+    m_segs.clear();
+    m_segs.mode = gl::lines();
+    m_tris.clear();
+    m_tris.mode = gl::triangles();
+
+    if(healpixs.empty() || (colors.size()<3) ) {
+      parent::update_sg(a_out);
+      return;
+    }
+
+    const std::vector<float>& hpixs = healpixs.values();
+    unsigned int data_nside = HEALPix::isqrt<size_t>(hpixs.size()/12);
+    bool is_ring = ordering.value()==ordering_ring?true:false;
+
+    unsigned int vis_nside;
+    power<unsigned int,unsigned int>(2,order.value(),vis_nside);
+    if(vis_nside>data_nside) vis_nside = data_nside;
+
+    float hdata = m_max-m_min;
+
+    lut_float _lut;
+
+    if(auto_lut.value()==auto_lut_min_max) {
+      _lut = lut_float(m_min,m_max,colors.size());
+    } else if(auto_lut.value()==auto_lut_mean_rms) {
+      float mn = m_mean-m_rms*0.5f;
+      float mx = m_mean+m_rms*0.5f;
+      _lut = lut_float(mn,mx,colors.size());
+    } else {
+      _lut = lut_float(lut.value().mn(),lut.value().mx(),colors.size());
+    }
+
+    bool to_cut = cut.value()<1?true:false;
+
+    /////////////////////////////////////////////
+    /////////////////////////////////////////////
+    /////////////////////////////////////////////
+    if(support.value()==support_sphere) {
+
+      if( (height.value()<=0) || (cut.value()<=0) ) {
+        parent::update_sg(a_out);
+        return;
+      }
+
+      float zcut = -2.0f*cut.value()+1.0f; //support_sphere. zcut in [-2,0]
+      // cut = 1 -> zcut -1
+      // cut = 1/2 -> zcut 0
+      // cut = 0 -> zcut 1
+
+      unsigned int npix = 12*vis_nside*vis_nside;
+
+      std::vector<vec3d> pts;
+      if(to_cut) {
+        size_t number = 0;
+        for(unsigned int ipix=0;ipix<npix;ipix++) {
+          if(!HEALPix::boundaries(is_ring,vis_nside,ipix,1,pts)) {} //inlib:: is needed.
+          vec3d& _pt0 = pts[0];
+          a_mtx.mul_dir_3d(_pt0.x(),_pt0.y(),_pt0.z());
+          if(float(_pt0.z())<zcut) continue;
+          number++;
+        }   
+        bin_allocate(bin_modeling.value(),a_draw_edges,number,m_pts,m_segs,m_tris);
+      } else {
+        bin_allocate(bin_modeling.value(),a_draw_edges,npix,m_pts,m_segs,m_tris);
+      }
+
+      float _radius = 0.5f*height.value();
+
+      colorf _col;
+      vec3f _nm;
+      float x,y,z;
+      float value;
+      vec3f e0,e1,e2,e3;
+      float h;
+      vec3f tmp1,tmp2;
+
+     {vec3f b0,b1,b2,b3;
+      vec3f _pt0_;
+      for(unsigned int ipix=0;ipix<npix;ipix++) {
+        if(!HEALPix::boundaries(is_ring,vis_nside,ipix,1,pts)) {}
+        const vec3d& _pt0 = pts[0];
+        const vec3d& _pt1 = pts[1];
+        const vec3d& _pt2 = pts[2];
+        const vec3d& _pt3 = pts[3];
+  
+        if(to_cut) {
+          _pt0_.set_value(float(_pt0.x()),float(_pt0.y()),float(_pt0.z()));
+          a_mtx.mul_dir_3f(_pt0_.x(),_pt0_.y(),_pt0_.z());
+          if(float(_pt0_.z())<zcut) continue;
+        }
+
+        b0.set_value(float(_pt0.x()),float(_pt0.y()),float(_pt0.z()));
+        b1.set_value(float(_pt1.x()),float(_pt1.y()),float(_pt1.z()));
+        b2.set_value(float(_pt2.x()),float(_pt2.y()),float(_pt2.z()));
+        b3.set_value(float(_pt3.x()),float(_pt3.y()),float(_pt3.z()));
+
+        b0.multiply(_radius);
+        b1.multiply(_radius);
+        b2.multiply(_radius);
+        b3.multiply(_radius);
+
+        x = (b0.x()+b2.x())/2.0f;
+        y = (b0.y()+b2.y())/2.0f;
+        z = (b0.z()+b2.z())/2.0f;
+        if(!color_func(a_out,data_nside,hpixs,is_ring,_lut,colors.values(),x,y,z,_col,value)) {
+          m_pts.clear();
+          m_segs.clear();
+          m_tris.clear();
+          parent::update_sg(a_out);
+          return;
+        }
+
+        a_mtx.mul_dir_3f(b0.x(),b0.y(),b0.z());
+        a_mtx.mul_dir_3f(b1.x(),b1.y(),b1.z());
+        a_mtx.mul_dir_3f(b2.x(),b2.y(),b2.z());
+        a_mtx.mul_dir_3f(b3.x(),b3.y(),b3.z());
+
+        // front data :
+        h = 1;
+        h += (hdata!=0.0f)?hmax.value()*(value-m_min)/(hdata*_radius):0;
+
+        e0 = b0*h;
+        e1 = b1*h;
+        e2 = b2*h;
+        e3 = b3*h;
+
+        bin(bin_modeling.value(),
+            a_draw_edges,_col,colorf_black(),colorf_lightgrey(),
+            b0,b1,b2,b3,e0,e1,e2,e3,
+            m_pts,m_segs,m_tris,
+            _nm,tmp1,tmp2);
+
+      }}
+
+    } else if(support.value()==support_moll_image) {
+
+      unsigned int _rows = rows.value();
+      if(!_rows) _rows = 4*vis_nside; // > sqrt(12)*vis_nside
+      unsigned int _cols = 2*_rows;   //#tiles = 32*vis_nside*vis_nside > 12*vis_nside*vis_nside
+
+      unsigned char* buffer = new unsigned char[3*_cols*_rows];
+      if(!buffer) {
+        a_out << "inlib::sg::healpix::update_sg :"
+              << " can't alloc buffer of size " << 3*_cols*_rows << "."
+              << std::endl;
+        parent::update_sg(a_out);
+        return;
+      }
+  
+      const colorf& _back = back_color.value();
+      unsigned char back_red = _back.ruchar();
+      unsigned char back_green = _back.guchar();
+      unsigned char back_blue = _back.buchar();
+
+      unsigned char* pos = buffer;
+
+      double yd,xa,facteur,_theta,_phi;
+      colorf _col;
+      float value;
+
+      unsigned int iy,ix;
+      for(iy=0;iy<_rows;iy++) {
+        yd = (double(_rows-1-iy)+0.5)/double(_rows)-0.5; //]-0.5,0.5[.
+        _theta = (yd+0.5)*pi(); //]0,pi[
+        facteur = two_pi()/::sin(::acos(2*yd)); //sin(acos(2*yd)) in ]0,1[. yd = 0.5 -> sin(cos())=0.
+        for(ix=0;ix<_cols;ix++) {
+          xa = (double(ix)+0.5)/double(_cols)-0.5;  //]-0.5,0.5[
+          _phi = xa*facteur+pi(); //]0,2*pi[
+          if ( (0<=_phi) && (_phi<=two_pi()) ) {
+            if(!color_func(a_out,data_nside,hpixs,is_ring,_lut,colors.values(),_theta,_phi,_col,value)) {
+              delete [] buffer;
+              parent::update_sg(a_out);
+              return;
+            }
+            *pos = _col.ruchar();pos++;
+            *pos = _col.guchar();pos++;
+            *pos = _col.buchar();pos++;
+          } else {
+            *pos = back_red;pos++;
+            *pos = back_green;pos++;
+            *pos = back_blue;pos++;
+          }
+        }
+      }
+
+      img.value().set(_cols,_rows,3,buffer,true); //give ownership of buffer. IMPORTANT : do not touch() img field.
+
+    /////////////////////////////////////////////
+    /////////////////////////////////////////////
+    /////////////////////////////////////////////
+    } else if(support.value()==support_moll_heal) {
+
+      if( (height.value()<=0) || (cut.value()<=0) ) {
+        parent::update_sg(a_out);
+        return;
+      }
+
+      float _width = 2*height.value();
+
+      float xcut = 0.5f*_width*cut.value();
+      float ycut = 0.5f*height.value()*cut.value();
+
+      unsigned int npix = 12*vis_nside*vis_nside;
+
+      std::vector<vec3d> pts;
+      vec3f _pt0_;
+      vec3f b0,b1,b2,b3;
+
+      if(to_cut) {
+        size_t number = 0;
+        for(unsigned int ipix=0;ipix<npix;ipix++) {
+          if(!HEALPix::boundaries(is_ring,vis_nside,ipix,1,pts)) {}
+          const vec3d& _pt0 = pts[0];
+          if(!sphere_to_mollweid(_width,height.value(),_pt0,b0)) continue;
+          if(to_cut) {
+            _pt0_ = b0;
+            a_mtx.mul_trans_3f(_pt0_.x(),_pt0_.y(),_pt0_.z());
+            if((_pt0_.x()<-xcut)||(_pt0_.x()>=xcut)) continue;
+            if((_pt0_.y()<-ycut)||(_pt0_.y()>=ycut)) continue;
+          }
+          number++;
+        }
+        bin_allocate(bin_modeling.value(),a_draw_edges,number,m_pts,m_segs,m_tris);
+      } else {
+        bin_allocate(bin_modeling.value(),a_draw_edges,npix,m_pts,m_segs,m_tris);
+      }
+  
+      vec3f e0,e1,e2,e3;
+      vec3f _nm,tmp1,tmp2,tmp3;
+      float value,h,x,y,z,zside1,zside2;
+      colorf _col;
+
+      for(unsigned int ipix=0;ipix<npix;ipix++) {
+        if(!HEALPix::boundaries(is_ring,vis_nside,ipix,1,pts)) {}
+        const vec3d& _pt0 = pts[0];
+        const vec3d& _pt1 = pts[1];
+        const vec3d& _pt2 = pts[2];
+        const vec3d& _pt3 = pts[3];
+
+        b0.set_value(float(_pt0.x()),float(_pt0.y()),float(_pt0.z()));
+        b1.set_value(float(_pt1.x()),float(_pt1.y()),float(_pt1.z()));
+        b2.set_value(float(_pt2.x()),float(_pt2.y()),float(_pt2.z()));
+        b3.set_value(float(_pt3.x()),float(_pt3.y()),float(_pt3.z()));
+
+        x = (b0.x()+b2.x())/2.0f;
+        y = (b0.y()+b2.y())/2.0f;
+        z = (b0.z()+b2.z())/2.0f;
+        if(!color_func(a_out,data_nside,hpixs,is_ring,_lut,colors.values(),x,y,z,_col,value)) {
+          m_pts.clear();
+          m_segs.clear();
+          m_tris.clear();
+          parent::update_sg(a_out);
+          return;
+        }
+
+        if(!sphere_to_mollweid(_width,height.value(),_pt0,b0)) continue;
+        if(!sphere_to_mollweid(_width,height.value(),_pt1,b1)) continue;
+        if(!sphere_to_mollweid(_width,height.value(),_pt2,b2)) continue;
+        if(!sphere_to_mollweid(_width,height.value(),_pt3,b3)) continue;
+
+        if(to_cut) {
+          _pt0_ = b0;
+          a_mtx.mul_trans_3f(_pt0_.x(),_pt0_.y(),_pt0_.z());
+          if((_pt0_.x()<-xcut)||(_pt0_.x()>=xcut)) continue;
+          if((_pt0_.y()<-ycut)||(_pt0_.y()>=ycut)) continue;
+        }
+
+        tmp1 = b1;
+        tmp1.subtract(b0);
+        tmp2 = b3;
+        tmp2.subtract(b1);
+        tmp1.cross(tmp2,tmp3);
+        zside1 = vec3f::s_z().dot(tmp3);
+
+        tmp1 = b2;
+        tmp1.subtract(b1);
+        tmp2 = b3;
+        tmp2.subtract(b2);
+        tmp1.cross(tmp2,tmp3);
+        zside2 = vec3f::s_z().dot(tmp3);
+
+        if((zside1<=0)||(zside2<=0)) {
+          //a_out << "inlib::sg::healpix::update_sg : weird diamond." << std::endl;
+          continue;
+        }
+
+        if(dynamic.value()) {
+          a_mtx.mul_dir_3f(b0.x(),b0.y(),b0.z());
+          a_mtx.mul_dir_3f(b1.x(),b1.y(),b1.z());
+          a_mtx.mul_dir_3f(b2.x(),b2.y(),b2.z());
+          a_mtx.mul_dir_3f(b3.x(),b3.y(),b3.z());
+        }
+
+        h = (hdata!=0.0f)?hmax.value()*(value-m_min)/hdata:0;
+
+        e0.set_value(b0.x(),b0.y(),b0.z()+h);
+        e1.set_value(b1.x(),b1.y(),b1.z()+h);
+        e2.set_value(b2.x(),b2.y(),b2.z()+h);
+        e3.set_value(b3.x(),b3.y(),b3.z()+h);
+
+        bin(bin_modeling.value(),
+            a_draw_edges,_col,colorf_black(),colorf_lightgrey(),
+            b0,b1,b2,b3,e0,e1,e2,e3,
+            m_pts,m_segs,m_tris,
+            _nm,tmp1,tmp2); //tmps
+      } 
+
+    } else { //support.value()==support_moll_rect :
+
+      if( (height.value()<=0) || (cut.value()<=0) ) {
+        parent::update_sg(a_out);
+        return;
+      }
+
+      unsigned int _rows = rows.value();
+      if(!_rows) _rows = 4*vis_nside; // > sqrt(12)*vis_nside
+      unsigned int _cols = 2*_rows;   //#tiles = 32*vis_nside*vis_nside > 12*vis_nside*vis_nside
+
+      float sy = height.value()/float(_rows); //height of a cell.
+      float sx = sy; //to have square pixels.
+
+      float _width = _cols*sx; //_cols*height/rows = 2*height.
+
+      float xcut = 0.5f*_width*cut.value();
+      float ycut = 0.5f*height.value()*cut.value();
+
+      float zz = 0;
+      float xbeg = -0.5f*_width;
+      float ybeg = -0.5f*height.value();
+
+      float x,y;
+      vec3f _pt0_;
+      double yd,xa,facteur,_theta,_phi; //optimization : out of the loop.
+
+      if(to_cut) {
+        size_t number = 0;
+        unsigned int iy,ix;
+        for(iy=0;iy<_rows;iy++) {
+          yd = (double(_rows-1-iy)+0.5)/double(_rows)-0.5;
+          _theta = (yd+0.5)*pi();
+          facteur = two_pi()/::sin(::acos(2*yd));
+          for(ix=0;ix<_cols;ix++) {
+            xa = (double(ix)+0.5)/double(_cols)-0.5;  
+            _phi = xa*facteur+pi();
+            if ( (0<=_phi) && (_phi<=two_pi()) ) {
+              x = xbeg+ix*sx;
+              y = ybeg+iy*sy;
+              _pt0_.set_value(float(x),float(y),float(zz));
+              a_mtx.mul_trans_3f(_pt0_.x(),_pt0_.y(),_pt0_.z());
+              if((_pt0_.x()<-xcut)||(_pt0_.x()>=xcut)) continue;
+              if((_pt0_.y()<-ycut)||(_pt0_.y()>=ycut)) continue;
+              number++;
+            }
+          }
+        }
+        bin_allocate(bin_modeling.value(),a_draw_edges,number,m_pts,m_segs,m_tris);
+      } else {
+        bin_allocate(bin_modeling.value(),a_draw_edges,_rows*_cols,m_pts,m_segs,m_tris);
+      }
+
+      float value,h;
+      vec3f b0,b1,b2,b3;
+      vec3f e0,e1,e2,e3;
+      vec3f _nm,tmp1,tmp2;
+      colorf _col;
+
+      unsigned int iy,ix;
+      for(iy=0;iy<_rows;iy++) {
+        yd = (double(_rows-1-iy)+0.5)/double(_rows)-0.5;
+        _theta = (yd+0.5)*pi();
+        facteur = two_pi()/::sin(::acos(2*yd));
+        for(ix=0;ix<_cols;ix++) {
+          xa = (double(ix)+0.5)/double(_cols)-0.5;  
+          _phi = xa*facteur+pi();
+          if ( (0<=_phi) && (_phi<=two_pi()) ) {
+            if(!color_func(a_out,data_nside,hpixs,is_ring,_lut,colors.values(),_theta,_phi,_col,value)) {
+              m_pts.clear();
+              m_segs.clear();
+              m_tris.clear();
+              parent::update_sg(a_out);
+              return;
+            }
+            x = xbeg+ix*sx;
+            y = ybeg+iy*sy;
+
+            if(to_cut) {
+              _pt0_.set_value(float(x),float(y),float(zz));
+              a_mtx.mul_trans_3f(_pt0_.x(),_pt0_.y(),_pt0_.z());
+              if((_pt0_.x()<-xcut)||(_pt0_.x()>=xcut)) continue;
+              if((_pt0_.y()<-ycut)||(_pt0_.y()>=ycut)) continue;
+            }
+
+            b0.set_value(x    ,y    ,zz);
+            b1.set_value(x+sx ,y    ,zz);
+            b2.set_value(x+sx ,y+sy ,zz);
+            b3.set_value(x    ,y+sy ,zz);
+
+            if(dynamic.value()) {
+              a_mtx.mul_dir_3f(b0.x(),b0.y(),b0.z());
+              a_mtx.mul_dir_3f(b1.x(),b1.y(),b1.z());
+              a_mtx.mul_dir_3f(b2.x(),b2.y(),b2.z());
+              a_mtx.mul_dir_3f(b3.x(),b3.y(),b3.z());
+            }
+
+            h = (hdata!=0.0f)?hmax.value()*(value-m_min)/hdata:0;
+
+            e0.set_value(b0.x(),b0.y(),b0.z()+h);
+            e1.set_value(b1.x(),b1.y(),b1.z()+h);
+            e2.set_value(b2.x(),b2.y(),b2.z()+h);
+            e3.set_value(b3.x(),b3.y(),b3.z()+h);
+
+            bin(bin_modeling.value(),
+                a_draw_edges,_col,colorf_black(),colorf_lightgrey(),
+                b0,b1,b2,b3,e0,e1,e2,e3,
+                m_pts,m_segs,m_tris,
+                _nm,tmp1,tmp2); //tmps
+
+          }
+        } 
+      }
+
+    }
+
+    parent::update_sg(a_out);
+    //img.reset_touched(); //IMPORTANT
+
+  }
+protected:
+  static bool sphere_to_mollweid(double a_width,double a_height,const vec3d& a_in,vec3f& a_out) {
+    double l = a_in.length();
+    if(!l) return false;
+    double x = a_in.x();
+    double y = a_in.y();
+    double z = a_in.z();
+    double h = ::sqrt(x*x+y*y);
+    double _theta = ::acos(z/l); //in [0,pi]
+    if(!h) {
+      x = 0;
+      y = a_height*(0.5-_theta/pi());   //a_height*[-0.5,0.5]
+      z = 0;
+    } else {
+      double _phi = ::acos(x/h);   //in [0,pi]
+      if(y<0 && _phi) _phi = two_pi()-_phi;
+      x = a_width*(_phi/two_pi()-0.5); //a_width*[-0.5,0.5]
+      y = a_height*(0.5-_theta/pi());  //a_height*[-0.5,0.5]
+      x *= ::sin(::acos(y*2));
+      z = 0;    
+    }
+    a_out.set_value(float(x),float(y),float(z));
+    return true;
+  }
+protected:
+  atb_vertices m_pts;
+  atb_vertices m_segs;
+  atb_vertices m_tris;
+  bool m_draw_edges;
+
+  mat4f m_old_model;
+  mat4f m_dynamic;
+  mat4f m_not_dynamic;
+
+  float m_min,m_max,m_mean,m_rms;
+};
+
+}}
+
+#endif

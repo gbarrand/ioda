@@ -1,0 +1,750 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_app_Android_main_cpp
+#define exlib_app_Android_main_cpp
+
+//#define EXLIB_TRACE
+
+#include "../../Android/log_streambuf"
+#include "../../Android/log"
+
+#include "../../sg/pv_holder"
+#include "../../sg/GL_VIEWER"
+#include "../../png"
+#include "../../jpeg"
+
+#include <inlib/sg/viewer>
+#include <inlib/sg/bcbk>
+#include <inlib/sg/ui>
+#include <inlib/sg/alert>
+#include <inlib/dirmanip>
+
+#include <EGL/egl.h>
+
+#include <android_native_app_glue.h>
+
+namespace app_Android {
+
+template <class APP_MAIN>
+class main : protected exlib::sg::pv_holder, public APP_MAIN {
+  typedef exlib::sg::pv_holder parent_pv_holder;
+  typedef APP_MAIN parent;
+public:
+  void _alogi(const char* a_fmt,...) {
+    va_list args;
+    va_start(args,a_fmt);
+    __android_log_vprint(ANDROID_LOG_INFO,m_app_name.c_str(),a_fmt,args);
+    va_end(args);
+  }
+  void _alogw(const char* a_fmt,...) {
+    va_list args;
+    va_start(args,a_fmt);
+    __android_log_vprint(ANDROID_LOG_WARN,m_app_name.c_str(),a_fmt,args);
+    va_end(args);
+  }
+public:
+  EXLIB_GL_VIEWER_METHODS
+public:
+  virtual bool set_cursor_shape(inlib::sg::cursor_shape a_shape) {
+    if(!parent::set_cursor_shape(a_shape)) return false;
+    if(a_shape==inlib::sg::cursor_default) {
+      return true;
+    } else if(a_shape==inlib::sg::cursor_target) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  virtual void win_render() {
+    if(m_display==EGL_NO_DISPLAY) return;
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::win_render : begin : 000");
+#endif
+    //NOTE : bracketing here with ::eglMakeCurrent(surface,NO_SURFACE)
+    //       does not work on my SGS1/2.3.3.
+    render();
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::win_render : to swap...");
+#endif
+    ::eglSwapBuffers(m_display,m_surface);
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::win_render : end");
+#endif
+  }
+
+public:
+  virtual bool has_mail_panel() {return true;}
+  virtual bool mail_panel(const std::string& a_to,
+                          const std::string& a_subject,
+                          const std::string& a_msg,
+                          const std::string& a_path,
+                          const std::string& a_mime){
+    return Main_send_mail(m_app_name,parent::m_out,m_app,a_to,a_subject,a_msg,a_path,a_mime);
+  }
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+public:
+  main(const std::string& a_app_name,
+       std::ostream& a_out,
+       const std::string& a_data_dir,
+       const std::string& a_res_dir,
+       const std::string& a_out_dir,
+       const std::string& a_tmp_dir,
+       bool a_verbose)
+  :parent_pv_holder(a_out)
+  ,parent(a_out,
+          parent_pv_holder::m_mgr_gra,parent_pv_holder::m_ttf,parent_pv_holder::m_selection,
+          a_data_dir,a_res_dir,a_out_dir,a_tmp_dir,a_verbose,0)
+  ,m_app_name(a_app_name)
+  ,m_app(0)
+  ,m_display(EGL_NO_DISPLAY)
+  ,m_context(EGL_NO_CONTEXT)
+  ,m_surface(EGL_NO_SURFACE)
+  {
+    parent::push_home(); //NOTE : it can't call a potential push_home() done on an inheriting class.
+    //parent::push_home();
+  }
+  virtual ~main(){}
+private:
+  main(const main& a_from)
+  :inlib::sg::ui(a_from)
+  ,inlib::sg::alert(a_from)
+  ,parent_pv_holder(a_from)
+  ,parent(a_from)
+  ,m_app_name(a_from.m_app_name)
+  ,m_app(0)
+  ,m_display(EGL_NO_DISPLAY)
+  ,m_context(EGL_NO_CONTEXT)
+  ,m_surface(EGL_NO_SURFACE)
+  {}
+  main& operator=(const main&){return *this;}
+public:
+  const std::string& app_name() const {return m_app_name;}
+  bool initialize_display() {
+    if(!m_app->window) return false;
+    if(m_display!=EGL_NO_DISPLAY) return false;
+
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::initialize_display : begin");
+#endif
+
+    // initialize OpenGL ES and EGL
+    EGLDisplay display = ::eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    ::eglInitialize(display,0,0);
+
+#ifdef EXLIB_ANDROID_ANTIALIASING 
+    const EGLint aa_attribs[] = {
+      EGL_BLUE_SIZE, 8,
+      EGL_GREEN_SIZE, 8,
+      EGL_RED_SIZE, 8,
+      EGL_ALPHA_SIZE, 8,
+      EGL_DEPTH_SIZE, 8,
+      EGL_STENCIL_SIZE, 8,
+      EGL_SAMPLE_BUFFERS,1,
+      EGL_SAMPLES,2, 
+      EGL_NONE
+    };
+#endif
+    const EGLint attribs[] = {
+      EGL_BLUE_SIZE, 8,
+      EGL_GREEN_SIZE, 8,
+      EGL_RED_SIZE, 8,
+      EGL_ALPHA_SIZE, 8,
+      EGL_DEPTH_SIZE, 8,
+      EGL_STENCIL_SIZE, 8,
+      EGL_NONE
+    };
+    EGLint numConfigs;
+
+    EGLConfig config;
+#ifdef EXLIB_ANDROID_ANTIALIASING 
+    ::eglChooseConfig(display,aa_attribs,&config,1,&numConfigs);
+    if(numConfigs<=0) {
+      ::eglChooseConfig(display,attribs,&config,1,&numConfigs);
+    }
+#else
+    ::eglChooseConfig(display,attribs,&config,1,&numConfigs);
+#endif
+
+    // EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
+    // guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
+    // As soon as we picked a EGLConfig, we can safely reconfigure the
+    // ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
+    EGLint format;
+    ::eglGetConfigAttrib(display,config,EGL_NATIVE_VISUAL_ID,&format);
+
+    ANativeWindow_setBuffersGeometry(m_app->window,0,0,format);
+
+    EGLContext context = ::eglCreateContext(display,config,NULL,NULL);
+    if(context==EGL_NO_CONTEXT) {
+      _alogw("app_Android::main::initialize_display : ::eglCreateContext failed");
+      ::eglTerminate(display);
+      return false;
+    }
+
+    EGLSurface surface = ::eglCreateWindowSurface(display,config,m_app->window,NULL);
+    if(surface==EGL_NO_SURFACE) {
+      _alogw("app_Android::main::initialize_display : ::eglCreateWindowSurface failed");
+      ::eglDestroyContext(display,context);
+      ::eglTerminate(display);
+      return false;
+    }
+
+    if(::eglMakeCurrent(display,surface,surface,context)==EGL_FALSE) {
+      _alogw("app_Android::main::initialize_display : ::eglMakeCurrent failed");
+      ::eglDestroySurface(display,surface);
+      ::eglDestroyContext(display,context);
+      ::eglTerminate(display);
+      return false;
+    }
+    EGLint w, h;
+    ::eglQuerySurface(display,surface,EGL_WIDTH,&w);
+    ::eglQuerySurface(display,surface,EGL_HEIGHT,&h);
+
+    m_display = display;
+    m_config = config;
+    m_context = context;
+    m_surface = surface;
+
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::initialize_display : end : %d %d",w,h);
+#endif
+
+    parent::set_size(w,h);
+    win_render();
+
+    return true;
+  }
+
+  void finalize_display() {
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::finalize_display : begin");
+#endif
+    reset_gl(); //to clean textures, VBOs. 
+    if(m_display!=EGL_NO_DISPLAY) {
+      ::eglMakeCurrent(m_display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
+      ::eglDestroySurface(m_display,m_surface);
+      ::eglDestroyContext(m_display,m_context);
+      ::eglTerminate(m_display);
+    }
+    m_display = EGL_NO_DISPLAY;
+    m_context = EGL_NO_CONTEXT;
+    m_surface = EGL_NO_SURFACE;
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::finalize_display : end");
+#endif
+  }
+
+  bool recreate_surface() {
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::recreate_surface : begin");
+#endif
+    reset_gl();
+    ::eglMakeCurrent(m_display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
+    ::eglDestroySurface(m_display,m_surface);
+    m_surface = ::eglCreateWindowSurface(m_display,m_config,m_app->window,NULL);
+    if(m_surface==EGL_NO_SURFACE) {
+      _alogw("app_Android::main::recreate_surface : ::eglCreateWindowSurface failed");
+      ::eglDestroyContext(m_display,m_context);
+      ::eglTerminate(m_display);
+      m_surface = EGL_NO_SURFACE;
+      m_context = EGL_NO_CONTEXT;
+      m_display = EGL_NO_DISPLAY;
+      return false;
+    }
+    if(::eglMakeCurrent(m_display,m_surface,m_surface,m_context)==EGL_FALSE) {
+      _alogw("app_Android::main::recreate_surface : ::eglMakeCurrent failed");
+      ::eglDestroySurface(m_display,m_surface);
+      ::eglDestroyContext(m_display,m_context);
+      ::eglTerminate(m_display);
+      m_surface = EGL_NO_SURFACE;
+      m_context = EGL_NO_CONTEXT;
+      m_display = EGL_NO_DISPLAY;
+      return false;
+    }
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::recreate_surface : end");
+#endif
+    return true;
+  }
+
+
+  void back_render(float a_r,float a_g,float a_b,float a_a) {
+    if(m_display==EGL_NO_DISPLAY) return;
+    if(!parent::m_ww) return;
+    if(!parent::m_wh) return;
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::back_render");
+#endif
+    m_mgr_gra.begin_render(0,0,parent::m_ww,parent::m_wh,a_r,a_g,a_b,a_a);
+    m_mgr_gra.end_render();
+    ::eglSwapBuffers(m_display,m_surface);
+  }
+
+  void rotate_device() {
+    //NOTE : eglQuerySurface EGL_WIDTH, EGL_HEIGHT is not reliable
+    //       to get the new size within handle_cmd/APP_CMD_CONFIG_CHANGED:
+    //       We use a work to handle new change of size.
+    if(parent::m_ww==parent::m_wh) return; //square device
+
+#ifdef EXLIB_TRACE
+    _alogi("app_Android::main::rotate_device : ...");
+    if(m_app->window) {
+      int32_t ww = ANativeWindow_getWidth(m_app->window);
+      int32_t wh = ANativeWindow_getHeight(m_app->window);
+      _alogi("app_Android::main::rotate_device : %d %d",ww,wh);
+    }
+#endif
+
+    parent::invalidate_works(check_size_work::s_class());
+    parent::add_work(new check_size_work(*this));
+
+    // draw black screen waiting that the software had rotated properly.
+    back_render(0,0,0,1);
+  }
+protected:
+  ////////////////////////////////////////
+  /// Main.load_resources()  : ///////////
+  ////////////////////////////////////////
+  static const std::string& s_Main_load_resources() {
+    static const std::string s_v("load_resources");
+    return s_v;
+  }
+
+  static const std::string& s_Main_load_resources_signature() {
+    static const std::string s_v("()V");
+    return s_v;
+  }
+public:
+  static bool Main_load_resources(const std::string& a_app_name,std::ostream& a_out,struct android_app* a_app) {
+    jobject j_obj = a_app->activity->clazz;
+    if(!j_obj) return false;
+
+    JNIEnv* j_env = 0;
+    a_app->activity->vm->AttachCurrentThread(&j_env,0);
+
+    bool status = false;
+    if(j_env) {
+      jclass j_cls = j_env->GetObjectClass(j_obj);
+      if(!j_cls) {
+        a_out << "app_Android::main::Main_load_resources :"
+              << " Could not find class."
+              << std::endl;
+      } else {
+        jmethodID j_method =
+          j_env->GetMethodID(j_cls,
+                             s_Main_load_resources().c_str(),
+                             s_Main_load_resources_signature().c_str());
+        if(!j_method) {
+          a_out << "app_Android::main::Main_load_resources :"
+                << " Could not find load_resources method."
+                << std::endl;
+        } else {
+#ifdef EXLIB_TRACE
+          exlib::Android::logi(a_app_name.c_str(),"load_resources : debug : 001");
+#endif
+          j_env->CallVoidMethod(j_obj,j_method);
+
+#ifdef EXLIB_TRACE
+          exlib::Android::logi(a_app_name.c_str(),"load_resources : debug : 002");
+#endif
+
+          status = true;
+        }
+      }
+    }
+
+    a_app->activity->vm->DetachCurrentThread();
+
+    return status;
+  }
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+protected:
+  void reset_gl() {
+    // Mainly for Android because when rotating the device
+    // we loose the textures and VBOs.
+    m_mgr_gra.delete_gstos();
+    //m_zb_mgr.delete_textures();
+  }
+
+protected:
+  ////////////////////////////////////////
+  /// Main.send_mail() : /////////////////
+  ////////////////////////////////////////
+  static const std::string& s_Main_send_mail() {
+    static const std::string s_v("send_mail");
+    return s_v;
+  }
+
+  static const std::string& s_Main_send_mail_signature() {
+    static const std::string s_v("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    return s_v;
+  }
+//public:
+  static bool Main_send_mail(const std::string& a_app_name,
+                             std::ostream& a_out,struct android_app* a_app,
+                             const std::string& a_to,
+                             const std::string& a_subject,
+                             const std::string& a_msg,
+                             const std::string& a_path,
+                             const std::string& a_mime){
+    jobject j_obj = a_app->activity->clazz;
+    if(!j_obj) return false;
+
+    JNIEnv* j_env = 0;
+    a_app->activity->vm->AttachCurrentThread(&j_env,0);
+
+    bool status = false;
+    if(j_env) {
+      jclass j_cls = j_env->GetObjectClass(j_obj);
+      if(!j_cls) {
+        a_out << "app_Android::main::Main_send_mail :"
+              << " Could not find class."
+              << std::endl;
+      } else {
+        jmethodID j_method =
+          j_env->GetMethodID(j_cls,
+                             s_Main_send_mail().c_str(),
+                             s_Main_send_mail_signature().c_str());
+        if(!j_method) {
+          a_out << "app_Android::main::Main_send_mail :"
+                << " Could not find send_mail method."
+                << std::endl;
+        } else {
+          jstring j_to = j_env->NewStringUTF(a_to.c_str());
+          jstring j_subject = j_env->NewStringUTF(a_subject.c_str());
+          jstring j_msg = j_env->NewStringUTF(a_msg.c_str());
+          jstring j_path = j_env->NewStringUTF(a_path.c_str());
+          jstring j_mime = j_env->NewStringUTF(a_mime.c_str());
+   
+#ifdef EXLIB_TRACE
+          exlib::Android::logi(a_app_name.c_str(),"send_mail : debug : 001");
+#endif
+          j_env->CallVoidMethod(j_obj,j_method,j_to,j_subject,j_msg,j_path,j_mime);
+
+#ifdef EXLIB_TRACE
+          exlib::Android::logi(a_app_name.c_str(),"send_mail : debug : 002");
+#endif
+          j_env->DeleteLocalRef(j_to);
+          j_env->DeleteLocalRef(j_subject);
+          j_env->DeleteLocalRef(j_msg);
+          j_env->DeleteLocalRef(j_path);
+          j_env->DeleteLocalRef(j_mime);
+
+          status = true;
+        }
+      }
+    }
+
+    a_app->activity->vm->DetachCurrentThread();
+
+    return status;
+  }
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+  ////////////////////////////////////////
+protected:
+  class check_size_work : public inlib::sg::bcbk {
+    typedef inlib::sg::bcbk parent;
+  public:
+    INLIB_SCLASS(check_size_work)
+  public:
+    virtual void* cast(const std::string& a_class) const {
+      if(void* p = inlib::cmp_cast<check_size_work>(this,a_class)) return p;
+      return parent::cast(a_class);
+    }
+    virtual const std::string& s_cls() const {return s_class();}
+  public:
+    virtual inlib::sg::return_action action() {
+#ifdef EXLIB_TRACE
+      m_this._alogi("check_size_work::action : start (010)...");
+#endif
+
+      //NOTE : look "too much" to recreate the surface, but without that
+      //       we have weird effect (probably related to z buffer) if
+      //       using VBOs+rotation in ioda on the Nexus-10/4.2.2
+      //       and we never get the new size on JEC/SGS-3/4.1.2.
+
+#ifdef EXLIB_TRACE
+      int32_t ww = ANativeWindow_getWidth(m_this.m_app->window);
+      int32_t wh = ANativeWindow_getHeight(m_this.m_app->window);
+#endif
+
+      if(!m_this.recreate_surface()) {
+        m_single_shoot = true;
+        return inlib::sg::return_none;
+      }
+
+      EGLint w, h;
+      ::eglQuerySurface(m_this.m_display,m_this.m_surface,EGL_WIDTH,&w);
+      ::eglQuerySurface(m_this.m_display,m_this.m_surface,EGL_HEIGHT,&h);
+
+#ifdef EXLIB_TRACE
+      m_this._alogi("check_size_work::action : %d %d %d %d",ww,wh,w,h);
+#endif
+
+      if( (w==EGLint(m_this.width())) && (h==EGLint(m_this.height())) ) {
+        m_counter++;
+        if(m_counter>100) {
+           m_single_shoot = true;
+           return inlib::sg::return_to_render;
+        }
+        return inlib::sg::return_none;
+      }
+
+#ifdef EXLIB_TRACE
+      m_this._alogi("check_size_work::action : size changed....");
+#endif
+
+      m_this.set_size(w,h);
+      m_single_shoot = true; //IMPORTANT
+
+#ifdef EXLIB_TRACE
+      m_this._alogi("check_size_work::action : size changed : end.");
+#endif
+      return inlib::sg::return_to_render;
+    }
+    virtual inlib::sg::bcbk* copy() const {return new check_size_work(*this);}
+  public:
+    check_size_work(main& a_this):parent(),m_this(a_this),m_counter(0) {}
+    virtual ~check_size_work(){}
+  public:
+    check_size_work(const check_size_work& a_from)
+    :parent(a_from),m_this(a_from.m_this),m_counter(a_from.m_counter){}
+    check_size_work& operator=(const check_size_work& a_from){
+      parent::operator=(a_from);
+      m_counter = a_from.m_counter;
+      return *this;
+    }
+  protected:
+    main& m_this;
+    unsigned int m_counter;
+  };
+
+public:
+  std::string m_app_name;
+  struct android_app* m_app;
+  EGLDisplay m_display;
+  EGLConfig m_config;
+  EGLSurface m_surface;
+  EGLContext m_context;
+};
+
+}
+
+template <class APP_MAIN>
+static int32_t handle_input(struct android_app* a_app,AInputEvent* a_event) {
+  app_Android::main<APP_MAIN>* main = (app_Android::main<APP_MAIN>*)a_app->userData;
+#ifdef EXLIB_TRACE
+  main->_alogi("app_Android::handle_input : %d",AInputEvent_getType(a_event));
+#endif
+  if(AInputEvent_getType(a_event) == AINPUT_EVENT_TYPE_MOTION) {
+    float x = AMotionEvent_getX(a_event,0);
+    float y = float(main->height())-AMotionEvent_getY(a_event,0);
+    int32_t action = AMotionEvent_getAction(a_event);
+    if(action==AMOTION_EVENT_ACTION_DOWN) {
+      if(main->touch_down(int(x),int(y))) {
+        main->win_render();
+      }
+    } else if(action==AMOTION_EVENT_ACTION_UP) {
+      main->add_work_check_arm_buttons();
+      if(main->touch_up(int(x),int(y))) {
+        main->win_render();
+      }
+    } else if(action==AMOTION_EVENT_ACTION_MOVE) {
+      if(main->touch_move(int(x),int(y))) {
+        main->win_render();
+      }
+    }
+    return 1;
+  }
+  return 0;
+}
+
+template <class APP_MAIN>
+static void handle_cmd(struct android_app* a_app,int32_t a_cmd) {
+  app_Android::main<APP_MAIN>* main = (app_Android::main<APP_MAIN>*)a_app->userData;
+#ifdef EXLIB_TRACE
+  main->_alogi("app_Android::handle_cmd : %d",a_cmd);
+  main->_alogi(" APP_CMD_INIT_WINDOW : %d",APP_CMD_INIT_WINDOW);
+  main->_alogi(" APP_CMD_TERM_WINDOW : %d",APP_CMD_TERM_WINDOW);
+  main->_alogi(" APP_CMD_CONFIG_CHANGED : %d",APP_CMD_CONFIG_CHANGED);
+#endif
+  switch(a_cmd) {
+  case APP_CMD_INIT_WINDOW:
+    main->initialize_display();
+    break;
+  case APP_CMD_TERM_WINDOW:
+    main->finalize_display();
+    break;
+  case APP_CMD_CONFIG_CHANGED:
+    //NOTE : eglQuerySurface EGL_WIDTH, EGL_HEIGHT is not reliable
+    //       to get the new size here !
+    main->rotate_device();
+    break;
+//case APP_CMD_WINDOW_RESIZED:
+//case APP_CMD_SAVE_STATE:
+//case APP_CMD_WINDOW_REDRAW_NEEDED:
+//case APP_CMD_GAINED_FOCUS:
+//case APP_CMD_LOST_FOCUS:
+  default:
+    main->_alogi("APP_CMD : ??? %d",a_cmd);
+    break;
+  }
+}
+
+#ifdef INLIB_MEM
+#include <inlib/mem>
+#endif
+
+#ifdef EXLIB_TRACE
+#include <unistd.h> //getpid
+#endif
+
+#include <inlib/args>
+
+template <class APP_CONTEXT,class APP_MAIN>
+void exlib_main(const std::string& a_app_name,const std::string& a_app_domain,struct android_app* a_app) {
+
+#ifdef EXLIB_TRACE
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : begin : 013");
+#endif
+
+  exlib::Android::log_streambuf buf(a_app_name);
+  std::ostream cout(&buf);
+
+#ifdef INLIB_MEM
+  inlib::mem::set_check_by_class(true);{
+#endif
+
+  app_dummy(); // Make sure glue isn't stripped. It is mendatory with ndk-r7.
+
+  // pwd is /
+
+#ifdef EXLIB_TRACE
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : pid : %lu",::getpid());
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : android_app* : %lu",a_app);
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : thread : %lu",a_app->thread);
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : activity : %lu",a_app->activity);
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : config : %lu",a_app->config);
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : looper : %lu",a_app->looper);
+
+  if(a_app->activity->internalDataPath)
+    exlib::Android::logi(a_app_name.c_str(),"internalDataPath : %s",a_app->activity->internalDataPath);
+ {std::string sp;
+  inlib::p2s(a_app->activity->vm,sp);
+  exlib::Android::logi(a_app_name.c_str(),"vm : %s",sp.c_str());}
+ {std::string sp;
+  inlib::p2s(a_app->activity->env,sp);
+  exlib::Android::logi(a_app_name.c_str(),"env : %s",sp.c_str());}
+ {std::string sp;
+  inlib::p2s(a_app->activity->clazz,sp);
+  exlib::Android::logi(a_app_name.c_str(),"class : %s",sp.c_str());}
+
+  exlib::Android::logi(a_app_name.c_str(),"state : %d",a_app->activityState);
+  exlib::Android::logi(a_app_name.c_str(),"userData : %lu",a_app->userData);
+  exlib::Android::logi(a_app_name.c_str(),"destroyRequested : %lu",a_app->destroyRequested);
+  exlib::Android::logi(a_app_name.c_str(),"destroyed : %lu",a_app->destroyed);
+  cout << "exlib_main : try our cout." << std::endl;
+#endif
+
+  app_Android::main<APP_MAIN>::Main_load_resources(a_app_name,cout,a_app);
+
+  std::string app_dir;
+  if(a_app->activity->internalDataPath) { //null on my 2.3.3 device.
+    app_dir = a_app->activity->internalDataPath;
+  } else { //try the below :
+    app_dir = "/data/data/";
+    app_dir += a_app_domain;
+    app_dir += ".";
+    app_dir += a_app_name;
+    app_dir += "/files";
+  }
+
+  std::string res_dir = app_dir;
+  std::string tmp_dir = app_dir;
+
+  std::string data_dir;
+  data_dir = "/sdcard/Android/data/";
+  data_dir += a_app_domain;
+  data_dir += ".";
+  data_dir += a_app_name;
+
+  if(!inlib::mkdirs(cout,data_dir)) {
+    std::string msg = "can't create directory "+data_dir;
+    exlib::Android::logw(a_app_name.c_str(),msg.c_str());
+  }
+
+  APP_CONTEXT context(res_dir);
+
+  bool verbose = false;
+  app_Android::main<APP_MAIN> _main(a_app_name,cout,data_dir,res_dir,data_dir,tmp_dir,verbose);
+
+  _main.m_app = a_app;
+  _main.m_display = 0;
+  _main.m_surface = 0;
+  _main.m_context = 0;
+
+  a_app->userData = &_main;
+  a_app->onAppCmd = handle_cmd<APP_MAIN>;
+  a_app->onInputEvent = handle_input<APP_MAIN>;
+
+  if(a_app->savedState) {
+    exlib::Android::logi(a_app_name.c_str(),"exlib_main : have to restore state.");
+  }
+
+ {std::string DOCUMENT = data_dir+"/DOCUMENT";
+  if(inlib::file::exists(DOCUMENT)) {
+#ifdef EXLIB_TRACE
+    exlib::Android::logi(a_app_name.c_str(),"exlib_main : open DOCUMENT...");
+#endif
+    _main.create_gui();
+    bool done;
+    _main.opener().open(DOCUMENT,inlib::file::s_format_guessed(),inlib::args(),done);
+    inlib::file::std_remove(DOCUMENT);
+  }}
+
+  while(!_main.to_exit()) {
+
+    int time;
+    if(_main.num_cbks()) {
+      _main.do_works();
+      time = 0;   //do not wait in the below ALooper_pollAll().
+    } else {
+      time = -1;  //wait in the below ALooper_pollAll().
+    }
+
+   {int events;
+    struct android_poll_source* source;
+    int ident = ALooper_pollAll(time,NULL,&events,(void**)&source);
+    if(ident>=0) {
+      if(source) source->process(a_app,source);
+      if(a_app->destroyRequested) _main.set_to_exit();
+    }}
+
+  }
+
+  _main.finalize_display();
+
+#ifdef INLIB_MEM
+  }inlib::mem::balance(cout);
+#ifdef EXLIB_TRACE
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : exit(mem) ...");
+#endif
+#else  
+#ifdef EXLIB_TRACE
+  exlib::Android::logi(a_app_name.c_str(),"exlib_main : exit ...");
+#endif
+#endif
+
+}
+
+#endif
+
+//exlib_build_use inlib inlib_glutess freetype png jpeg zlib
+//exlib_build_use GL Android
+

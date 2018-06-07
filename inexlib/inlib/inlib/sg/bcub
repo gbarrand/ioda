@@ -1,0 +1,153 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_bcub
+#define inlib_sg_bcub
+
+#include "node"
+#include "sf_vec3f"
+#include "render_action"
+#include "pick_action"
+#include "bbox_action"
+
+#include "../bcubf"
+//#include "../bezier"
+
+namespace inlib {
+namespace sg {
+
+class bcub : public node {
+  INLIB_NODE(bcub,inlib::sg::bcub,node)
+public:
+  sf_vec3f p0;
+  sf_vec3f p1;
+  sf_vec3f p2;
+  sf_vec3f p3;
+  sf<unsigned int> number_of_points;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::bcub)
+    static const desc_fields s_v(parent::node_desc_fields(),5, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(p0),
+      INLIB_ARG_FIELD_DESC(p1),
+      INLIB_ARG_FIELD_DESC(p2),
+      INLIB_ARG_FIELD_DESC(p3),
+      INLIB_ARG_FIELD_DESC(number_of_points)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&p0);
+    add_field(&p1);
+    add_field(&p2);
+    add_field(&p3);
+    add_field(&number_of_points);
+  }
+public:
+  virtual void render(render_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    if(!m_xyzs) return;
+    a_action.draw_vertex_array(gl::line_strip(),
+                               number_of_points.value()*3,m_xyzs);
+  }
+
+  virtual void pick(pick_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    if(!m_xyzs) return;
+    a_action.add__line_strip(*this,number_of_points.value()*3,m_xyzs,true);
+  }
+
+  virtual void bbox(bbox_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    if(!m_xyzs) return;
+    a_action.add_points(number_of_points.value()*3,m_xyzs);
+  }
+
+public:
+  bcub()
+  :parent()
+  ,p0()
+  ,p1()
+  ,p2()
+  ,p3()
+  ,number_of_points(100)
+
+  ,m_xyzs(0)
+  {
+    add_fields();
+  }
+  virtual ~bcub(){delete [] m_xyzs;}
+public:
+  bcub(const bcub& a_from)
+  :parent(a_from)
+  ,p0(a_from.p0)
+  ,p1(a_from.p1)
+  ,p2(a_from.p2)
+  ,p3(a_from.p3)
+  ,number_of_points(a_from.number_of_points)
+
+  ,m_xyzs(0)
+  {
+    add_fields();
+  }
+  bcub& operator=(const bcub& a_from){
+    parent::operator=(a_from);
+    if(&a_from==this) return *this;
+
+    p0 = a_from.p0;
+    p1 = a_from.p1;
+    p2 = a_from.p2;
+    p3 = a_from.p3;
+    number_of_points = a_from.number_of_points;
+
+    delete [] m_xyzs;
+    m_xyzs = 0;
+
+    return *this;
+  }
+protected:
+  void update_sg() {
+    delete [] m_xyzs;
+    m_xyzs = 0;
+
+    unsigned int npoint = number_of_points.value();
+    if(npoint<=1) return;
+
+    bcubf bc(p0.value(),p1.value(),p2.value(),p3.value());
+/*
+    std::vector<vec3f> bcs;
+    bcs.push_back(p0.value());
+    bcs.push_back(p1.value());
+    bcs.push_back(p2.value());
+    bcs.push_back(p3.value());
+    bezier<float,vec3f> bc(bcs);
+*/
+
+    m_xyzs = new float[npoint*3];
+    float* p = m_xyzs;
+    float step = 1.0f/float(npoint-1);
+    vec3f v;
+    for(unsigned int i=0;i<npoint;i++) {
+      bc.value(i*step,v);
+      *p = v.x();p++;
+      *p = v.y();p++;
+      *p = v.z();p++;
+    }
+  }
+protected:
+  float* m_xyzs;
+};
+
+}}
+
+#endif

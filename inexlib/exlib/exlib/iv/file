@@ -1,0 +1,221 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_iv_file
+#define exlib_iv_file
+
+#include <inlib/sg/node>
+
+#include <inlib/sg/sf_string>
+#include <inlib/sg/render_action>
+#include <inlib/sg/bbox_action>
+#include <inlib/sg/pick_action>
+
+#include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoGetBoundingBoxAction.h>
+#include <Inventor/actions/SoRayPickAction.h>
+#include <Inventor/SoPickedPoint.h>
+#include <Inventor/nodes/SoMatrixTransform.h>
+#include <Inventor/nodes/SoTranslation.h>
+
+#include "read"
+
+#include "state2socam"
+
+namespace exlib {
+namespace iv {
+
+class file : public inlib::sg::node {
+  INLIB_NODE(file,exlib::iv::file,inlib::sg::node)
+public:
+  inlib::sg::sf_string name;
+  inlib::sg::sf<bool> center_scene;
+public:
+  virtual const inlib::sg::desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(exlib::iv::file)
+    static const inlib::sg::desc_fields s_v(parent::node_desc_fields(),2, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(name),
+      INLIB_ARG_FIELD_DESC(center_scene)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&name);
+    add_field(&center_scene);
+  }
+public:
+  virtual void render(inlib::sg::render_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    unsigned int ww = a_action.ww();
+    unsigned int wh = a_action.wh();
+    if(!ww||!wh) return;
+    if(!m_so_sep) return;
+    SbViewportRegion vp(ww,wh); 
+    SoGLRenderAction action(vp);
+    action.apply(m_so_sep);
+  }
+  virtual void bbox(inlib::sg::bbox_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    if(m_bb.isEmpty()) return;
+    SbBox3f bb = m_bb;
+  //const inlib::sg::state& _state = a_action.state();
+    const inlib::mat4f& mm = a_action.model_matrix();
+    SbMatrix m(mm.value(0,0),mm.value(1,0),mm.value(2,0),mm.value(3,0),
+               mm.value(0,1),mm.value(1,1),mm.value(2,1),mm.value(3,1),
+               mm.value(0,2),mm.value(1,2),mm.value(2,2),mm.value(3,2),
+               mm.value(0,3),mm.value(1,3),mm.value(2,3),mm.value(3,3));
+    bb.transform(m);
+    const SbVec3f& mn = bb.getMin();
+    a_action.box().extend_by(mn[0],mn[1],mn[2]);
+    const SbVec3f& mx = bb.getMax();
+    a_action.box().extend_by(mx[0],mx[1],mx[2]);
+  }
+  virtual void pick(inlib::sg::pick_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    unsigned int ww = a_action.ww();
+    unsigned int wh = a_action.wh();
+    if(!ww||!wh) return;
+    if(!m_so_sep) return;
+
+    const inlib::sg::state& _state = a_action.state();
+
+    SoSeparator* local_sep = new SoSeparator;
+    local_sep->ref();
+
+    SoCamera* _camera = state2socam(_state);
+    local_sep->addChild(_camera);
+
+    SoMatrixTransform* _matrix = new SoMatrixTransform;
+    const inlib::mat4f& mm = a_action.model_matrix();
+    _matrix->matrix = SbMatrix(mm.value(0,0),mm.value(1,0),mm.value(2,0),mm.value(3,0),
+                               mm.value(0,1),mm.value(1,1),mm.value(2,1),mm.value(3,1),
+                               mm.value(0,2),mm.value(1,2),mm.value(2,2),mm.value(3,2),
+                               mm.value(0,3),mm.value(1,3),mm.value(2,3),mm.value(3,3));
+    local_sep->addChild(_matrix);
+
+    local_sep->addChild(m_so_sep);
+
+    SbViewportRegion vp(ww,wh);
+    float l,r,b,t;
+    a_action.get_area(l,r,b,t);
+    SbVec2s pos(short((l+r)*0.5f),short((b+t)*0.5f));
+    //::printf("debug : exlib::sg::file::pick_action : 001 %d %d\n",pos[0],pos[1]);
+    SoRayPickAction rpaction(vp);
+    rpaction.setPoint(pos);
+    rpaction.setRadius(2);
+    rpaction.apply(local_sep);
+
+    SoPickedPoint* pp = rpaction.getPickedPoint();
+    local_sep->unref();
+    if(!pp) return;
+
+    SbVec3f wpt = pp->getPoint(); //in world.
+
+    float x = wpt[0];
+    float y = wpt[1];
+    float z = wpt[2];
+    float w = 1;
+    a_action.projection_matrix().mul_4f(x,y,z,w);
+    if(w==0.0F) return;
+    x /= w;
+    y /= w;
+    z /= w;
+
+    if(a_action.stop_at_first()){
+      a_action.zs().push_back(z);
+      a_action.ws().push_back(w);
+      if(a_action.done()) a_action.set_node(this);
+    } else {
+      a_action.set_done(false);
+      a_action.zs().clear();
+      a_action.ws().clear();
+      a_action.zs().push_back(z);
+      a_action.ws().push_back(w);
+      //if(a_action.done()) {
+        a_action.add_pick(*this,a_action.zs(),a_action.ws(),a_action.state());
+        a_action.set_done(false);
+      //}
+    }
+  }
+public:
+  file()
+  :parent()
+  ,name()
+  ,center_scene(false)
+  ,m_so_sep(0)
+  {
+    add_fields();
+  }
+  virtual ~file(){
+    if(m_so_sep) {m_so_sep->unref();m_so_sep = 0;}
+  }
+public:
+  file(const file& a_from)
+  :parent(a_from)
+  ,name(a_from.name)
+  ,center_scene(a_from.center_scene)
+  {
+    add_fields();
+    if(m_so_sep) {m_so_sep->unref();m_so_sep = 0;}
+    //if(a_from.m_so_sep) {
+    //  m_so_sep = (SoSeparator*)a_from.m_so_sep->copy();
+    //}
+  }
+  file& operator=(const file& a_from){
+    parent::operator=(a_from);
+    if(&a_from==this) return *this;
+    name = a_from.name;
+    center_scene = a_from.center_scene;
+    if(m_so_sep) {m_so_sep->unref();m_so_sep = 0;}
+    return *this;
+  }
+public:
+  const inlib::vec3f& read_center() const {return m_read_center;}
+//protected:
+  void update_sg(std::ostream& a_out) {
+    m_bb.makeEmpty();
+    m_read_center.set_value(0,0,0);
+    if(m_so_sep) {m_so_sep->unref();m_so_sep = 0;}
+    if(!read_file(a_out,name.value(),m_so_sep)) return;
+    //here m_so_sep->getRefCount() count should be 1.
+
+    SbViewportRegion vp; //it is ok with that!
+    SoGetBoundingBoxAction _action(vp);
+    _action.apply(m_so_sep);
+    m_bb = _action.getBoundingBox();
+    if(m_bb.isEmpty()) return;
+
+    const SbVec3f& sb_center = m_bb.getCenter();
+    m_read_center.set_value(sb_center[0],sb_center[1],sb_center[2]);
+
+    if(center_scene.value()) {
+      SoTranslation* _trans = new SoTranslation;
+      _trans->translation = -sb_center;
+      m_so_sep->insertChild(_trans,0);
+
+      SbMatrix m;
+      m.setTranslate(-sb_center);
+      m_bb.transform(m);
+    }
+  }
+protected:
+  SoSeparator* m_so_sep;
+  SbBox3f m_bb;
+  inlib::vec3f m_read_center;
+};
+
+}}
+
+//exlib_build_use inlib CoinGL
+
+#endif

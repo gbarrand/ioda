@@ -1,0 +1,312 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_mataus
+#define inlib_mataus
+
+#include "mat"
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+namespace inlib {
+
+template <class MAT>
+inline void set_T0_abc(MAT& a_m,
+                       const typename MAT::elem_t& a_a,
+                       const typename MAT::elem_t& a_b,
+                       const typename MAT::elem_t& a_c) {
+  //WARNING : a,b must be the pending of set_D0.
+  //          a,b must be normalized.
+
+  // a=0, b=-1 <=> set_D0_ab(0,-1) = D0.
+
+  //NOTE : a_c not zero does not work.
+
+  MAT K;set_K(K);
+  MAT JK;set_JK(JK);
+  MAT J;set_J(J);
+  a_m = a_a*K+a_b*JK-a_c*J;
+
+  //  0 -a -b -c
+  //  a  0  c -b
+  //  b -c  0  a
+  //  c  b -a  0
+  // = A(V=(a,b,c),W(-a,-b,-c))
+  // det(T0) = detA(V,W)=(V.W)**2 = (a**2+b**2+c**2)**2
+}
+
+
+template <class MAT>
+inline void set_U(MAT& a_m) {
+  matrix_set(a_m, 1, 0, 0, 0,
+                  0, 0, 1, 0,
+                  0, 1, 0, 0,
+		  0, 0, 0, 1);
+}
+template <class MAT>
+inline void set_W(MAT& a_m) {
+  matrix_set(a_m, 0, 0, 1, 0,
+                  0, 1, 0, 0,
+                  1, 0, 0, 0,
+                  0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void create_U(MAT& a_U) {
+  matrix_set(a_U, 1, 0, 0, 0,
+                  0, 0, 1, 0,
+                  0, 1, 0, 0,
+	          0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void create_V(MAT& a_V) {
+  matrix_set(a_V, 0, 1, 0, 0,
+                  1, 0, 0, 0,
+                  0, 0, 1, 0,
+	          0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void create_W(MAT& a_W) {
+  matrix_set(a_W, 0, 0, 1, 0,
+                  0, 1, 0, 0,
+                  1, 0, 0, 0,
+	          0, 0, 0, 1);
+}
+
+// U*U = I
+// V*V = I
+// W*W = I
+
+// inv(U)*J*U is :
+//   0  0  0  1
+//   0  0  1  0
+//   0 -1  0  0
+//  -1  0  0  0
+// inv(U*V)*J*U*V = V*U*J*U*V is Sp :
+//   0  0  1  0
+//   0  0  0  1
+//  -1  0  0  0
+//   0 -1  0  0
+// inv(U*W)*K*U*W = W*U*K*U*W = is Sp :
+//   0  0  1  0
+//   0  0  0  1
+//  -1  0  0  0
+//   0 -1  0  0
+
+}
+
+#include <vector>
+#include "matTs"
+
+namespace inlib {
+
+//  P1      P2      P3
+//    0  1    0 -i    1  0
+//    1  0    i  0    0 -1
+
+//  T0(a=0,b=-1)=-JK   T1        T2         T3
+//    0  I               0  I     -P1  0     P3   0
+//   -I  0               I  0       0 P1      0 -P3
+
+//  T4(a=0,b=-1)=-K
+//    0  1  0  0        i*| P2   0 |
+//   -1  0  0  0          |  0 -P2 |
+//    0  0  0 -1
+//    0  0  1  0
+
+template <class MAT>
+inline void set_taus_abc(bool a_use_U,
+                         const typename MAT::elem_t& a_a,
+                         const typename MAT::elem_t& a_b,
+                         const typename MAT::elem_t& a_c,
+                         MAT& a_J,MAT& a_K,
+                         std::vector<MAT>& a_taus) {
+  a_taus.clear();
+
+  set_J(a_J);
+  set_K(a_K);
+
+  // a=1,b=0 T0=K
+  // a=0,b=1 T0=JK
+
+  MAT T0;set_T0_abc(T0,a_a,a_b,a_c);
+  MAT T1;set_T1(T1);
+  MAT T2;set_T2(T2);
+  MAT T3;set_T3(T3);
+  if(a_use_U){
+    MAT U;create_U(U);
+    MAT W;create_W(W);
+    MAT X = U * W;
+    // X = 0 0 1 0
+    //     1 0 0 0
+    //     0 1 0 0
+    //     0 0 0 1
+    MAT Y;
+    //Y = X;Y.transpose();
+    X.invert(Y);
+    a_J = Y*a_J*X;
+    a_K = Y*a_K*X;
+    T0 = Y*T0*X;
+    T1 = Y*T1*X;
+    T2 = Y*T2*X;
+    T3 = Y*T3*X;
+
+    // T0 =  0  0 1 0  T1 = 0 0 0 1  T2 =  0 0 -1 0  T3 = -1  0 0 0
+    //       0  0 0 1       0 0 1 0        0 0  0 1        0 -1 0 0
+    //      -1  0 0 0       0 1 0 0       -1 0  0 0        0  0 1 0
+    //       0 -1 0 0       1 0 0 0        0 1  0 0        0  0 0 1
+
+    // if a=1,b=0 T0=K and Y*T0*X=Sp
+/*
+    if((a_a==T(1))&&(a_b==T(0))) {
+      mat_dump(std::cout,"X :",X);
+      mat_dump(std::cout,"T0 :",T0); //Sp
+      mat_dump(std::cout,"T1 :",T1);
+      mat_dump(std::cout,"T2 :",T2);
+      mat_dump(std::cout,"T3 :",T3);
+    }
+*/
+  }
+
+  a_taus.push_back(T0);
+  a_taus.push_back(T1);
+  a_taus.push_back(T2);
+  a_taus.push_back(T3);
+}
+
+template <class MAT>
+inline void set_T4_abc(bool a_use_U,
+                       const typename MAT::elem_t& a_a,
+                       const typename MAT::elem_t& a_b,
+                       const typename MAT::elem_t& a_c,
+                       MAT& a_T4) {
+  //   T4 = T0 * T1 * T2 * T3
+  // We should have :
+  //   T4 * T4 = -I
+  //   transpose(T4) = - T4
+  //   { T4, taus(alpha) } = 0
+  //   transpose(T4) * T0 = T0 * T4
+
+  // T4(a=0,b=-1) = - K:
+  //   0  1  0  0
+  //  -1  0  0  0
+  //   0  0  0 -1
+  //   0  0  1  0
+
+  std::vector<MAT> taus;
+  MAT J,K;
+  set_taus_abc(a_use_U,a_a,a_b,a_c,J,K,taus);
+
+  a_T4 = taus[0]*taus[1]*taus[2]*taus[3];
+}
+
+}
+
+#include "Tgroup"
+#include "vmanip"
+
+namespace inlib {
+
+inline void abc_factors(double& a_a,double& a_b,double& a_c) {
+  zero_factors(a_a,a_b);
+  a_c = 0;
+
+  //static const double a = 2/3.;
+  //static const double b = ::sqrt(2.)/3.;
+  //static const double c = ::sqrt(3.)/3.;
+
+  //a_a = a;
+  //a_b = b;
+  //a_c = c;
+}
+
+template <class MAT>
+inline void set_taus(bool a_use_U,MAT& a_J,MAT& a_K,std::vector<MAT>& a_taus) {
+  double a,b,c;abc_factors(a,b,c);
+  typedef typename MAT::elem_t T;
+  set_taus_abc(a_use_U,T(a),T(b),T(c),a_J,a_K,a_taus);
+}
+
+template <class MAT>
+inline void set_TGs(bool a_use_U,std::vector<MAT>& a_Ts) {
+  MAT J,K;
+  std::vector<MAT> taus;
+  set_taus(a_use_U,J,K,taus);
+  typedef typename MAT::elem_t T;
+  set_G_rot_boost_rep(taus,-1.0/8.0,a_Ts);
+}
+
+template <class MAT>
+inline void set_T4(bool a_use_U,MAT& a_T4) {
+  double a,b,c;abc_factors(a,b,c);
+  typedef typename MAT::elem_t T;
+  set_T4_abc(a_use_U,T(a),T(b),T(c),a_T4);
+}
+
+template <class MAT>
+inline void set_tTGs(bool a_use_U,std::vector<MAT>& a_tTs) {
+  // 0     antisym
+  // 1,2,3 sym
+  // 4,5,6 antisym
+  // 7,8,9 sym
+
+  a_tTs.clear();
+ {MAT J,K;
+  std::vector<MAT> taus;
+  set_taus(a_use_U,J,K,taus);
+  append(a_tTs,taus);}
+ {std::vector<MAT> Ts;
+  set_TGs(a_use_U,Ts);
+  append(a_tTs,Ts);}
+}
+
+template <class MAT>
+inline void set_taus_Ap_to_Ss(MAT& a_Z) {
+  // If tTs built with T(0)=Ap, Z such that : Ss(a) = Z(a,b) * tTs(b)*minus_Ap.
+  // See check_Ss.
+
+  typedef typename MAT::elem_t T;
+  T half = T(0.5);
+  T fourth = T(0.25);
+
+  a_Z.set_value(0,0, fourth);
+  a_Z.set_value(0,1, fourth);
+  a_Z.set_value(0,5,-half);
+  a_Z.set_value(0,9,-half);
+
+  a_Z.set_value(1,0, fourth);
+  a_Z.set_value(1,1, fourth);
+  a_Z.set_value(1,5, half);
+  a_Z.set_value(1,9, half);
+
+  a_Z.set_value(2,0, fourth);
+  a_Z.set_value(2,1,-fourth);
+  a_Z.set_value(2,5,-half);
+  a_Z.set_value(2,9, half);
+
+  a_Z.set_value(3,0, fourth);
+  a_Z.set_value(3,1,-fourth);
+  a_Z.set_value(3,5, half);
+  a_Z.set_value(3,9,-half);
+
+  a_Z.set_value(4,6,-1);
+  a_Z.set_value(4,8,-1);
+  a_Z.set_value(5,3, half);
+  a_Z.set_value(5,7,-1);
+  a_Z.set_value(6,2, half);
+  a_Z.set_value(6,4,-1);
+
+  a_Z.set_value(7,6,-1);
+  a_Z.set_value(7,8, 1);
+  a_Z.set_value(8,3,-half);
+  a_Z.set_value(8,7,-1);
+  a_Z.set_value(9,2, half);
+  a_Z.set_value(9,4, 1);
+}
+
+}
+
+#endif

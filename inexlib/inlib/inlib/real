@@ -1,0 +1,62 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_real
+#define inlib_real
+
+#include <cmath>
+
+namespace inlib {
+
+#ifdef INLIB_REAL_LONG_DOUBLE
+typedef long double real;
+inline real real_sqrt(real a_x) {return ::sqrtl(a_x);}
+inline real real_sqrt_const(const real& a_x) {return ::sqrtl(a_x);}
+inline real real_sin(real a_x) {return ::sinl(a_x);}
+inline real real_sin_const(const real& a_x) {return ::sinl(a_x);}
+inline real real_cos(real a_x) {return ::cosl(a_x);}
+inline real real_cos_const(const real& a_x) {return ::cosl(a_x);}
+inline real real_acos(real a_x) {return ::acosl(a_x);}
+inline real real_pow(real a_x,real a_y) {return ::powl(a_x,a_y);}
+inline real real_pow_const(const real& a_x,const real& a_y) {return ::powl(a_x,a_y);}
+inline real real_exp(real a_x) {return ::expl(a_x);}
+#ifndef ANDROID
+inline real real_fabs(real a_x) {return ::fabsl(a_x);}
+inline real real_fabs_const(const real& a_x) {return ::fabsl(a_x);}
+#endif
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#else
+inline real real_gamma(real a_x) {return ::tgammal(a_x);}
+#endif
+#else //!INLIB_REAL_LONG_DOUBLE
+typedef double real;
+inline real real_sqrt(real a_x) {return ::sqrt(a_x);}
+inline real real_sqrt_const(const real& a_x) {return ::sqrt(a_x);}
+inline real real_sin(real a_x) {return ::sin(a_x);}
+inline real real_sin_const(const real& a_x) {return ::sin(a_x);}
+inline real real_cos(real a_x) {return ::cos(a_x);}
+inline real real_cos_const(const real& a_x) {return ::cos(a_x);}
+inline real real_acos(real a_x) {return ::acos(a_x);}
+inline real real_pow(real a_x,real a_y) {return ::pow(a_x,a_y);}
+inline real real_pow_const(const real& a_x,const real& a_y) {return ::pow(a_x,a_y);}
+inline real real_exp(real a_x) {return ::exp(a_x);}
+inline real real_fabs(real a_x) {return ::fabs(a_x);}
+inline real real_fabs_const(const real& a_x) {return ::fabs(a_x);}
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#else
+inline real real_gamma(real a_x) {return ::tgamma(a_x);}
+#endif
+#endif //INLIB_REAL_LONG_DOUBLE
+
+inline bool real_pow_const(const real& a_x,const real& a_y,real& a_v) {
+  if((a_x==0)&&(a_y<0)) {
+    a_v = 0;
+    return false;
+  }
+  a_v = real_pow_const(a_x,a_y);
+  return true;
+}
+
+}
+
+#endif

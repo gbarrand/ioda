@@ -1,0 +1,1367 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_fog_scene
+#define inlib_fog_scene
+
+// to read Saclay .fog files.
+
+#include "../sg/node"
+
+#include "readfile.h"
+
+#include "../sep"
+#include "../file"
+#include "../vmanip"
+#include "../sout"
+#include "../img"
+
+#include "../sg/sf"
+#include "../sg/sf_img"
+#include "../sg/sf_string"
+#include "../sg/sf_vec"
+#include "../sg/mf"
+#include "../sg/render_action"
+#include "../sg/bbox_action"
+#include "../sg/pick_action"
+#include "../sg/render_manager"
+#include "../sg/gstos"
+
+#include "../sg/tessellate"
+
+namespace inlib {
+namespace fog {
+
+class scene : public sg::node, public sg::gstos {
+  INLIB_NODE(scene,inlib::fog::scene,sg::node)
+private:
+  //static float epsil_back_face() {return 1.0f;}
+  static float epsil_back_face() {return 0.5f;}
+public:
+  sg::sf_img<byte> fog;
+  sg::sf<unsigned int> ucsz; //not compressed.
+  sg::sf_string tmp_dir;
+
+  sg::sf<bool> solid;
+  sg::sf<bool> enforce_edges;
+  sg::sf_vec<mat4f,float> layout;
+public:
+  virtual const sg::desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::fog::scene)
+    static const sg::desc_fields s_v(parent::node_desc_fields(),6, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(fog),
+      INLIB_ARG_FIELD_DESC(ucsz),
+      INLIB_ARG_FIELD_DESC(tmp_dir),
+      INLIB_ARG_FIELD_DESC(solid),
+      INLIB_ARG_FIELD_DESC(enforce_edges),
+      INLIB_ARG_FIELD_DESC(layout)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&fog);
+    add_field(&ucsz);
+    add_field(&tmp_dir);
+    add_field(&solid);
+    add_field(&enforce_edges);
+    add_field(&layout);
+  }
+
+protected: //gstos
+  virtual unsigned int create_gsto(std::ostream& a_out,sg::render_manager& a_mgr) {
+    gsto_visitor vtor(a_out,*this);
+    vtor.do_scene(m_scene);
+
+    m_gsto_xyzs_sz = m_gsto_xyzs.size();
+    m_gsto_rgbas_sz = m_gsto_rgbas.size();
+    m_gsto_tris_sz = m_gsto_tris.size();
+    m_gsto_nms_sz = m_gsto_nms.size();
+    m_gsto_cols_sz = m_gsto_cols.size();
+    m_gsto_btris_sz = m_gsto_btris.size();
+    m_gsto_bnms_sz = m_gsto_bnms.size();
+    m_gsto_bcols_sz = m_gsto_bcols.size();
+
+    std::vector<float> gsto_data;  
+
+    append(gsto_data,m_gsto_xyzs);
+    append(gsto_data,m_gsto_rgbas);
+    append(gsto_data,m_gsto_tris);
+    append(gsto_data,m_gsto_nms);
+    append(gsto_data,m_gsto_cols);
+    append(gsto_data,m_gsto_btris);
+    append(gsto_data,m_gsto_bnms);
+    append(gsto_data,m_gsto_bcols);
+
+    if(gsto_data.empty()) {
+      a_out << "inlib::fog::scene::create_gsto :"
+            << " empty buffer."
+            << std::endl;
+      return 0;
+    }
+
+    unsigned int id = a_mgr.create_gsto_from_data(gsto_data);
+
+    m_gsto_xyzs.clear();
+    m_gsto_rgbas.clear();
+    m_gsto_tris.clear();
+    m_gsto_nms.clear();
+    m_gsto_cols.clear();
+    m_gsto_btris.clear();
+    m_gsto_bnms.clear();
+    m_gsto_bcols.clear();
+
+    return id;
+  }
+
+
+public:
+  virtual void render(sg::render_action& a_action) {
+
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+
+    sg::state& state = a_action.state();
+
+    if(state.m_use_gsto) {
+
+      unsigned int _id = get_gsto_id(a_action.out(),a_action.render_manager());
+
+      if(_id) {
+
+        a_action.begin_gsto(_id);
+        if(solid.value()) {
+
+          a_action.set_cull_face(false);
+
+          bool draw_edges = state.m_GL_LIGHTING?false:true;
+          if(enforce_edges.value()) draw_edges = true;
+
+          if(draw_edges) {
+            a_action.color4f(0,0,0,1);
+            a_action.set_lighting(false);
+            a_action.draw_gsto_v(gl::lines(),m_gsto_xyzs_sz/3,0);
+            a_action.set_polygon_offset(true);
+            a_action.set_lighting(state.m_GL_LIGHTING);
+          }
+
+          // gsto : xyzs/rgbas/tris/nms/cols/btris/bnms/bcols
+
+         {sg::bufpos pos_tris = (m_gsto_xyzs_sz+m_gsto_rgbas_sz)*sizeof(float);
+          sg::bufpos pos_nms = pos_tris+m_gsto_tris_sz*sizeof(float);
+          sg::bufpos pos_cols = pos_nms+m_gsto_nms_sz*sizeof(float);
+
+          sg::bufpos pos_btris = pos_cols+m_gsto_cols_sz*sizeof(float);
+          sg::bufpos pos_bnms = pos_btris+m_gsto_btris_sz*sizeof(float);
+          sg::bufpos pos_bcols = pos_bnms+m_gsto_bnms_sz*sizeof(float);
+
+          a_action.draw_gsto_vcn(gl::triangles(),m_gsto_tris_sz/3,pos_tris,pos_cols,pos_nms);
+          if(state.m_GL_LIGHTING) {
+            a_action.draw_gsto_vcn(gl::triangles(),m_gsto_btris_sz/3,pos_btris,pos_bcols,pos_bnms);
+          }}
+          a_action.set_polygon_offset(state.m_GL_POLYGON_OFFSET_FILL);
+          a_action.set_cull_face(state.m_GL_CULL_FACE);
+
+        } else {
+
+          // gsto : xyzs/rgbas
+
+          sg::bufpos pos_xyzs = 0;
+          sg::bufpos pos_rgbas = m_gsto_xyzs_sz*sizeof(float);
+
+          a_action.set_lighting(false);
+          a_action.draw_gsto_vc(gl::lines(),m_gsto_xyzs_sz/3,pos_xyzs,pos_rgbas);
+          a_action.set_lighting(state.m_GL_LIGHTING);
+
+        }
+        a_action.end_gsto();
+        return;
+
+      } else { //_id not generated.
+        // use immediate rendering.
+      }
+
+    } else {
+      clean_gstos(&a_action.render_manager());
+    }
+
+    // immediate rendering :
+    GL_visitor vtor(*this,a_action);
+    vtor.do_scene(m_scene);
+
+    // all dets (49 .fog FOG files) : 1122132 points.
+    //::printf("debug : povama::scene::render : vtx number %d\n",m_vtx_count);
+    //m_tess->clear();
+  }
+
+  virtual void pick(sg::pick_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    pick_visitor vtor(*this,a_action);
+    vtor.do_scene(m_scene);   
+    if(a_action.done()) a_action.set_node(this);
+  }
+
+  virtual void bbox(sg::bbox_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    bbox_visitor vtor(*this,a_action);
+    vtor.do_scene(m_scene);   
+  }
+public:
+  scene()
+  :parent()
+  ,fog()
+  ,ucsz()
+  ,tmp_dir()
+  ,solid(false)
+  ,enforce_edges(false)
+  ,layout(mat4f())
+
+  ,m_decompress_func(0)
+  ,m_tess(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    add_fields();
+    init_scene(m_scene);
+    layout.value().set_identity();
+  }
+  virtual ~scene(){
+    delete m_tess;
+    clear_scene(m_scene);
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  scene(const scene& a_from)
+  :parent(a_from)
+  ,sg::gstos(a_from)
+  ,fog(a_from.fog)
+  ,ucsz(a_from.ucsz)
+  ,tmp_dir(a_from.tmp_dir)
+  ,solid(a_from.solid)
+  ,enforce_edges(a_from.enforce_edges)
+  ,layout(a_from.layout)
+
+  ,m_decompress_func(a_from.m_decompress_func)
+  ,m_tess(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    add_fields();
+    init_scene(m_scene);
+  }
+public:
+  scene& operator=(const scene& a_from){
+    parent::operator=(a_from);
+    sg::gstos::operator=(a_from);
+
+    if(&a_from==this) return *this;
+
+    fog = a_from.fog;
+    ucsz = a_from.ucsz;
+    tmp_dir = a_from.tmp_dir;
+    solid = a_from.solid;
+    enforce_edges = a_from.enforce_edges;
+    layout = a_from.layout;
+
+    m_decompress_func = a_from.m_decompress_func;
+    delete m_tess;
+    m_tess = 0;
+    clear_scene(m_scene);
+    init_scene(m_scene);
+
+    return *this;
+  }
+public:
+  typedef bool (*decompress_func)(std::ostream&,unsigned int,const char*,unsigned int,char*,unsigned int&);
+  void set_decompress_func(decompress_func a_func) {m_decompress_func = a_func;}
+protected:
+  void update_sg(std::ostream& a_out) {
+    clear_scene(m_scene);
+    init_scene(m_scene);
+
+    clean_gstos(); //must reset for all render_manager.
+
+    if(fog.value().is_empty()) return;
+
+    int nbsv = m_scene.nbsv;
+    int nbobj = m_scene.nbobj;
+    int nbface = m_scene.nbface;
+
+    const img_byte& img = fog.value();
+
+    unsigned int sz = 0;
+    const char* stream = 0;
+    bool stream_delete = false;
+
+    if(img.width()<ucsz.value()) { //compressed data.
+      if(!m_decompress_func) {
+        a_out << "inlib::fog::scene::update_sg :"
+              << " fog sf_img field is compressed but no decompress function given."
+              << std::endl;
+        return;
+      }     
+      char* b = new char[ucsz.value()];
+      unsigned int rsz;
+      if(!m_decompress_func(a_out,img.width(),(const char*)img.buffer(),ucsz.value(),b,rsz)){
+        a_out << "inlib::fog::scene::update_sg :"
+              << " exlib::decompress_buffer failed."
+              << std::endl;
+        delete [] b;
+        return;
+      }    
+      if(rsz!=ucsz.value()) {
+        a_out << "inlib::fog::scene::update_sg :"
+              << " decompress size mismatch."
+              << std::endl;
+        delete [] b;
+        return;
+      }
+      sz = rsz;
+      stream = (const char*)b;
+      stream_delete = true;
+    } else {
+      sz = img.width();
+      stream = (const char*)img.buffer();
+    }
+
+    int status = ReadFile::addModelisationFile(sz,stream,"inlib_fog",&m_scene);
+
+    if(stream_delete) delete [] stream;
+
+    if(status==EXIT_FAILURE){
+      free_scene_tail(m_scene,nbsv,nbobj,nbface);
+      a_out << "inlib::fog::scene::update_sg :"
+            << " addModelisationFile failed."
+            << std::endl;
+      return;
+    }
+
+  }
+protected:
+  class visitor {
+  protected:
+    virtual void do_face(INDEX_FACE iface,SCENE& a_scene) = 0;
+  public:
+    visitor(scene& a_this):m_this(a_this){}
+    virtual ~visitor(){}
+  protected:
+    visitor(const visitor& a_from):m_this(a_from.m_this){}
+    visitor& operator=(const visitor&){return *this;}
+  public:
+    void do_scene(SCENE& a_scene) {
+      m_model = m_this.layout.value();
+      m_models.clear();
+      for(int i=0;i<a_scene.nbsv;i++) {
+        SVOLUME& sv = a_scene.tabsv[i];
+        if(sv.visible) {
+          m_models.push_back(m_model);    
+  
+          m_model.mul_translate((float)sv.transfo.tx,
+                                (float)sv.transfo.ty,
+                                (float)sv.transfo.tz);
+  
+          m_model.mul_rotate(1,0,0,(float)sv.transfo.thetax);
+          m_model.mul_rotate(0,1,0,(float)sv.transfo.thetay);
+          m_model.mul_rotate(0,0,1,(float)sv.transfo.thetaz); //done first
+  
+          //glLoadName (i);
+          do_super_volume(sv, a_scene);
+  
+          m_model = m_models.back();
+          m_models.pop_back();    
+        }
+      }
+    }
+  protected:
+    void do_super_volume(SVOLUME& v, SCENE& a_scene){
+      for(int i=0;i<v.nbobj;i++){
+        if(v.visible) do_object(v.tabobj[i], a_scene);
+      }
+    }
+    void do_object(INDEX_OBJECT iobject, SCENE& a_scene){
+      int nface = a_scene.tabobj[iobject].nbface;
+      for(int i=0;i<nface;i++){
+        do_face(a_scene.tabobj[iobject].tabface[i], a_scene);
+      }
+    }  
+  protected:
+    scene& m_this;
+    mat4f m_model;
+    std::vector<mat4f> m_models;
+  };
+
+
+  ///////////////////////////////////////////////////////////////////////
+  /// draw //////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  typedef sg::tessellate::prims_t prims_t; 
+
+  class gsto_visitor : public visitor {
+  public:
+    virtual void do_face(INDEX_FACE iface,SCENE& a_scene) {
+      // Drawing a single face
+
+      FACE& face = a_scene.tabface[iface];
+      int num = face.nbpt;
+      if(!num) return;
+
+      float vx,vy,vz;
+
+      int icol = face.icol;
+      const double* col = get_col((icol + 5 % NB_COLORS()));
+
+      if(m_this.solid.value()) {
+
+        // edges :
+       {size_t nseg = num-1; //fog format closes the loop.
+
+        float* pos = 0;
+       {size_t ngsto = nseg*2*3;
+        size_t sz = m_this.m_gsto_xyzs.size();
+        m_this.m_gsto_xyzs.resize(sz+ngsto);
+        pos = vec_data<float>(m_this.m_gsto_xyzs)+sz;}
+
+        float ovx = 0;
+        float ovy = 0;
+        float ovz = 0;
+
+        for(int i=0;i<num;i++) {
+          int j = face.tabpt[i];
+          fog_vec4d& v = a_scene.tabpt[j];
+          vx = (float)v.x;
+          vy = (float)v.y;
+          vz = (float)v.z;
+          m_model.mul_3f(vx,vy,vz);
+
+          if(i) {
+            *pos = (float)ovx;pos++;
+            *pos = (float)ovy;pos++;
+            *pos = (float)ovz;pos++;
+
+            *pos = (float)vx;pos++;
+            *pos = (float)vy;pos++;
+            *pos = (float)vz;pos++;
+          }
+
+          ovx = vx;
+          ovy = vy;
+          ovz = vz;
+
+        }}
+
+        if(!face.extension) {
+
+         {double* pos = m_this.m_solid_xyzs;
+          for(int i=0;i<num;i++) {
+            int j = face.tabpt[i];
+            fog_vec4d& v = a_scene.tabpt[j];
+            vx = (float)v.x;
+            vy = (float)v.y;
+            vz = (float)v.z;
+            m_model.mul_3f(vx,vy,vz);
+            *pos = vx;pos++;
+            *pos = vy;pos++;
+            *pos = vz;pos++;
+          }}    
+          if(!m_this.m_tess) m_this.m_tess = new sg::tessellate(m_out);
+          prims_t* prims = new prims_t();
+          m_this.m_tess->do_it(num,m_this.m_solid_xyzs,*prims);
+          face.extension = prims;
+        }
+  
+        //NOTE : 
+        //  some shapes (END.fog) are such that some exterior
+        //  oriented faces point... inward (!). Then we have
+        //  to handle the back of faces. Else with light, some
+        //  faces will appear black.
+        //   But with GL-ES we don't have :
+        //        ::glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+        //  and then we have to handle by hande the back face
+        //  of faces !
+        //
+        //   But if enforce edges, they may overlap with
+        //  "inward face" back rendering.
+    
+       {prims_t& prims = *((prims_t*)face.extension);
+        prims_t::const_iterator it;
+        for(it=prims.begin();it!=prims.end();++it) {
+          const sg::tess_prim& item = *(*it);
+          const std::vector<float>& coords = item.m_coords;
+          const std::vector<float>& norms = item.m_norms;
+          if(coords.empty()) continue;
+          if(norms.size()!=coords.size()) continue;
+          size_t _num = coords.size()/3;
+
+          if(item.m_mode==gl::triangles()) {
+
+            if(_num<3) continue;
+
+            size_t ntri = _num/3;
+
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_tris.size();
+            m_this.m_gsto_tris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_tris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_nms.size();
+            m_this.m_gsto_nms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_nms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_cols.size();
+            m_this.m_gsto_cols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_cols)+sz;}
+  
+           {const float* vpos = vec_data(coords);
+            ::memcpy(pxyz,vpos,ntri*3*3*sizeof(float));
+            pxyz += ntri*3*3;}
+  
+           {const float* vpos = vec_data(norms);
+            ::memcpy(pnms,vpos,ntri*3*3*sizeof(float));
+            pnms += ntri*3*3;}
+  
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+  
+           {std::vector<float> bcoords;
+            std::vector<float> bnorms;
+            get_back_vertex_normal_array(item.m_mode,coords,norms,epsil_back_face(),bcoords,bnorms);
+  
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_btris.size();
+            m_this.m_gsto_btris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_btris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_bnms.size();
+            m_this.m_gsto_bnms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_bnms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_bcols.size();
+            m_this.m_gsto_bcols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_bcols)+sz;}
+  
+           {const float* vpos = vec_data(bcoords);
+            ::memcpy(pxyz,vpos,ntri*3*3*sizeof(float));
+            pxyz += ntri*3*3;}
+  
+           {const float* vpos = vec_data(bnorms);
+            ::memcpy(pnms,vpos,ntri*3*3*sizeof(float));
+            pnms += ntri*3*3;}
+  
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+  
+            }
+  
+          } else if(item.m_mode==gl::triangle_strip()) {
+            if(_num<3) continue;
+ 
+            size_t ntri = _num-2;
+
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_tris.size();
+            m_this.m_gsto_tris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_tris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_nms.size();
+            m_this.m_gsto_nms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_nms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_cols.size();
+            m_this.m_gsto_cols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_cols)+sz;}
+  
+            gl::triangle_strip_to_triangles(_num,vec_data(coords),vec_data(norms),pxyz,pnms);
+
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+
+           {std::vector<float> bcoords;
+            std::vector<float> bnorms;
+            get_back_vertex_normal_array(item.m_mode,coords,norms,epsil_back_face(),bcoords,bnorms);
+
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_btris.size();
+            m_this.m_gsto_btris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_btris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_bnms.size();
+            m_this.m_gsto_bnms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_bnms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_bcols.size();
+            m_this.m_gsto_bcols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_bcols)+sz;}
+  
+            gl::triangle_strip_to_triangles(_num,
+                                            vec_data(bcoords),vec_data(bnorms),
+                                            pxyz,pnms);
+
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+
+
+            }
+  
+          } else if(item.m_mode==gl::triangle_fan()) {
+            if(_num<3) continue;
+ 
+            size_t ntri = _num-2;
+
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_tris.size();
+            m_this.m_gsto_tris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_tris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_nms.size();
+            m_this.m_gsto_nms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_nms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_cols.size();
+            m_this.m_gsto_cols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_cols)+sz;}
+  
+            gl::triangle_fan_to_triangles(_num,vec_data(coords),vec_data(norms),pxyz,pnms);
+
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+
+           {std::vector<float> bcoords;
+            std::vector<float> bnorms;
+            get_back_vertex_normal_array(item.m_mode,coords,norms,epsil_back_face(),bcoords,bnorms);
+
+           {float* pxyz = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_btris.size();
+            m_this.m_gsto_btris.resize(sz+ngsto);
+            pxyz = vec_data<float>(m_this.m_gsto_btris)+sz;}
+  
+            float* pnms = 0;
+           {size_t ngsto = ntri*3*3;
+            size_t sz = m_this.m_gsto_bnms.size();
+            m_this.m_gsto_bnms.resize(sz+ngsto);
+            pnms = vec_data<float>(m_this.m_gsto_bnms)+sz;}
+  
+            float* pcol = 0;
+           {size_t ngsto = ntri*3*4;
+            size_t sz = m_this.m_gsto_bcols.size();
+            m_this.m_gsto_bcols.resize(sz+ngsto);
+            pcol = vec_data<float>(m_this.m_gsto_bcols)+sz;}
+  
+            gl::triangle_fan_to_triangles(_num,
+                                          vec_data(bcoords),vec_data(bnorms),
+                                          pxyz,pnms);
+
+           {size_t npt = 3*ntri;
+            for(size_t i=0;i<npt;i++) {
+              *pcol = float(col[0]);pcol++;
+              *pcol = float(col[1]);pcol++;
+              *pcol = float(col[2]);pcol++;
+              *pcol = 1;pcol++;
+            }}}
+
+
+            }
+          } //end gl::triangle
+
+        }}
+
+      } else { //!m_this.solid.value()
+
+        if(num<2) return;
+
+        size_t nseg = num-1; //fog format closes the loop.
+
+        float* pos = 0;
+       {size_t ngsto = 2*nseg*3;
+        size_t sz = m_this.m_gsto_xyzs.size();
+        m_this.m_gsto_xyzs.resize(sz+ngsto);
+        pos = vec_data<float>(m_this.m_gsto_xyzs)+sz;}
+
+        float* pcol = 0;
+       {size_t ngsto = 2*nseg*4;
+        size_t sz = m_this.m_gsto_rgbas.size();
+        m_this.m_gsto_rgbas.resize(sz+ngsto);
+        pcol = vec_data<float>(m_this.m_gsto_rgbas)+sz;}
+
+        float ovx = 0;
+        float ovy = 0;
+        float ovz = 0;
+
+        float ocr = 0;
+        float ocg = 0;
+        float ocb = 0;
+
+        float cr = 0;
+        float cg = 0;
+        float cb = 0;
+
+        for(int i=0;i<num;i++) {
+          int j = face.tabpt[i];
+          fog_vec4d& v = a_scene.tabpt[j];
+          vx = (float)v.x;
+          vy = (float)v.y;
+          vz = (float)v.z;
+          m_model.mul_3f(vx,vy,vz);
+          cr = float(col[0]);
+          cg = float(col[1]);
+          cb = float(col[2]);
+
+          if(i) {
+            *pos = (float)ovx;pos++;
+            *pos = (float)ovy;pos++;
+            *pos = (float)ovz;pos++;
+            *pcol = ocr;pcol++;
+            *pcol = ocg;pcol++;
+            *pcol = ocb;pcol++;
+            *pcol = 1;pcol++;
+
+            *pos = (float)vx;pos++;
+            *pos = (float)vy;pos++;
+            *pos = (float)vz;pos++;
+            *pcol = cr;pcol++;
+            *pcol = cg;pcol++;
+            *pcol = cb;pcol++;
+            *pcol = 1;pcol++;
+          }
+
+          ovx = vx;
+          ovy = vy;
+          ovz = vz;
+          ocr = cr;
+          ocg = cg;
+          ocb = cb;
+
+        }  
+      }
+    }
+  public:
+    gsto_visitor(std::ostream& a_out,scene& a_this)
+    :visitor(a_this)
+    ,m_out(a_out)
+    {}
+  private:
+    gsto_visitor(const gsto_visitor& a_from)
+    :visitor(a_from)
+    ,m_out(a_from.m_out)
+    {}
+    gsto_visitor& operator=(const gsto_visitor& a_from){
+      visitor::operator=(a_from);
+      return *this;
+    }
+  public:
+    void do_scene(SCENE& a_scene) {
+      visitor::do_scene(a_scene);
+    }
+  protected:
+    std::ostream& m_out;
+  };
+
+  class GL_visitor : public visitor {
+  public:
+    virtual void do_face(INDEX_FACE iface,SCENE& a_scene) {
+      // Drawing a single face
+
+      sg::state& state = m_action.state();
+
+      FACE& face = a_scene.tabface[iface];
+      int num = face.nbpt;
+      if(!num) return;
+
+      float vx,vy,vz;
+
+      int icol = face.icol;
+      const double* col = get_col((icol + 5 % NB_COLORS()));
+
+      if(m_this.solid.value()) {
+        if(!face.extension) {
+
+         {double* pos = m_this.m_solid_xyzs;
+          for(int i=0;i<num;i++) {
+            int j = face.tabpt[i];
+            fog_vec4d& v = a_scene.tabpt[j];
+            vx = (float)v.x;
+            vy = (float)v.y;
+            vz = (float)v.z;
+            m_model.mul_3f(vx,vy,vz);
+            *pos = vx;pos++;
+            *pos = vy;pos++;
+            *pos = vz;pos++;
+          }}    
+          if(!m_this.m_tess) m_this.m_tess = new sg::tessellate(m_action.out());
+          prims_t* prims = new prims_t();
+          m_this.m_tess->do_it(num,m_this.m_solid_xyzs,*prims);
+          face.extension = prims;
+        }
+  
+       {bool draw_edges = state.m_GL_LIGHTING?false:true;
+        if(m_this.enforce_edges.value()) draw_edges = true;
+        if(draw_edges){
+          //Same logic as Inventor SoLightModel.model = BASE_COLOR.
+          bool old_GL_LIGHTING = state.m_GL_LIGHTING;
+          m_action.set_lighting(false);
+
+          m_action.color4f(0,0,0,1);
+  
+          float* pos = m_this.m_wf_xyzs;
+          for(int i=0;i<num;i++) {
+            int j = face.tabpt[i];
+            fog_vec4d& v = a_scene.tabpt[j];
+            vx = (float)v.x;
+            vy = (float)v.y;
+            vz = (float)v.z;
+            m_model.mul_3f(vx,vy,vz);
+            *pos = (float)vx;pos++;
+            *pos = (float)vy;pos++;
+            *pos = (float)vz;pos++;
+          }  
+
+          m_action.draw_vertex_array(gl::line_loop(),num*3,m_this.m_wf_xyzs);
+    
+          m_action.set_lighting(old_GL_LIGHTING);
+
+          //pushes back the filled polygons to avoid z-fighting with lines
+          m_action.set_polygon_offset(true);
+        }}
+    
+        //NOTE : 
+        //  some shapes (END.fog) are such that some exterior
+        //  oriented faces point... inward (!). Then we have
+        //  to handle the back of faces. Else with light, some
+        //  faces will appear black.
+        //   But with GL-ES we don't have :
+        //        ::glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+        //  and then we have to handle by hande the back face
+        //  of faces !
+        //
+        //   But if enforce edges, they may overlap with
+        //  "inward face" back rendering.
+    
+       {m_action.color4f((float)col[0],(float)col[1],(float)col[2],1);
+        m_action.set_cull_face(false);
+        state.m_GL_CULL_FACE = false;
+    
+        prims_t& prims = *((prims_t*)face.extension);
+    
+        prims_t::const_iterator it;
+        for(it=prims.begin();it!=prims.end();++it) {
+          const sg::tess_prim& item = *(*it);
+          const std::vector<float>& coords = item.m_coords;
+          const std::vector<float>& norms = item.m_norms;
+          if(coords.empty()) continue;
+          if(norms.size()!=coords.size()) continue;
+  
+          m_action.draw_vertex_normal_array(item.m_mode,coords,norms);
+    
+          if(state.m_GL_LIGHTING) {
+            std::vector<float> bcoords;
+            std::vector<float> bnorms;
+            get_back_vertex_normal_array(item.m_mode,coords,norms,epsil_back_face(),bcoords,bnorms);
+            m_action.draw_vertex_normal_array(item.m_mode,bcoords,bnorms);
+          }
+        }}
+        m_action.set_polygon_offset(state.m_GL_POLYGON_OFFSET_FILL);
+
+      } else { //!m_this.solid.value()
+
+        //m_vtx_count += num;
+
+        float* pos = m_this.m_wf_xyzs;
+
+        for(int i=0;i<num;i++) {
+          int j = face.tabpt[i];
+          fog_vec4d& v = a_scene.tabpt[j];
+          vx = (float)v.x;
+          vy = (float)v.y;
+          vz = (float)v.z;
+          m_model.mul_3f(vx,vy,vz);
+          *pos = (float)vx;pos++;
+          *pos = (float)vy;pos++;
+          *pos = (float)vz;pos++;
+        }  
+
+       {//Same logic as Inventor SoLightModel.model = BASE_COLOR.
+        bool old_GL_LIGHTING = state.m_GL_LIGHTING;
+        m_action.set_lighting(false);
+        m_action.color4f((float)col[0],(float)col[1],(float)col[2],1);
+        m_action.draw_vertex_array(gl::line_loop(),
+                                   num*3,m_this.m_wf_xyzs);
+        m_action.set_lighting(old_GL_LIGHTING);}
+
+      }
+    }
+  public:
+    GL_visitor(scene& a_this,sg::render_action& a_action)
+    :visitor(a_this)
+    ,m_action(a_action)
+    {}
+  private:
+    GL_visitor(const GL_visitor& a_from)
+    :visitor(a_from)
+    ,m_action(a_from.m_action)
+    {}
+    GL_visitor& operator=(const GL_visitor& a_from){
+      visitor::operator=(a_from);
+      return *this;
+    }
+  public:
+    void do_scene(SCENE& a_scene) {
+      visitor::do_scene(a_scene);
+    }
+  protected:
+    sg::render_action& m_action;
+  };
+
+  ///////////////////////////////////////////////////////////////////////
+  /// bbox //////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  class bbox_visitor : public visitor {
+  public:
+    virtual void do_face(INDEX_FACE iface,SCENE& a_scene) {
+      FACE& face = a_scene.tabface[iface];
+      float vx,vy,vz;
+      int num = face.nbpt;
+      for(int i=0;i<num;i++) {
+        int j = face.tabpt[i];
+        fog_vec4d& v = a_scene.tabpt[j];
+        vx = (float)v.x;
+        vy = (float)v.y;
+        vz = (float)v.z;
+        m_model.mul_3f(vx,vy,vz);
+        m_action.add_one_point(vx,vy,vz);
+      }
+    }
+  public:
+    bbox_visitor(scene& a_this,sg::bbox_action& a_action)
+    :visitor(a_this)
+    ,m_action(a_action)
+    {}
+  private:
+    bbox_visitor(const bbox_visitor& a_from)
+    :visitor(a_from)
+    ,m_action(a_from.m_action)
+    {}
+    bbox_visitor& operator=(const bbox_visitor& a_from){
+      visitor::operator=(a_from);
+      return *this;
+    }
+  public:
+    void do_scene(SCENE& a_scene) {
+      visitor::do_scene(a_scene);
+    }
+  protected:
+    sg::bbox_action& m_action;
+  };
+
+  ///////////////////////////////////////////////////////////////////////
+  /// pick //////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////  
+  class pick_visitor : public visitor {
+  public:
+    virtual void do_face(INDEX_FACE iface,SCENE& a_scene) {
+      FACE& face = a_scene.tabface[iface];
+      int num = face.nbpt;
+      if(!num) return;
+
+      float vx,vy,vz;
+
+      if(m_this.solid.value()) {
+        if(!face.extension) {
+
+         {double* pos = m_this.m_solid_xyzs;
+          for(int i=0;i<num;i++) {
+            int j = face.tabpt[i];
+            fog_vec4d& v = a_scene.tabpt[j];
+            vx = (float)v.x;
+            vy = (float)v.y;
+            vz = (float)v.z;
+            m_model.mul_3f(vx,vy,vz);
+            *pos = vx;pos++;
+            *pos = vy;pos++;
+            *pos = vz;pos++;
+          }}    
+          if(!m_this.m_tess) m_this.m_tess = new sg::tessellate(m_action.out());
+          prims_t* prims = new prims_t();
+          m_this.m_tess->do_it(num,m_this.m_solid_xyzs,*prims);
+          face.extension = prims;
+        }
+
+        if(face.extension) {
+          prims_t& prims = *((prims_t*)face.extension);
+  
+          prims_t::const_iterator it;
+          for(it=prims.begin();it!=prims.end();++it) {
+            const sg::tess_prim& item = *(*it);
+            const std::vector<float>& coords = item.m_coords;
+            if(coords.empty()) continue;
+
+            if(m_action.stop_at_first()){
+              m_action.add_primitive(item.m_mode,coords,true);
+              if(m_action.done()) m_action.set_node(&m_this);
+            } else {
+              m_action.set_done(false);
+              m_action.zs().clear();
+              m_action.ws().clear();
+              m_action.add_primitive(item.m_mode,coords,true);
+              if(m_action.done()) {
+                m_action.add_pick(m_this,m_action.zs(),m_action.ws(),m_action.state());
+                m_action.set_done(false);
+              }
+            }
+
+          }
+        }
+
+      } else {
+           
+        float* pos = m_this.m_wf_xyzs;
+        for(int i=0;i<num;i++) {
+          int j = face.tabpt[i];
+          fog_vec4d& v = a_scene.tabpt[j];
+          vx = (float)v.x;
+          vy = (float)v.y;
+          vz = (float)v.z;
+          m_model.mul_3f(vx,vy,vz);
+          *pos = (float)vx;pos++;
+          *pos = (float)vy;pos++;
+          *pos = (float)vz;pos++;
+        }  
+
+        if(m_action.stop_at_first()){
+          m_action.add_primitive(gl::line_loop(),num*3,m_this.m_wf_xyzs,true);
+          if(m_action.done()) m_action.set_node(&m_this);
+        } else {
+          m_action.set_done(false);
+          m_action.zs().clear();
+          m_action.ws().clear();
+          m_action.add_primitive(gl::line_loop(),num*3,m_this.m_wf_xyzs,true);
+          if(m_action.done()) {
+            m_action.add_pick
+              (m_this,m_action.zs(),m_action.ws(),m_action.state());
+            m_action.set_done(false);
+          }
+        }
+      }
+    }
+
+  public:
+    pick_visitor(scene& a_this,sg::pick_action& a_action)
+    :visitor(a_this)
+    ,m_action(a_action)
+    {}
+  private:
+    pick_visitor(const pick_visitor& a_from)
+    :visitor(a_from)
+    ,m_action(a_from.m_action)
+    {}
+    pick_visitor& operator=(const pick_visitor& a_from){
+      visitor::operator=(a_from);
+      return *this;
+    }
+  protected:
+    sg::pick_action& m_action;
+  };
+
+protected:
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  static void init_scene(SCENE& a_scene) {
+    a_scene.nbsv = 0;
+    a_scene.nbobj = 0;
+    a_scene.nbface = 0;
+    a_scene.nbpt = 0;
+    a_scene.nbcol = 0;
+  
+    a_scene.tabsv = NULL;
+    a_scene.tabobj = NULL;
+    a_scene.tabface = NULL;
+    a_scene.tabpt = NULL;
+    a_scene.tabcol = NULL;
+  }
+
+  static void clear_scene(SCENE& a_scene) {
+    // clear faces extension :
+    for(int i=0;i<a_scene.nbface;i++) {
+      FACE& face = a_scene.tabface[i];
+      prims_t* prims = (prims_t*)face.extension;
+      if(prims) raw_clear(*prims);
+      delete prims;
+      face.extension = 0;
+    }
+
+    free_scene(a_scene);
+    a_scene.nbsv = 0;
+    a_scene.nbobj = 0;
+    a_scene.nbface = 0;
+    a_scene.nbpt = 0;
+    a_scene.nbcol = 0;  
+  }
+  
+/*
+  static int load_file (SCENE& a_scene,const char *fileName) {
+    // Adds a file containing a 3D modelisation in the dat format to the scene
+    // or just loads it, allocating the scene object by the way
+    //
+    // @param fileName : the name of the file to load (may contain its path)
+
+    POVAMA_DEBUG ("Reading file %s\n",fileName);
+  
+    int nbsv = a_scene.nbsv;
+    int nbobj = a_scene.nbobj;
+    int nbface = a_scene.nbface;
+
+    if(EXIT_FAILURE == ReadFile::addModelisationFile (fileName,&a_scene)) {
+  //if (EXIT_FAILURE == ReadFile::readModelisationFile (fileName, scene)) {
+      free_scene_tail(a_scene,nbsv,nbobj,nbface);
+      POVAMA_DEBUG("Failed to load %s\n",fileName);
+      return EXIT_FAILURE;
+    }
+  
+    return EXIT_SUCCESS;
+  }
+*/
+  
+  static void free_scene_tail(SCENE& a_scene,
+                                     int a_nbsv,int a_nbobj,int a_nbface){
+    if(a_scene.tabsv) {
+      for (int sv = a_nbsv; sv < a_scene.nbsv; sv++) {
+        if(a_scene.tabsv[sv].tabobj) {
+          ::free(a_scene.tabsv[sv].tabobj);
+          a_scene.tabsv[sv].tabobj = 0;
+        }
+        if(a_scene.tabsv[sv].name) {
+          ::free(a_scene.tabsv[sv].name);
+          a_scene.tabsv[sv].name = 0;
+        }
+        if(a_scene.tabsv[sv].filename) {
+          ::free(a_scene.tabsv[sv].filename);
+          a_scene.tabsv[sv].filename = 0;
+        }
+      }
+      a_scene.nbsv = a_nbsv;
+    }
+  
+    if(a_scene.tabobj){
+      for (int obj = a_nbobj; obj < a_scene.nbobj; obj++) {
+        if(a_scene.tabobj[obj].tabface) {
+          ::free(a_scene.tabobj[obj].tabface);
+          a_scene.tabobj[obj].tabface = 0;
+        }
+      }
+      a_scene.nbobj = a_nbobj;
+    }
+  
+    if(a_scene.tabface){
+      for (int face = a_nbface; face < a_scene.nbface; face++) {
+        if(a_scene.tabface[face].tabpt) {
+          ::free(a_scene.tabface[face].tabpt);
+          a_scene.tabface[face].tabpt = 0;
+        }
+      }
+      a_scene.nbface = a_nbface;
+    }
+  }
+  
+  static void free_scene(SCENE& a_scene) {
+    free_scene_tail(a_scene,0,0,0);
+  
+    if(a_scene.tabsv) {
+      ::free(a_scene.tabsv);
+      a_scene.tabsv = 0;
+    }
+  
+    if(a_scene.tabobj){
+      ::free(a_scene.tabobj);
+      a_scene.tabobj = 0;
+    }
+  
+    if(a_scene.tabface){
+      ::free(a_scene.tabface);
+      a_scene.tabface = 0;
+    }
+  
+    if(a_scene.tabpt) {
+      ::free(a_scene.tabpt);
+      a_scene.tabpt = 0;
+    }
+
+    if(a_scene.tabcol) {
+      ::free(a_scene.tabcol);
+      a_scene.tabcol = 0;
+    }
+  
+    //::free (scene);
+  }
+
+  static void get_back_vertex_normal_array(gl::mode_t a_mode,
+                                           const std::vector<float>& a_xyzs,
+                                           const std::vector<float>& a_nms,
+                                           float a_epsil,
+                                           std::vector<float>& a_bxyzs,
+                                           std::vector<float>& a_bnms){
+    if(a_xyzs.empty()) {
+      a_bxyzs.clear();
+      a_bnms.clear();
+      return;
+    }
+
+    a_bxyzs.resize(a_xyzs.size());
+    a_bnms.resize(a_nms.size());
+    
+    if(a_mode==gl::triangle_fan()) { //reverse after first point.
+
+      a_bxyzs[0] = a_xyzs[0] - a_nms[0] * a_epsil;
+      a_bxyzs[1] = a_xyzs[1] - a_nms[1] * a_epsil;
+      a_bxyzs[2] = a_xyzs[2] - a_nms[2] * a_epsil;
+
+     {std::vector<float>::const_iterator it = a_xyzs.begin()+3;
+      std::vector<float>::const_iterator _end = a_xyzs.end();
+      std::vector<float>::const_iterator itn = a_nms.begin()+3;
+      std::vector<float>::reverse_iterator it2 = a_bxyzs.rbegin();
+      for(;it!=_end;it2+=3) {
+        *(it2+2) = *it - *itn * a_epsil; it++;itn++; //x
+        *(it2+1) = *it - *itn * a_epsil; it++;itn++; //y
+        *(it2+0) = *it - *itn * a_epsil; it++;itn++; //z
+      }}
+  
+      a_bnms[0] = a_nms[0] * -1.0f;
+      a_bnms[1] = a_nms[1] * -1.0f;
+      a_bnms[2] = a_nms[2] * -1.0f;
+
+     {std::vector<float>::const_iterator it = a_nms.begin()+3;
+      std::vector<float>::const_iterator _end = a_nms.end();
+      std::vector<float>::reverse_iterator it2 = a_bnms.rbegin();
+      for(;it!=_end;it2+=3) {
+        *(it2+2) = *it * -1.0f; it++;
+        *(it2+1) = *it * -1.0f; it++;
+        *(it2+0) = *it * -1.0f; it++;
+      }}
+  
+    } else {
+
+     {std::vector<float>::const_iterator it = a_xyzs.begin();
+      std::vector<float>::const_iterator _end = a_xyzs.end();
+      std::vector<float>::const_iterator itn = a_nms.begin();
+      std::vector<float>::reverse_iterator it2 = a_bxyzs.rbegin();
+      for(;it!=_end;it2+=3) {
+        *(it2+2) = *it - *itn * a_epsil; it++;itn++; //x
+        *(it2+1) = *it - *itn * a_epsil; it++;itn++; //y
+        *(it2+0) = *it - *itn * a_epsil; it++;itn++; //z
+      }}
+  
+     {std::vector<float>::const_iterator it = a_nms.begin();
+      std::vector<float>::const_iterator _end = a_nms.end();
+      std::vector<float>::reverse_iterator it2 = a_bnms.rbegin();
+      for(;it!=_end;it2+=3) {
+        *(it2+2) = *it * -1.0f; it++;
+        *(it2+1) = *it * -1.0f; it++;
+        *(it2+0) = *it * -1.0f; it++;
+      }}
+  
+    }
+  }
+
+protected:
+  SCENE m_scene;
+  float m_wf_xyzs[512]; //we have no more than 100 points (max is 74).
+  //unsigned int m_vtx_count;
+
+  mat4f m_model;
+  std::vector<mat4f> m_models;
+
+protected: //gluTess
+  double m_solid_xyzs[512]; //we have no more than 100 points (max is 74).
+  sg::tessellate* m_tess;
+
+  decompress_func m_decompress_func;
+
+protected: //gsto
+  std::vector<float> m_gsto_xyzs;  
+  std::vector<float> m_gsto_rgbas;  
+
+  std::vector<float> m_gsto_tris;  
+  std::vector<float> m_gsto_nms;  
+  std::vector<float> m_gsto_cols;  
+
+  std::vector<float> m_gsto_btris;  
+  std::vector<float> m_gsto_bnms;  
+  std::vector<float> m_gsto_bcols;  
+
+  size_t m_gsto_xyzs_sz;
+  size_t m_gsto_rgbas_sz;
+
+  size_t m_gsto_tris_sz;
+  size_t m_gsto_nms_sz;
+  size_t m_gsto_cols_sz;
+
+  size_t m_gsto_btris_sz;
+  size_t m_gsto_bnms_sz;
+  size_t m_gsto_bcols_sz;
+
+};
+
+}}
+
+#endif

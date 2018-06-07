@@ -1,0 +1,629 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_xmas_tree
+#define inlib_sg_xmas_tree
+
+//   This class provides a set of functions for creating and rendering 
+//  a fractal  Christmas stree. 
+//   From the code of : Evan Hart, email: sdkfeedback@nvidia.com, that
+//  comes with : Copyright (c) NVIDIA Corporation. All rights reserved.
+
+#include "node"
+
+#include "sf"
+#include "mf"
+#include "render_action"
+#include "pick_action"
+#include "bbox_action"
+
+#include "../rtausmef"
+
+namespace inlib {
+namespace sg {
+
+class xmas_tree : public node {
+  INLIB_NODE(xmas_tree,inlib::sg::xmas_tree,node)
+protected:
+  typedef unsigned int _GLuint;
+public:
+  sf<float> height;
+  sf<float> radius;
+
+  //how many times a branch will branch,
+  //when it grows from the base of the tree
+  sf<unsigned int> branch_generations;
+
+  sf<unsigned int> num_lights;
+
+  //number of segments high the tree is
+  //(each segment has a trunk component and a set of branches
+  sf<unsigned int> num_segments;
+
+  //number of sides on the trunk and branches
+  sf<unsigned int> branch_sides;
+
+  //number of branches in a segment
+  sf<unsigned int> branches_per_segment;
+
+  // rate per-segment that the branchiness decays
+  sf<float> branch_generation_decay_rate;
+
+  sf<float> ornaments_point_size;
+  sf<float> lights_point_size;
+
+  mf_vec<colorf,float> light_colors;
+  mf_vec<vec4f,float> ornament_colors;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::xmas_tree)
+    static const desc_fields s_v(parent::node_desc_fields(),12, //WARNING : have the right count.
+      INLIB_ARG_FIELD_DESC(height),
+      INLIB_ARG_FIELD_DESC(radius),
+      INLIB_ARG_FIELD_DESC(branch_generations),
+      INLIB_ARG_FIELD_DESC(num_lights),
+      INLIB_ARG_FIELD_DESC(num_segments),
+      INLIB_ARG_FIELD_DESC(branch_sides),
+      INLIB_ARG_FIELD_DESC(branches_per_segment),
+      INLIB_ARG_FIELD_DESC(branch_generation_decay_rate),
+      INLIB_ARG_FIELD_DESC(ornaments_point_size),
+      INLIB_ARG_FIELD_DESC(lights_point_size),
+      INLIB_ARG_FIELD_DESC(light_colors),
+      INLIB_ARG_FIELD_DESC(ornament_colors)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&height);
+    add_field(&radius);
+    add_field(&branch_generations);
+    add_field(&num_lights);
+    add_field(&num_segments);
+    add_field(&branch_sides);
+    add_field(&branches_per_segment);
+    add_field(&branch_generation_decay_rate);
+    add_field(&ornaments_point_size);
+    add_field(&lights_point_size);
+    add_field(&light_colors);
+    add_field(&ornament_colors);
+  }
+public:
+  xmas_tree()
+  :parent()
+  ,height(1)
+  ,radius(0.3f)
+  ,branch_generations(3) //5 has a better looking.
+  ,num_lights(100)
+  ,num_segments(40)
+  ,branch_sides(6)
+  ,branches_per_segment(7)
+  ,branch_generation_decay_rate(1.0f/7.0f)
+  ,ornaments_point_size(5)
+  ,lights_point_size(3)
+
+  ,m_height(16.0f)
+  ,m_radius(6.0f)
+  {
+    add_fields();
+    light_colors.add(colorf(1.0f,0.98f,0.90f));
+
+    ornament_colors.add(vec4f(0.9f,0.0f,0.0f,1)); //red 
+    ornament_colors.add(vec4f(0.0f,0.0f,0.9f,1)); //blue
+    ornament_colors.add(vec4f(0.9f,0.9f,0.0f,1)); //yellow
+  }
+  virtual ~xmas_tree(){}
+public:
+  xmas_tree(const xmas_tree& a_from)
+  :parent(a_from)
+  ,height(a_from.height)
+  ,radius(a_from.radius)
+  ,branch_generations(a_from.branch_generations)
+  ,num_lights(a_from.num_lights)
+  ,num_segments(a_from.num_segments)
+  ,branch_sides(a_from.branch_sides)
+  ,branches_per_segment(a_from.branches_per_segment)
+  ,branch_generation_decay_rate(a_from.branch_generation_decay_rate)
+  ,ornaments_point_size(a_from.ornaments_point_size)
+  ,lights_point_size(a_from.lights_point_size)
+  ,light_colors(a_from.light_colors)
+  ,ornament_colors(a_from.ornament_colors)
+ 
+  ,m_height(a_from.m_height)
+  ,m_radius(a_from.m_radius)
+  {
+    add_fields();
+  } 
+
+  xmas_tree& operator=(const xmas_tree& a_from){
+    parent::operator=(a_from);
+    height = a_from.height;
+    radius = a_from.radius;
+    branch_generations = a_from.branch_generations;
+    num_lights = a_from.num_lights;
+    num_segments = a_from.num_segments;
+    branch_sides = a_from.branch_sides;
+    branches_per_segment = a_from.branches_per_segment;
+    branch_generation_decay_rate = a_from.branch_generation_decay_rate;
+    ornaments_point_size = a_from.ornaments_point_size;
+    lights_point_size = a_from.lights_point_size;
+    light_colors = a_from.light_colors;
+    ornament_colors = a_from.ornament_colors;
+
+    m_height = a_from.m_height;
+    m_radius = a_from.m_radius;
+
+    _trunk_xyzs.clear();
+    _trunk_nms.clear();
+
+    _frond_xyzs.clear();
+    _frond_nms.clear();
+
+    _light_xyzs.clear();
+    _light_rgbas.clear();
+
+    _ornament_xyzs.clear();
+    _ornament_rgbas.clear();
+
+    _ornamentFreqAdjust = 0;
+
+    return *this;
+  }
+public: //node
+  virtual void render(render_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+
+    const state& state = a_action.state();
+
+    if(_trunk_xyzs.size()) {
+      const float* _xyzs = vec_data<float>(_trunk_xyzs);
+      const float* _nms = vec_data<float>(_trunk_nms);
+      a_action.color4f(0.5f,0.5f,0.0f,1.0f); //brown
+      a_action.draw_vertex_normal_array(gl::triangles(),
+                                        _trunk_xyzs.size(),
+                                        _xyzs,_nms);
+      a_action.color4f(state.m_color);
+    }
+
+    if(_frond_xyzs.size()) {
+      const float* _xyzs = vec_data<float>(_frond_xyzs);
+      const float* _nms = vec_data<float>(_frond_nms);
+      a_action.color4f(0.0f,0.7f,0.0f,1.0f); //green
+      a_action.draw_vertex_normal_array(gl::triangles(),
+                                        _frond_xyzs.size(),
+                                        _xyzs,_nms);
+      a_action.color4f(state.m_color);
+    }
+
+    if(_light_xyzs.size()) {
+      const float* _xyzs = vec_data<float>(_light_xyzs);
+      const float* _rgbas = vec_data<float>(_light_rgbas);
+      a_action.point_size(lights_point_size.value());
+      a_action.draw_vertex_color_array(gl::points(),
+                                       _light_xyzs.size(),
+                                       _xyzs,_rgbas);
+      a_action.point_size(state.m_point_size);
+    }
+
+    if(_ornament_xyzs.size()) {
+      const float* _xyzs = vec_data<float>(_ornament_xyzs);
+      const float* _rgbas = vec_data<float>(_ornament_rgbas);
+      a_action.point_size(ornaments_point_size.value());
+      a_action.draw_vertex_color_array(gl::points(),
+                                       _ornament_xyzs.size(),
+                                       _xyzs,_rgbas);
+      a_action.point_size(state.m_point_size);
+    }
+
+  }
+
+  virtual void pick(pick_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    if(a_action.add__primitive(*this,gl::triangles(),_trunk_xyzs,true)) return;
+    if(a_action.add__primitive(*this,gl::triangles(),_frond_xyzs,true)) return;
+    if(a_action.add__primitive(*this,gl::points(),_light_xyzs,true)) return;
+    if(a_action.add__primitive(*this,gl::points(),_ornament_xyzs,true)) return;
+  }
+
+  virtual void bbox(bbox_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    a_action.add_primitive(gl::triangles(),_trunk_xyzs);
+    a_action.add_primitive(gl::triangles(),_frond_xyzs);
+    a_action.add_primitive(gl::points(),_light_xyzs);
+    a_action.add_primitive(gl::points(),_ornament_xyzs);
+  }
+protected:
+  void update_sg() {
+    _trunk_xyzs.clear();
+    _trunk_nms.clear();
+
+    _frond_xyzs.clear();
+    _frond_nms.clear();
+
+    _light_xyzs.clear();
+    _light_rgbas.clear();
+
+    _ornament_xyzs.clear();
+    _ornament_rgbas.clear();
+
+    _ornamentFreqAdjust = 0;
+
+    grow();
+    gen_lights();
+
+   {mat4f m;
+    float hs = height.value()/m_height;
+    float rs = radius.value()/m_radius;
+    m.set_scale(rs,rs,hs);
+    std::vector<float>::iterator it;
+    for(it=_trunk_xyzs.begin();it!=_trunk_xyzs.end();it+=3){
+      m.mul_3f(*(it+0),*(it+1),*(it+2));
+    }   
+    for(it=_frond_xyzs.begin();it!=_frond_xyzs.end();it+=3){
+      m.mul_3f(*(it+0),*(it+1),*(it+2));
+    }  
+    for(it=_light_xyzs.begin();it!=_light_xyzs.end();it+=3){
+      m.mul_3f(*(it+0),*(it+1),*(it+2));
+    }   
+    for(it=_ornament_xyzs.begin();it!=_ornament_xyzs.end();it+=3){
+      m.mul_3f(*(it+0),*(it+1),*(it+2));
+    }}   
+ 
+  }
+
+  // Functions used to generate the tree
+  void grow();
+  void gen_lights();
+
+  //  Function used for growing the fractal branch
+  void grow_branch(const vec3f&,const vec3f&,float size,int gen);
+
+protected:
+  rtausmef m_rand;
+  float randf_pos() {return m_rand.shoot();}
+
+  float randf() {
+    // Random floating point number [-1 - 1]
+    return randf_pos() * 2.0f - 1.0f;
+  }
+
+  float rand2f() {
+    //  Random floating point number [-1 - 1] with the distribution
+    // clustered toward 0
+    float val = randf();
+    return (val >0.0f) ? val*val : -(val*val);
+  }
+
+protected:
+  float m_height;
+  float m_radius;
+
+  //geometry for the trunk and branches
+  std::vector<float> _trunk_xyzs;
+  std::vector<float> _trunk_nms;
+
+  //geometry for the fronds
+  std::vector<float> _frond_xyzs;
+  std::vector<float> _frond_nms;
+
+  //geometry for the lights
+  std::vector<float> _light_xyzs;
+  std::vector<float> _light_rgbas;
+
+  //geometry for ornaments
+  std::vector<float> _ornament_xyzs;
+  std::vector<float> _ornament_rgbas;
+
+  float _ornamentFreqAdjust;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//  Helper functions
+///////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// xmas_tree constants
+//
+////////////////////////////////////////////////////////////////////////////////
+
+inline void xmas_tree::grow_branch(const vec3f& a_dir,
+                                   const vec3f& root,
+                                   float size, int gen) {
+    // Fractal function used to create branches and fronds
+    //
+    //  The branches on the tree are all self similar, so simple
+    // fractal with random perturbations. For each generation of the
+    // branch, it will grow out by 'size', then fork three ways,
+    // with the central branch continuing furthest, and closest to
+    // the original direction. The children will go off to the left
+    // and right.
+
+    vec3f up( 0.0f, 1.0f, 0.0f);
+    vec3f out;a_dir.cross(up,out);
+    out.normalize();
+    out.cross(a_dir,up);
+    up.normalize();
+    vec3f pos = root + a_dir * size;
+
+    
+    if (gen > 0) {
+        // if this is not the end of the branch lenghten it
+
+        // Compute random factors used to control how far out the next
+        // genration will go. The power function is used to concentrate
+        // the distribution.
+        float outVal1 = 1.0f - powf( randf_pos(), 4.0f);
+        float outVal2 = 1.0f - powf( randf_pos(), 4.0f);
+        float outVal3 = 1.0f - powf( randf_pos(), 4.0f);
+
+        // create the vertices for this segment of the branch
+        int _branch_sides = (int)branch_sides.value();
+
+        for (int ii = 0; ii < _branch_sides; ii++) {
+            float x = sinf(float(ii)/float(_branch_sides)* 2.0f * 3.1415927f); 
+            float y = cosf(float(ii)/float(_branch_sides)* 2.0f * 3.1415927f); 
+            vec3f dir = x * out + y * up;
+            dir.normalize();
+            vec3f base = root + dir * size * 0.035f;
+            vec3f tip = pos + dir * size * 0.015f;
+
+            _trunk_xyzs.push_back( base.x());
+            _trunk_xyzs.push_back( base.y());
+            _trunk_xyzs.push_back( base.z());
+            _trunk_nms.push_back( dir.x());
+            _trunk_nms.push_back( dir.y());
+            _trunk_nms.push_back( dir.z());
+
+            _trunk_xyzs.push_back( tip.x());
+            _trunk_xyzs.push_back( tip.y());
+            _trunk_xyzs.push_back( tip.z());
+            _trunk_nms.push_back( dir.x());
+            _trunk_nms.push_back( dir.y());
+            _trunk_nms.push_back( dir.z());
+
+        }
+
+        float dirFactor = 1.0f;
+
+        //this makes the fronds stick up a bit more
+        if (gen == 1)
+            dirFactor = 0.7f;
+
+        // continue to grow the branch
+        vec3f dirb;
+
+        dirb = a_dir * dirFactor + 0.9f*out + 0.30f *up;        
+        dirb.normalize();        
+        grow_branch( dirb,  pos, size * 0.5f * outVal1, gen-1);
+
+        dirb = a_dir * dirFactor + -0.9f*out + 0.22f *up;
+        dirb.normalize();        
+        grow_branch( dirb, pos, size * 0.5f * outVal2, gen-1);
+
+        dirb = a_dir * dirFactor + 0.2f *up;
+        dirb.normalize();        
+        grow_branch( dirb,              pos, size * 0.6f * outVal3, gen-1);
+
+    } else {
+        //
+        // end of the branch, grow the frond
+        //
+
+        // save the current vertex position
+
+        // scale up the size for the frond
+        size *= 6.0f;
+
+        // frond is between 1 3/4 foot and 1/2 foot per side
+        if ( size > 1.75f)
+            size = 1.75f;
+
+        if ( size < 0.5f)
+            size = 0.5f;
+
+        
+        pos = root + a_dir * size; // scale by length
+
+        // width scale is 1/2 length scale, because it is +/-
+        float scale =  size * 0.5f;
+
+        // compute vectors needed to generate vertex and store
+        vec3f offset = out * randf() + up * randf() * 0.5f;
+        offset.normalize();
+        vec3f n;a_dir.cross(offset,n);
+        n.normalize();
+        vec3f sTan = offset;
+        vec3f tTan = a_dir;
+
+        vec3f vtx;
+
+        // Compute the 4 vertices of the frond geometry and store them,
+        // along with
+        // normal, texcoord, and tangents
+        // data    = 3 = vertex xyz 
+        // data+3  = 3 = normal xyz 
+        // data+6  = 2 = texture0 params
+        // data+8  = 3 = texture1 params
+        // data+11 = 3 = texture2 params
+        vtx = root - offset * scale;
+        for (int ii = 0; ii < 3; ii++) _frond_xyzs.push_back( vtx[ii]);
+        for (int ii = 0; ii < 3; ii++) _frond_nms.push_back( n[ii]);
+
+        vtx = root + offset * scale;
+        for (int ii = 0; ii < 3; ii++) _frond_xyzs.push_back( vtx[ii]);
+        for (int ii = 0; ii < 3; ii++) _frond_nms.push_back( n[ii]);
+
+        vtx = pos + offset * scale;
+        for (int ii = 0; ii < 3; ii++) _frond_xyzs.push_back( vtx[ii]);
+        for (int ii = 0; ii < 3; ii++) _frond_nms.push_back( n[ii]);
+
+        vtx = pos - offset * scale;
+        for (int ii = 0; ii < 3; ii++) _frond_xyzs.push_back( vtx[ii]);
+        for (int ii = 0; ii < 3; ii++) _frond_nms.push_back( n[ii]);
+
+        //
+        // randomly place an ornament at the end of the frond
+        //
+        if(ornament_colors.size()) {        
+          const float materialCount = (float)ornament_colors.size();
+          if (randf_pos() < 0.15f * _ornamentFreqAdjust) {
+            //add an ornament
+            vec3f oPos = root * 0.2f + pos * 0.8f + vec3f( 0.0f, -1.0f, 0.0f) * (size * 0.05f + 2.0f / 12.0f);
+            int which = int( materialCount * randf_pos());
+            _ornament_xyzs.push_back( oPos.x());
+            _ornament_xyzs.push_back( oPos.y());
+            _ornament_xyzs.push_back( oPos.z());
+            const vec4f& col = ornament_colors[which];
+            _ornament_rgbas.push_back( col[0]);
+            _ornament_rgbas.push_back( col[1]);
+            _ornament_rgbas.push_back( col[2]);
+            _ornament_rgbas.push_back( col[3]);
+
+          }
+        }
+    }
+
+    
+}
+
+inline void xmas_tree::grow() {
+    //  Function used to grow the trunk and fractal branches off of it
+    vec3f segmentBase;
+    float rad_ius = m_radius;
+
+    //grow the segments of the trunk
+    int _branch_generations = (int)branch_generations.value();
+    float _branch_generation_decay_rate = branch_generation_decay_rate.value();
+    int _num_segments = (int)num_segments.value();
+    int _branch_sides = (int)branch_sides.value();
+    int _branches_per_segment = (int)branches_per_segment.value();
+
+    for (int ii = 0; ii < _num_segments; ii++) {
+        vec3f segmentTop = 
+          segmentBase + vec3f(0.0f,m_height/float(_num_segments),0.0f);
+
+        // add the vertices for the trunk segment
+        for ( int jj = 0; jj < _branch_sides; jj++) {
+            float x = sinf(float(jj)/float(_branch_sides) * 2.0f * 3.1415927f);
+            float z = cosf(float(jj)/float(_branch_sides) * 2.0f * 3.1415927f);
+            vec3f dir( x, 0.0f, z);
+
+            vec3f upper =
+              segmentTop+dir*(rad_ius-m_radius/float(_num_segments-2))*0.05f;
+
+            vec3f lower = segmentBase + dir * rad_ius * 0.05f;
+
+            _trunk_xyzs.push_back( lower.x());
+            _trunk_xyzs.push_back( lower.y());
+            _trunk_xyzs.push_back( lower.z());
+            _trunk_nms.push_back( dir.x());
+            _trunk_nms.push_back( dir.y());
+            _trunk_nms.push_back( dir.z());
+
+            _trunk_xyzs.push_back( upper.x());
+            _trunk_xyzs.push_back( upper.y());
+            _trunk_xyzs.push_back( upper.z());
+            _trunk_nms.push_back( dir.x());
+            _trunk_nms.push_back( dir.y());
+            _trunk_nms.push_back( dir.z());
+        }
+
+        //
+        // add the branches
+        //
+
+        // bias the rotation to void the limbs all lining up directly
+        // over one another
+        float rotBias = randf();
+
+        //create the individual branches
+        for ( int jj = 0; jj < _branches_per_segment; jj++) {
+            float x = sinf( float(jj)/float(_branches_per_segment) * 2.0f * 3.1415927f + rotBias);
+            float z = cosf( float(jj)/float(_branches_per_segment) * 2.0f * 3.1415927f + rotBias);
+
+            // direction of growth
+            vec3f dir( x, 0.0f, z);
+
+            // values used to add some random behavior to the branches
+            vec3f tweak( rand2f(), randf_pos() + 0.25f * (ii/float(_num_segments - 1)), rand2f());
+            float val = randf_pos();
+            vec3f tweakUp( 0.0f, val*val, 0.0f);
+
+            // place a scale factor on ornament count to account for the varying number of branches
+            _ornamentFreqAdjust = sqrtf(1.0f / powf( 3.0, (float)int(_branch_generations - ii * _branch_generation_decay_rate + 0.5f)));
+
+            //grow the fractal branch
+            grow_branch( dir + tweak * 0.1f, segmentBase + tweakUp, rad_ius/2.25f, int(_branch_generations - ii * _branch_generation_decay_rate + 0.5f));
+        }
+
+        // update values for the next iteration
+        segmentBase = segmentTop;
+
+        rad_ius -= m_radius/float(_num_segments - 1);
+    }
+
+}
+
+inline void xmas_tree::gen_lights() {
+    // Function for generating tree lights
+    //
+    //  This function places lights randomly in the cone of the tree.
+    // The lights are generated within a prism, and culled if they are
+    // not in the are of interest to ensure equal spacing. Finally,
+    // lights that are too far into the tree are culled. 
+
+    // 
+    // if no lights are set, default to white lights
+    // (not pure white, but warmer)
+    //
+
+    unsigned int colorn = (unsigned int)light_colors.size(); 
+
+    if(!colorn) return;
+
+    int _num_lights = (int)num_lights.value();
+
+    for (int ii = 0; ii < _num_lights; ii++) {
+        float x = randf_pos() * m_radius * 2.0f - m_radius;
+        float y = randf_pos() * m_height;
+        float z = randf_pos() * m_radius * 2.0f - m_radius;
+
+        float h = y;
+        float r = sqrtf( x*x + z*z);
+
+        // make sure is is within a reasonable distance of the surface
+        // of the tree
+        if (  h < (m_height*0.1f) ||
+              r > ((m_height - h)/m_height * m_radius * 1.02f) ||
+              r < ((m_height - h)/m_height * m_radius - 2.0f)  ){
+            ii -= 1;
+            continue;
+        }
+
+        int color = ii % colorn; 
+
+        const colorf& col = light_colors[color];
+
+        _light_xyzs.push_back( x);
+        _light_xyzs.push_back( y);
+        _light_xyzs.push_back( z);
+        _light_rgbas.push_back( col[0]);
+        _light_rgbas.push_back( col[1]);
+        _light_rgbas.push_back( col[2]);
+        _light_rgbas.push_back( 1); //GB : iOS, Android : want 4 components.
+    }
+}
+
+}}
+
+#endif

@@ -1,0 +1,158 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_sg_view_Python
+#define exlib_sg_view_Python
+
+#include "../Python"
+
+#include <inlib/S_STRING>
+#include <inlib/sg/viewer>
+#include <inlib/pointer>
+#include <inlib/sout>
+
+namespace exlib {
+namespace sg {
+
+class view_Python {
+  typedef inlib::sg::viewer viewer_t;
+public:
+  INLIB_SCLASS(exlib::sg::view_Python)
+public:
+  view_Python(viewer_t& a_viewer,bool a_init = true)
+  :m_viewer(a_viewer)
+  ,m_inited_by_exlib(false)
+  ,m_method_name("get_viewer_string_pointer")
+  ,m_methods(0)
+  ,m_tag(0)
+  ,m_module(0)
+  {
+    if(a_init) if(!initialize()) {}
+  }
+  virtual ~view_Python(){
+    if(!finalize()) {}
+  }
+protected: //not copyable
+  view_Python(const view_Python& a_from)
+  :m_viewer(a_from.m_viewer)
+  ,m_inited_by_exlib(false)
+  ,m_method_name()
+  ,m_methods(0)
+  ,m_tag(0)
+  ,m_module(0)
+  {}
+  view_Python& operator=(const view_Python&){return *this;}
+public:
+  bool initialize() {
+    if(m_module) return true; //done
+
+    if(!::Py_IsInitialized()) {
+      //FIXME : should pass a copied string. 
+      // But in fact, do we want to complicate life in passing something ?
+      // If passing something, have to restore something at end.
+      //::Py_SetProgramName((char*)"exlib_sg_view_Python");
+      ::Py_Initialize();
+      ::PyEval_InitThreads();
+      m_inited_by_exlib =  true;
+    }
+
+    m_tag = ::PyCObject_FromVoidPtr(&m_viewer,NULL); //new ref.
+    //m_tag->ob_refcnt is 1
+
+    m_methods = new PyMethodDef[2];
+    m_methods[0].ml_name = m_method_name.c_str();
+    m_methods[0].ml_meth = get_viewer_string_pointer;
+    m_methods[0].ml_flags = 0;
+    m_methods[0].ml_doc = NULL; 
+
+    m_methods[1].ml_name = NULL;
+    m_methods[1].ml_meth = NULL;
+    m_methods[1].ml_flags = 0;
+    m_methods[1].ml_doc = NULL; 
+
+    // See Include/modsupport.h Python/modsupport.c :
+    std::string module_name("exlib_sg_view_Python");     
+    // WARNING :
+    //  The below return a singleton for the whole Python session.
+    // Then passing here twice with the same module_name will return 
+    // the same object without increasing its ob_refcnt.
+    //  The second time, the new m_tag replaces the previous one
+    // which is then dereferenced (the new one being referenced).
+    m_module = ::Py_InitModule4((char*)module_name.c_str(),
+                                m_methods,(char*)NULL,m_tag,
+                                PYTHON_API_VERSION); //borrowed ref.
+    //We are not the creator of m_module, we don't have to DECREF at end.
+    if(m_module==NULL) {
+      m_viewer.out() << "exlib::sg::view_Python::initialize :"
+                     << " Py_InitModule4 failed for "
+                     << inlib::sout(module_name) << "."
+                     << std::endl;
+      delete [] m_methods;
+      m_methods = 0;
+      Py_DECREF(m_tag); //Since we are the creator.
+      m_tag = 0;
+      return false;
+    }
+    //m_module->ob_refcnt is 1 // the first time. 
+                               // But may be more if having done 
+                               // a "import <moduleName>"
+                               // and passed here again.
+    //m_tag->ob_refcnt is 2
+    return true;
+  }
+protected:
+  bool finalize(){
+    if(!m_module) return true; //done.
+    //NOTE : an exit of Python shell may induce that
+    //       Python is Finalized at this point.
+    if(::Py_IsInitialized()) {
+      if(m_tag) {
+        Py_DECREF(m_tag); //Since we are the creator.
+        m_tag = 0;
+      }
+      if(m_module) {
+        PyObject* d = ::PyModule_GetDict(m_module); //borrowed ref.
+        if(d) ::PyDict_DelItemString(d,m_methods[0].ml_name);
+        m_module = 0;
+      }
+      if(m_inited_by_exlib) ::Py_Finalize();
+    } else {
+      //Python had been finalized elsewhere.
+      m_module = 0;
+      //??? Py_DECREF(m_tag);
+      m_tag = 0;
+    }
+    delete [] m_methods;
+    m_methods = 0;
+    return true;
+  }
+protected:
+  static PyObject* get_viewer_string_pointer(PyObject* a_tag,PyObject* /*a_args*/) {
+    //a_tag is the m_tag object.
+
+    viewer_t* _viewer = (viewer_t*)(void*)::PyCObject_AsVoidPtr(a_tag);
+
+    // The format must be the same than in the function inlib/sg/viewer/cast_viewer(const std::string&).
+    std::string s;
+    if(!inlib::p2sx(_viewer,s)) return NULL;
+
+    return ::PyString_FromString(s.c_str());
+  }
+protected:
+  viewer_t& m_viewer;
+  bool m_inited_by_exlib;
+  std::string m_method_name;
+  PyMethodDef* m_methods;
+  PyObject* m_tag;
+  PyObject* m_module;
+};
+
+inline view_Python* cast_view_Python(inlib::sg::viewer& a_viewer) {
+  return inlib::safe_cast<inlib::sg::viewer,view_Python>(a_viewer);
+}
+
+}}
+
+//exlib_build_use inlib Python
+
+#endif

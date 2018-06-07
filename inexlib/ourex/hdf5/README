@@ -1,0 +1,9 @@
+
+ Code taken from hdf5/1.6.5.
+ The copyright file found in this distribution had been copied under
+ a_native_copyright.
+
+ Be sure to use ourex/hdf5 :
+   hdf5.h -> _hdf5.h
+   ourex_hdf5.h including _hdf5.h
+   use ourex_hdf5.h in H5LT.h, H5FDmulti.c, H5FDstdio.c.

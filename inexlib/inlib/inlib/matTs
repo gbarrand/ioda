@@ -1,0 +1,3058 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_matTs
+#define inlib_matTs
+
+#include "mat"
+
+namespace inlib {
+
+////////////////////////////////////////////////
+/// specific D=2 ///////////////////////////////
+////////////////////////////////////////////////
+
+template <class MAT>
+inline void set_e2(MAT& a_m) {
+  matrix_set<MAT>(a_m, 0, 1,
+                      -1, 0);
+}
+
+//  Pauli matrices :
+//  P1      P2      P3
+//    0  1    0 -i    1  0
+//    1  0    i  0    0 -1
+template <class MAT>
+inline void set_P1(MAT& a_m) {
+  matrix_set<MAT>(a_m,  0, 1,
+                        1, 0);
+}
+
+template <class MAT>
+inline void set_P2(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  //T i;set_i(i); //with inlib::symbol
+  T i(0,1);
+  T _i = T(-1)*i;
+  matrix_set<MAT>(a_m,  0, _i,
+                        i, 0);
+}
+template <class MAT>
+inline void set_P3(MAT& a_m) {
+  matrix_set<MAT>(a_m, 1, 0,
+                       0,-1);
+}
+
+template <class VECTOR>
+inline void set_paulis(VECTOR& a_paulis) {
+  a_paulis.resize(3);
+  set_P1(a_paulis[0]);
+  set_P2(a_paulis[1]);
+  set_P3(a_paulis[2]);
+}
+
+// do a decomplexification of P1,2,3 :
+//  If MC = X+iY
+//  build MR = |  X  Y |
+//             | -Y  X |
+
+template <class MAT>
+inline void set_P1_4(MAT& a_m) { // S1+S6
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    0, 1, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0, 1, 0);
+}
+template <class MAT>
+inline void set_P2_4(MAT& a_m) { // S3-S4
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    0, 0, 0,-1,
+                     0, 0, 1, 0,
+                     0, 1, 0, 0,
+                    -1, 0, 0, 0);
+}
+template <class MAT>
+inline void set_P3_4(MAT& a_m) { // diag1-diag2+diag3-diag4
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    1, 0, 0, 0,
+                     0,-1, 0, 0,
+                     0, 0, 1, 0,
+                     0, 0, 0,-1);
+}
+
+// do a decomplexification of i*P1,2,3 :
+//  If MC = X+iY
+//  build MR = |  X  Y |
+//             | -Y  X |
+// We have :
+//     P4s[1,2,3] = J*K*i_P4s[1,2,3]
+
+template <class MAT>
+inline void set_i_P1_4(MAT& a_m) { // E3+E4
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    0, 0, 0, 1,
+                     0, 0, 1, 0,
+                     0,-1, 0, 0,
+                    -1, 0, 0, 0);
+}
+template <class MAT>
+inline void set_i_P2_4(MAT& a_m) { // E1+E6
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    0, 1, 0, 0,
+                    -1, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0,-1, 0);
+}
+template <class MAT>
+inline void set_i_P3_4(MAT& a_m) { // E2+E5
+  typedef typename MAT::elem_t T;
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0,-1,
+                    -1, 0, 0, 0,
+                     0, 1, 0, 0);
+}
+
+template <class MAT>
+inline void set_I_tild_4(MAT& a_m) {
+  //    | 0  I2|
+  //    |-I2  0|
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0, 1,
+                    -1, 0, 0, 0,
+                     0,-1, 0, 0);
+}
+
+template <class VECTOR>
+inline void set_RU2s(VECTOR& a_reps) {
+  // set a_reps = decomplexified U(2) generators.
+  // iP4s = for decomplexification of i*Paulis matrices.
+  // 1/2*{I_tild,P4s}
+ 
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;
+
+  a_reps.clear();
+
+  MAT I_tild;set_I_tild_4(I_tild);
+  MAT P1_4;set_i_P1_4(P1_4);
+  MAT P2_4;set_i_P2_4(P2_4);
+  MAT P3_4;set_i_P3_4(P3_4);
+
+  a_reps.push_back(T(0.5)*I_tild);
+  a_reps.push_back(T(0.5)*P1_4);
+  a_reps.push_back(T(0.5)*P2_4);
+  a_reps.push_back(T(0.5)*P3_4);
+}
+
+template <class VECTOR>
+inline void set_IRU2s(VECTOR& a_reps) {
+  // 1/2*{I4,P4s} => group metric is eta !
+
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;
+
+  a_reps.clear();
+
+  MAT I4;I4.set_identity();
+  MAT P1_4;set_i_P1_4(P1_4);
+  MAT P2_4;set_i_P2_4(P2_4);
+  MAT P3_4;set_i_P3_4(P3_4);
+
+  a_reps.push_back(T(0.5)*I4);
+  a_reps.push_back(T(0.5)*P1_4);
+  a_reps.push_back(T(0.5)*P2_4);
+  a_reps.push_back(T(0.5)*P3_4);
+}
+
+template <class VECTOR>
+inline void set__weyls_decomplex_pauli(VECTOR& a_reps,VECTOR& a_sigs,bool a_plus/*,bool a_with_J = false*/) {
+  // P4s = for decomplexification of Paulis matrices.
+  // First three of a_reps are antisym, last three are sym.
+
+  // weyls_epsil(6) = 1/2 {-R(i*paulis),epsil*R(paulis)}
+  // sigs_epsil = {I4, epsil*R(paulis)} are all syms.
+  // sigs_epsil = I_tild*{I4, epsil*R(paulis)} ok too, but are all antisyms.
+
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;
+
+  a_reps.clear();
+  a_sigs.clear();
+
+  MAT I4;I4.set_identity();  
+
+  MAT P1_4;set_P1_4(P1_4);
+  MAT P2_4;set_P2_4(P2_4);
+  MAT P3_4;set_P3_4(P3_4);
+
+  T epsil = a_plus?T(1):T(-1);
+
+  VECTOR Ms(3);
+  Ms[0] = epsil*P1_4;
+  Ms[1] = epsil*P2_4;
+  Ms[2] = epsil*P3_4;
+
+  VECTOR rbs;
+  set_rot_boost_rep_3(Ms,-1.0/8.0,rbs);
+
+  // C weyl decomplexification : 
+  a_reps.push_back(rbs[0]); //0.5*i_P1_4
+  a_reps.push_back(rbs[1]); //0.5*i_P2_4
+  a_reps.push_back(rbs[2]); //0.5*i_P3_4
+  a_reps.push_back(T(0.5)*Ms[0]);
+  a_reps.push_back(T(0.5)*Ms[1]);
+  a_reps.push_back(T(0.5)*Ms[2]);
+
+  // below four a_sigs are symmetric.
+  a_sigs.push_back(I4);
+  a_sigs.push_back(T(-1)*Ms[0]);
+  a_sigs.push_back(T(-1)*Ms[1]);
+  a_sigs.push_back(T(-1)*Ms[2]);
+
+  // Ok too, but then all a_sigs are antisyms.
+//MAT I_tild;set_I_tild_4(I_tild);
+//{for(size_t a=0;a<4;a++) a_sigs[a] = I_tild*a_sigs[a];}
+/*
+  if(a_with_J) { // Equivalent to i*Majorana.
+    MAT J;set_J(J);
+    a_reps[3].left_mul_mtx(J);
+    a_reps[4].left_mul_mtx(J);
+    a_reps[5].left_mul_mtx(J);
+    a_sigs[1].left_mul_mtx(J);
+    a_sigs[2].left_mul_mtx(J);
+    a_sigs[3].left_mul_mtx(J);
+  }
+  */
+}
+
+template <class VECTOR>
+inline void set_weyls_pauli_plus(VECTOR& a_weyls,VECTOR& a_sigs) {
+  // -i*pauli_1/2,-i*pauli_2/2,-i*pauli_3/2,pauli_1/2,pauli_2/2,pauli_3/2
+  // sigs = I2,-paulis
+ 
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T; //std::complex
+
+  a_weyls.clear();
+
+  MAT P1;set_P1(P1);
+  MAT P2;set_P2(P2);
+  MAT P3;set_P3(P3);
+
+  //T zi;set_i(zi);
+  T minus_zi(0,-1);
+  T half(0.5,0);
+
+ {MAT tmp(P1);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P2);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P3);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+
+ {MAT tmp(P1);
+  tmp.multiply(half);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P2);
+  tmp.multiply(half);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P3);
+  tmp.multiply(half);
+  a_weyls.push_back(tmp);}
+
+  MAT I2;I2.set_identity();
+  a_sigs.clear();
+  a_sigs.push_back(I2);
+  a_sigs.push_back(T(-1)*P1);
+  a_sigs.push_back(T(-1)*P2);
+  a_sigs.push_back(T(-1)*P3);
+}
+
+template <class VECTOR>
+inline void set_weyls_pauli_minus(VECTOR& a_weyls,VECTOR& a_sigs) {
+  // -i*pauli_1/2,-i*pauli_2/2,-i*pauli_3/2,-pauli_1/2,-pauli_2/2,-pauli_3/2
+  // sigs = I2,paulis
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T; //std::complex
+
+  a_weyls.clear();
+
+  MAT P1;set_P1(P1);
+  MAT P2;set_P2(P2);
+  MAT P3;set_P3(P3);
+
+  //T zi;set_i(zi);
+  T minus_zi(0,-1);
+  T half(0.5,0);
+  T minus_half(-0.5,0);
+
+ {MAT tmp(P1);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P2);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P3);
+  tmp.multiply(half);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+
+ {MAT tmp(P1);
+  tmp.multiply(minus_half);  
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P2);
+  tmp.multiply(minus_half);  
+  a_weyls.push_back(tmp);}
+ {MAT tmp(P3);
+  tmp.multiply(minus_half);  
+  a_weyls.push_back(tmp);}
+
+  MAT I2;I2.set_identity();
+  a_sigs.clear();
+  a_sigs.push_back(I2);
+  a_sigs.push_back(P1);
+  a_sigs.push_back(P2);
+  a_sigs.push_back(P3);
+}
+
+template <class MAT>
+inline void set_spinor_rotation(MAT& a_matrix,
+                       const typename MAT::elem_t::value_type& a_x,
+                       const typename MAT::elem_t::value_type& a_y,
+                       const typename MAT::elem_t::value_type& a_z,
+                       const typename MAT::elem_t::value_type& a_angle,
+                       typename MAT::elem_t::value_type(*a_sin)(typename MAT::elem_t::value_type),
+                       typename MAT::elem_t::value_type(*a_cos)(typename MAT::elem_t::value_type)) {
+  // exp(a_angle*n(a_x,a_y,a_z)*i*paulis/2)
+  typedef typename MAT::elem_t COMPLEX;
+  typedef typename COMPLEX::value_type T;
+  MAT P1;set_P1(P1);
+  MAT P2;set_P2(P2);
+  MAT P3;set_P3(P3);
+  MAT I2;I2.set_identity();
+  T half_angle = a_angle*T(0.5);
+  a_matrix = COMPLEX(a_cos(half_angle))*I2+
+             COMPLEX(a_sin(half_angle))*COMPLEX(0,1)*(COMPLEX(a_x)*P1+COMPLEX(a_y)*P2+COMPLEX(a_z)*P3);
+}
+
+template <class MAT>
+inline void set_exp_spinor(MAT& a_matrix,
+                       const typename MAT::elem_t::value_type& a_x,
+                       const typename MAT::elem_t::value_type& a_y,
+                       const typename MAT::elem_t::value_type& a_z,
+                       const typename MAT::elem_t::value_type& a_angle,
+		       unsigned int a_nexp = 40) {
+  //warning : may not converge.		       
+  // exp(a_angle*n(a_x,a_y,a_z)*i*paulis/2)
+  typedef typename MAT::elem_t COMPLEX;
+  typedef typename COMPLEX::value_type T;
+  MAT P1;set_P1(P1);
+  MAT P2;set_P2(P2);
+  MAT P3;set_P3(P3);
+  MAT m(a_matrix);
+  m = COMPLEX(a_x)*P1+COMPLEX(a_y)*P2+COMPLEX(a_z)*P3;
+  m.multiply(COMPLEX(a_angle*T(0.5))*COMPLEX(0,1));
+  m.exp(a_nexp,a_matrix);
+}
+
+template <class MAT>
+inline void set_dc_spinor_rotation(MAT& a_matrix,
+                       const typename MAT::elem_t& a_x,
+                       const typename MAT::elem_t& a_y,
+                       const typename MAT::elem_t& a_z,
+                       const typename MAT::elem_t& a_angle,
+                       typename MAT::elem_t(*a_sin)(typename MAT::elem_t),
+                       typename MAT::elem_t(*a_cos)(typename MAT::elem_t)) {
+  // exp(a_angle*n(a_x,a_y,a_z)*dc(i*paulis)/2)
+  typedef typename MAT::elem_t T;
+  MAT P1;set_i_P1_4(P1);
+  MAT P2;set_i_P2_4(P2);
+  MAT P3;set_i_P3_4(P3);
+  MAT I4;I4.set_identity();
+  T half_angle = a_angle*T(0.5);
+  a_matrix = a_cos(half_angle)*I4+a_sin(half_angle)*(a_x*P1+a_y*P2+a_z*P3);
+}
+
+template <class MAT>
+inline void set_exp_dc_spinor(MAT& a_matrix,
+                       const typename MAT::elem_t& a_x,
+                       const typename MAT::elem_t& a_y,
+                       const typename MAT::elem_t& a_z,
+                       const typename MAT::elem_t& a_angle,
+		       unsigned int a_nexp = 40) {
+  //warning : may not converge.		       
+  // exp(a_angle*n(a_x,a_y,a_z)*dc(i*paulis)/2)
+  typedef typename MAT::elem_t T;
+  MAT P1;set_i_P1_4(P1);
+  MAT P2;set_i_P2_4(P2);
+  MAT P3;set_i_P3_4(P3);
+  MAT m(a_matrix);
+  m = a_x*P1+a_y*P2+a_z*P3;
+  m.multiply(a_angle*T(0.5));
+  m.exp(a_nexp,a_matrix);
+}
+
+template <class MAT>
+inline bool exp_paulis_axis_angle(const MAT& a_m,
+                       typename MAT::elem_t::value_type& a_x,
+		       typename MAT::elem_t::value_type& a_y,
+		       typename MAT::elem_t::value_type& a_z,
+                       typename MAT::elem_t::value_type& a_angle,
+                       typename MAT::elem_t::value_type(*a_acos)(typename MAT::elem_t::value_type), //warning : acos and not cos.
+		       typename MAT::elem_t::value_type(*a_sin)(typename MAT::elem_t::value_type),
+		       typename MAT::elem_t::value_type(*a_creal)(const typename MAT::elem_t&)) {
+  // used in tests/check_rot.
+  // get (a_angle,a_n(x,y,z) such that matrix is exp(a_angle*a_n*i*paulis/2) and then :
+  //   exp(a_angle*n*i*paulis/2) = cos_half_angle*I2+sin_half_angle*n*i*paulis
+  typedef typename MAT::elem_t COMPLEX;
+  typedef typename COMPLEX::value_type T;
+  if(a_m.dimension()!=2) {
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+
+  T cos_half_angle = a_creal(a_m.value(0,0));
+  if((cos_half_angle<T(-1))||(T(1)<cos_half_angle)) {
+    //::printf("debug : cos_angle %g\n",cos_angle);
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  //std::cout << "euler_2_params : debug : cos_half_theta : " << cos_half_theta << std::endl;
+  
+  a_angle = T(2)*a_acos(cos_half_angle); //in [0,2*pi]
+  T sin_half_angle = a_sin(T(0.5)*a_angle); // in [0,1]
+  if(sin_half_angle==T(0)) { //a_angle = 0 or 2*pi
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  
+  MAT P1;set_P1(P1);
+  MAT P2;set_P2(P2);
+  MAT P3;set_P3(P3);
+  MAT I2;I2.set_identity();
+  COMPLEX n_1,n_2,n_3;
+  MAT rest = a_m - COMPLEX(cos_half_angle)*I2;
+  COMPLEX factor = COMPLEX(1)/(COMPLEX(2)*COMPLEX(0,1)*sin_half_angle);
+  MAT tmp;
+  tmp = rest*P1;n_1 = factor*tmp.trace();
+  tmp = rest*P2;n_2 = factor*tmp.trace();
+  tmp = rest*P3;n_3 = factor*tmp.trace();
+
+  a_x = a_creal(n_1);
+  a_y = a_creal(n_2);
+  a_z = a_creal(n_3);
+
+  return true;
+}
+
+template <class MAT>
+inline bool exp_dc_paulis_axis_angle(const MAT& a_m,
+                       typename MAT::elem_t& a_x,
+		       typename MAT::elem_t& a_y,
+		       typename MAT::elem_t& a_z,
+                       typename MAT::elem_t& a_angle,
+                       typename MAT::elem_t(*a_acos)(typename MAT::elem_t), //warning : acos and not cos.
+		       typename MAT::elem_t(*a_sin)(typename MAT::elem_t)) {
+  // used in tests/check_rot.
+  // get (a_angle,a_n(x,y,z) such that matrix is exp(a_angle*a_n*i*paulis/2) and then :
+  //   exp(a_angle*n*i*paulis/2) = cos_half_angle*I2+sin_half_angle*n*i*paulis
+  typedef typename MAT::elem_t T;
+  if(a_m.dimension()!=4) {
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  
+  T cos_half_angle = a_m.value(0,0);
+  if((cos_half_angle<T(-1))||(T(1)<cos_half_angle)) {
+    //::printf("debug : cos_angle %g\n",cos_angle);
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  //std::cout << "euler_2_params : debug : cos_half_theta : " << cos_half_theta << std::endl;
+  
+  a_angle = T(2)*a_acos(cos_half_angle); //in [0,2*pi]
+  T sin_half_angle = a_sin(T(0.5)*a_angle); // in [0,1]
+  if(sin_half_angle==T(0)) { //a_angle = 0 or 2*pi
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  
+  MAT P1;set_i_P1_4(P1);
+  MAT P2;set_i_P2_4(P2);
+  MAT P3;set_i_P3_4(P3);
+  MAT I4;I4.set_identity();
+  MAT rest = a_m - cos_half_angle*I4;
+  
+  a_x = rest.value(0,3)/sin_half_angle;
+  a_y = rest.value(0,1)/sin_half_angle;
+  a_z = rest.value(0,2)/sin_half_angle;
+
+  return true;
+}
+
+////////////////////////////////////////////////
+/// specific D=3 ///////////////////////////////
+////////////////////////////////////////////////
+
+// Generators of rotation group :
+// Rk(i,j) = epsilon(k,i,j)  i,j,k=1,2,3
+template <class MAT>
+inline void set_R1(MAT& a_m) {
+  matrix_set<MAT>(a_m, 0, 0, 0,
+                       0, 0, 1,
+                       0,-1, 0);
+}
+template <class MAT>
+inline void set_R2(MAT& a_m) {
+  matrix_set<MAT>(a_m, 0, 0,-1,
+                       0, 0, 0,
+                       1, 0, 0);
+}
+template <class MAT>
+inline void set_R3(MAT& a_m) {
+  matrix_set<MAT>(a_m, 0, 1, 0,
+                      -1, 0, 0,
+                       0, 0, 0);
+}
+
+template <class VECTOR>
+inline void set_rots(VECTOR& a_rots) {
+  a_rots.resize(3);
+  set_R1(a_rots[0]);
+  set_R2(a_rots[1]);
+  set_R3(a_rots[2]);
+}
+
+template <class VECTOR>
+inline void set__weyls_rot_plus(VECTOR& a_weyls) {
+// Weyl 3D representation of the Lorentz group :
+//   a_weyls[k] = (-R1,-R2,-R3,i*R1,i*R2,i*R3)
+// k in [0,6[
+// We must have :
+//  [a_weyls_j,a_weyls_k] = Es_eta_group_const(j,k,l) * a_weyls_l
+
+  a_weyls.clear();
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  //T zi;set_i(zi);
+  T zi(0,1);
+
+  MAT R1;set_R1(R1);
+  MAT R2;set_R2(R2);
+  MAT R3;set_R3(R3);
+
+  a_weyls.push_back(T(-1)*R1);
+  a_weyls.push_back(T(-1)*R2);
+  a_weyls.push_back(T(-1)*R3);
+
+ {MAT tmp(R1);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(R2);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(R3);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+
+}
+
+template <class VECTOR>
+inline void set__weyls_rot_minus(VECTOR& a_weyls) {
+// Weyl 3D representation of the Lorentz group :
+//   a_weyls[k] = (-R1,-R2,-R3,-i*R1,-i*R2,-i*R3)
+// k in [0,6[
+// We must have :
+//  [a_weyls_j,a_weyls_k] = Es_eta_group_const(j,k,l) * a_weyls_l
+
+  a_weyls.clear();
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  //T zi;set_i(zi);
+  T minus_zi(0,-1);
+
+  MAT R1;set_R1(R1);
+  MAT R2;set_R2(R2);
+  MAT R3;set_R3(R3);
+
+  a_weyls.push_back(T(-1)*R1);
+  a_weyls.push_back(T(-1)*R2);
+  a_weyls.push_back(T(-1)*R3);
+
+ {MAT tmp(R1);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(R2);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(R3);
+  tmp.multiply(minus_zi);
+  a_weyls.push_back(tmp);}
+
+}
+
+// dagger(J[1,2,3]) = -J[1,2,3]
+
+template <class MAT>
+inline void set_J1(MAT& a_m,double (*a_dsqrt)(const double&)) {
+  typedef typename MAT::elem_t T;
+  //T zi;set_i(zi);
+  T zi(0,1);
+  T v = zi*T(1.0/a_dsqrt(2.0),0);
+  matrix_set(a_m, 0, v, 0,
+                  v, 0, v,
+                  0, v, 0);
+}
+template <class MAT>
+inline void set_J2(MAT& a_m,double (*a_dsqrt)(const double&)) {
+  typedef typename MAT::elem_t T;
+  T v = T(1.0/a_dsqrt(2.0),0);
+  matrix_set(a_m,  0, v, 0,
+                  -v, 0, v,
+                   0,-v, 0);
+}
+template <class MAT>
+inline void set_J3(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  //T zi;set_i(zi);
+  T zi(0,1);
+  matrix_set(a_m, zi,0, 0,
+                   0, 0, 0,
+                   0, 0,-zi);
+}
+
+template <class MAT>
+inline void set_J_to_R(MAT& a_m,double (*a_dsqrt)(const double&)) {
+  typedef typename MAT::elem_t T;
+  //T zi;set_i(zi);
+  T zi(0,1);
+  T _1_sqrt_2 = T(1.0/a_dsqrt(2.0),0);
+  matrix_set(a_m,   -_1_sqrt_2, 0,    _1_sqrt_2,
+                 -zi*_1_sqrt_2, 0,-zi*_1_sqrt_2,
+                             0, 1,            0);
+  //NOTE : if U is the upper matrix, we must have :
+  //   R[1,2,3] = E[1,2,3] = U * J[1,2,3] * inv_U
+  // with :
+  //       U = | -1/sqrt(2)  0   1/sqrt(2) |
+  //           | -i/sqrt(2)  0  -i/sqrt(2) |
+  //           |          0  1           0 |
+  // we have :
+  //      U_inv = U_dagger
+  //      U_dagger = | -1/sqrt(2)  i/sqrt(2)  0 |
+  //                 |          0          0  1 |
+  //                 |  1/sqrt(2)  i/sqrt(2)  0 |
+
+}
+
+template <class VECTOR>
+inline void set__weyls_J_plus(VECTOR& a_weyls,double (*a_dsqrt)(const double&)) {
+// Weyl 3D representation of the Lorentz group :
+//   a_weyls[k] = (-J1,-J2,-J3,i*J1,i*J2,i*J3)
+// k in [0,6[
+// We must have :
+//  [a_weyls_j,a_weyls_k] = Es_eta_group_const(j,k,l) * a_weyls_l
+
+  a_weyls.clear();
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  //T zi;set_i(zi);
+  T zi(0,1);
+
+  MAT J1;set_J1(J1,a_dsqrt);
+  MAT J2;set_J2(J2,a_dsqrt);
+  MAT J3;set_J3(J3);
+
+  a_weyls.push_back(T(-1)*J1);
+  a_weyls.push_back(T(-1)*J2);
+  a_weyls.push_back(T(-1)*J3);
+
+ {MAT tmp(J1);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(J2);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+ {MAT tmp(J3);
+  tmp.multiply(zi);
+  a_weyls.push_back(tmp);}
+
+}
+
+template <class VECTOR>
+inline void set__weyls_J_minus(VECTOR& a_weyls,double (*a_dsqrt)(const double&)) {
+// Weyl 3D representation of the Lorentz group :
+//   a_weyls[k] = (-J1,-J2,-J3,-i*J1,-i*J2,-i*J3)
+// k in [0,6[
+// We must have :
+//  [a_weyls_j,a_weyls_k] = Es_eta_group_const(j,k,l) * a_weyls_l
+
+  a_weyls.clear();
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  MAT J1;set_J1(J1,a_dsqrt);
+  MAT J2;set_J2(J2,a_dsqrt);
+  MAT J3;set_J3(J3);
+
+  a_weyls.push_back(T(-1)*J1);
+  a_weyls.push_back(T(-1)*J2);
+  a_weyls.push_back(T(-1)*J3);
+
+ {MAT tmp(J1);
+  tmp.multiply(T(0,-1));
+  a_weyls.push_back(tmp);}
+ {MAT tmp(J2);
+  tmp.multiply(T(0,-1));
+  a_weyls.push_back(tmp);}
+ {MAT tmp(J3);
+  tmp.multiply(T(0,-1));
+  a_weyls.push_back(tmp);}
+
+}
+
+// Gell-Mann matrices :
+
+template <class MAT>
+inline void set_GM1(MAT& a_m) {
+  matrix_set<MAT>(a_m,  0, 1, 0,
+                        1, 0, 0,
+			0, 0, 0);
+}
+
+template <class MAT>
+inline void set_GM2(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  //T i;set_i(i); //with inlib::symbol
+  T i(0,1);
+  T _i = T(-1)*i;
+  matrix_set<MAT>(a_m,  0, _i, 0,
+                        i,  0, 0,
+			0,  0, 0);
+}
+
+template <class MAT>
+inline void set_GM3(MAT& a_m) {
+  matrix_set<MAT>(a_m, 1, 0, 0,
+                       0,-1, 0,
+		       0, 0, 0);
+}
+
+template <class MAT>
+inline void set_GM4(MAT& a_m) {
+  matrix_set<MAT>(a_m,  0, 0, 1,
+                        0, 0, 0,
+			1, 0, 0);
+}
+
+template <class MAT>
+inline void set_GM5(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  //T i;set_i(i); //with inlib::symbol
+  T i(0,1);
+  T _i = T(-1)*i;
+  matrix_set<MAT>(a_m,  0,  0, _i,
+                        0,  0, 0,
+			i,  0, 0);
+}
+
+template <class MAT>
+inline void set_GM6(MAT& a_m) {
+  matrix_set<MAT>(a_m,  0, 0, 0,
+                        0, 0, 1,
+			0, 1, 0);
+}
+
+template <class MAT>
+inline void set_GM7(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  //T i;set_i(i); //with inlib::symbol
+  T i(0,1);
+  T _i = T(-1)*i;
+  matrix_set<MAT>(a_m,  0,  0,  0,
+                        0,  0, _i,
+			0,  i, 0);
+}
+
+template <class MAT>
+inline void set_sqrt3_GM8(MAT& a_m) {
+  // WARNING : sqrt(3)*lambda8
+  matrix_set<MAT>(a_m,       1, 0,  0,
+                             0, 1,  0,
+			     0, 0, -2);
+}
+
+template <class VECTOR>
+inline void set_GMs(VECTOR& a_mats) {
+  a_mats.resize(8);
+  set_GM1(a_mats[0]);
+  set_GM2(a_mats[1]);
+  set_GM3(a_mats[2]);
+  set_GM4(a_mats[3]);
+  set_GM5(a_mats[4]);
+  set_GM6(a_mats[5]);
+  set_GM7(a_mats[6]);
+  set_sqrt3_GM8(a_mats[7]);
+}
+
+template <class MAT>
+inline void set_exp_Rs(MAT& a_matrix,double a_x,double a_y,double a_z,double a_angle,unsigned int a_nexp = 40) {
+  //WARNING : (a_x,a_y,a_z) must be a normalized vector.
+  //WARNING : may not converge.
+  // a_m = exp(a_angle*n(a_x,a_y,a_z)*Rs). //it models the rotation of the coodinate system (passive rotation).
+  // To model the rotation of an object within the same coordinate system do -a_angle.
+  typedef typename MAT::elem_t T;
+  MAT R1(a_matrix);set_R1(R1);
+  MAT R2(a_matrix);set_R2(R2);
+  MAT R3(a_matrix);set_R3(R3);
+  MAT m(a_matrix);
+  m = a_x*R1+a_y*R2+a_z*R3;
+  m.multiply(a_angle);
+  m.exp(a_nexp,a_matrix);
+}
+
+// set_vector_rotation().
+template <class MAT>
+inline bool set_3D_rotation(MAT& a_m,
+                            const typename MAT::elem_t& a_x,const typename MAT::elem_t& a_y,const typename MAT::elem_t& a_z,
+                            const typename MAT::elem_t& a_angle,
+                            typename MAT::elem_t(*a_sin)(typename MAT::elem_t),typename MAT::elem_t(*a_cos)(typename MAT::elem_t)) {
+  //WARNING : (a_x,a_y,a_z) must be a normalized vector.
+  // a_m = exp(a_angle*n(a_x,a_y,a_z)*Rs). (It models the rotation of the coordinate system (passive rotation)).
+  typedef typename MAT::elem_t T;
+  if(a_m.dimension()!=3) return false;
+  T co = (T)a_cos(a_angle);    
+  T si = (T)a_sin(a_angle);    
+  T x = a_x;
+  T y = a_y;
+  T z = a_z;
+  T x2 = x*x;
+  T y2 = y*y;
+  T z2 = z*z;
+  T xy = x*y;
+  T xz = x*z;
+  T yz = y*z;
+  a_m.set_value(0,0,x2+(1-x2)*co);  a_m.set_value(0,1,xy*(1-co)+z*si);a_m.set_value(0,2,xz*(1-co)-y*si);
+  a_m.set_value(1,0,xy*(1-co)-z*si);a_m.set_value(1,1,y2+(1-y2)*co);  a_m.set_value(1,2,yz*(1-co)+x*si);
+  a_m.set_value(2,0,xz*(1-co)+y*si);a_m.set_value(2,1,yz*(1-co)-x*si);a_m.set_value(2,2,z2+(1-z2)*co);
+  return true;
+}
+
+template <class MAT>
+inline bool exp_Rs_axis_angle(const MAT& a_m,
+                       typename MAT::elem_t& a_x,typename MAT::elem_t& a_y,typename MAT::elem_t& a_z,
+                       typename MAT::elem_t& a_angle,
+                       typename MAT::elem_t(*a_acos)(typename MAT::elem_t), //warning : acos and not cos.
+		       typename MAT::elem_t(*a_sin)(typename MAT::elem_t),
+		       typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // used in tests/check_rot.
+  // we assume that we have a 3D rotation matrix.
+  // get (a_angle,a_n(x,y,z) such that matrix is exp(a_angle*a_n*Rs) and then :
+  //   exp(a_angle*n*Rs) = cos_angle*I3+(1-cos_angle)*n*n+sin_theta*n*Rs
+  typedef typename MAT::elem_t T;
+  if(a_m.dimension()!=3) {
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  T cos_angle = T(0.5)*(a_m.value(0,0)+a_m.value(1,1)+a_m.value(2,2)-T(1)); // trace = 3*cos_angle+(1-cos_angle)*n2
+  if((cos_angle<T(-1))||(T(1)<cos_angle)) { //matrix is not a rotation :
+    //::printf("debug : cos_angle %g\n",cos_angle);
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  if(cos_angle==T(1)) {
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(1);
+    return true; //vector is undefined but we return true anyway.
+  }
+  T one_minus_cos_angle = T(1)-cos_angle;
+  T x2 = (a_m.value(0,0)-cos_angle)/one_minus_cos_angle;
+  T y2 = (a_m.value(1,1)-cos_angle)/one_minus_cos_angle;
+  T z2 = (a_m.value(2,2)-cos_angle)/one_minus_cos_angle;
+  /*
+  if((x2<T(0))||(y2<T(0))||(z2<T(0))||(x2+y2+z2)!=T(1)) { //not a rotation :
+    a_angle = T(0);
+    a_x = T(0);
+    a_y = T(0);
+    a_z = T(0);
+    return false;
+  }
+  */
+  a_angle = a_acos(cos_angle); //in ]0,pi].
+  T sin_angle = a_sin(a_angle);  //in [0,1].
+  if(sin_angle==T(0)) { //angle is pi. //sym part can determine vector, but up to a sign :
+    // sym part is : cos_angle*I+(1-cos_angle)*n*n
+    // cos_angle = -1
+    T xy = T(0.5)*(a_m.value(0,1)+a_m.value(1,0))/one_minus_cos_angle;
+    T xz = T(0.5)*(a_m.value(0,2)+a_m.value(2,0))/one_minus_cos_angle;
+    T yz = T(0.5)*(a_m.value(1,2)+a_m.value(2,1))/one_minus_cos_angle;
+    a_x = a_sqrt(x2); //up to a sign.
+    a_y = xy/a_x;
+    a_z = xz/a_x;
+    return true; //vector is defined up to a sign.
+  }
+  // antisym part is : sin(theta)*n.Rs
+  a_z = T(0.5)*(a_m.value(0,1)-a_m.value(1,0))/sin_angle;
+  a_y = T(-0.5)*(a_m.value(0,2)-a_m.value(2,0))/sin_angle; //warning : -1.
+  a_x = T(0.5)*(a_m.value(1,2)-a_m.value(2,1))/sin_angle;
+  return true;
+}
+
+////////////////////////////////////////////////
+/// specific D=4 ///////////////////////////////
+////////////////////////////////////////////////
+
+template <class MAT>
+inline void set_G4(MAT& a_m) {
+  //    | I2   0|
+  //    | 0  -I2|
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1, 1);
+  a_m.set_value(2,2,-1);
+  a_m.set_value(3,3,-1);
+}
+
+template <class MAT>
+inline void set_H4(MAT& a_m) {
+  //    | 0  I2|
+  //    | I2  0|
+  a_m.set_zero();
+  a_m.set_value(0,2,1);
+  a_m.set_value(1,3,1);
+  a_m.set_value(2,0,1);
+  a_m.set_value(3,1,1);
+}
+
+template <class MAT>
+inline void set_eta(MAT& a_m) {
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1,-1);
+  a_m.set_value(2,2,-1);
+  a_m.set_value(3,3,-1);
+}
+
+template <class MAT>
+inline void set_J(MAT& a_m) {
+  // J = -E3+E4
+  // J*J = -I
+  matrix_set(a_m,    0, 0, 0, 1,
+                     0, 0,-1, 0,
+                     0, 1, 0, 0,
+                    -1, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_K(MAT& a_m) {
+  // K =  E1-E6
+  // K*K = -I
+  matrix_set(a_m,    0,-1, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0,-1, 0);
+}
+// J*K = -K*J
+
+template <class MAT>
+inline void set_L(MAT& a_m) {
+  matrix_set(a_m,    0,-1, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0,-1,
+                     0, 0, 1, 0);
+}
+
+template <class MAT>
+inline void set_JK(MAT& a_m) {
+  // JK = E2-E5
+  // JK*JK = -I
+  // JK = -Ap
+  matrix_set(a_m,    0, 0,-1, 0,
+                     0, 0, 0,-1,
+                     1, 0, 0, 0,
+                     0, 1, 0, 0);
+}
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+template <class MAT>
+inline void set_T1(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0, 1,
+                     1, 0, 0, 0,
+                     0, 1, 0, 0);
+}
+
+template <class MAT>
+inline void set_T2(MAT& a_m) {
+  matrix_set(a_m,    0,-1, 0, 0,
+                    -1, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0, 1, 0);
+}
+
+template <class MAT>
+inline void set_T3(MAT& a_m) {
+  matrix_set(a_m,   1, 0, 0, 0,
+                    0,-1, 0, 0,
+                    0, 0,-1, 0,
+                    0, 0, 0, 1);
+}
+// T1*T2*T3 = J
+
+template <class MAT>
+inline void set_TX(MAT& a_m) {
+  matrix_set(a_m,   0, 0, 0,-1,
+                    0, 0, 1, 0,
+                    0, 1, 0, 0,
+                   -1, 0, 0, 0);
+}
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+template <class MAT>
+inline void set_Ap(MAT& a_m) {  
+  // If n=(0,-1,0) Ap = A(n,-n)
+  // Ap*Ap = -I4
+  // Ap = -JK
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0, 1,
+                    -1, 0, 0, 0,
+                     0,-1, 0, 0);
+}
+// Sympletic group = ({M / tM*Ap*M = Ap},x)
+// Ap = -JK
+// Ap*Ap=-I4
+// det(Ap) = 1
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+template <class MAT>
+inline void set_E1(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 1,
+                         0, 0,-1, 0);
+}
+
+template <class MAT>
+inline void set_E2(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 0,-1,
+                         0, 0, 0, 0,
+                         0, 1, 0, 0);
+}
+
+template <class MAT>
+inline void set_E3(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 1, 0,
+                         0,-1, 0, 0,
+                         0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_E4(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 1,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0,
+                        -1, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_E5(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 1, 0,
+                         0, 0, 0, 0,
+                        -1, 0, 0, 0,
+                         0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_E6(MAT& a_m) {
+  matrix_set(a_m,        0, 1, 0, 0,
+                        -1, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0);
+}
+
+template <class VECTOR>
+inline void set_Es_as_U2(VECTOR& a_reps,typename VECTOR::value_type::elem_t(*a_sqrt)(typename VECTOR::value_type::elem_t)) {
+  // {I,E1,E2,E3}
+ 
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;
+
+  a_reps.resize(4);
+
+  a_reps[0].set_identity();
+  set_E1(a_reps[1]);
+  set_E2(a_reps[2]);
+  set_E3(a_reps[3]);
+  
+  a_reps[0].multiply(a_sqrt(T(1.0)/T(2.0)));
+}
+
+template <class VECTOR,class MAT>
+inline void set_A_V_W(const VECTOR& a_V,const VECTOR& a_W,MAT& a_A) {
+  // same as : a_A = V*E123+W*E654
+  matrix_set(a_A,
+                       0,  a_W[0], a_W[1], a_W[2],
+                 -a_W[0],       0, a_V[2],-a_V[1],
+                 -a_W[1], -a_V[2],      0, a_V[0],
+                 -a_W[2],  a_V[1],-a_V[0],     0);
+}
+
+template <class T,class COMPLEX>
+inline void A_V_W_eigens(const T a_V[3],const T a_W[3],COMPLEX a_eigens[4],T(*a_sqrt)(T)) {
+  // If a_A = V*E123+W*E654, Maple Eigenvalues(a_A) gives :
+/*
+[       2       2       2       2       2       2       1/2 1/2 ]
+[ (-2 V1  - 2 V2  - 2 V3  - 2 W1  - 2 W2  - 2 W3  + 2 %1   )    ]
+[ ------------------------------------------------------------- ]
+[                               2                               ]
+[                                                               ]
+[        2       2       2       2       2       2       1/2 1/2]
+[  (-2 V1  - 2 V2  - 2 V3  - 2 W1  - 2 W2  - 2 W3  + 2 %1   )   ]
+[- -------------------------------------------------------------]
+[                                2                              ]
+[                                                               ]
+[       2       2       2       2       2       2       1/2 1/2 ]
+[ (-2 V1  - 2 V2  - 2 V3  - 2 W1  - 2 W2  - 2 W3  - 2 %1   )    ]
+[ ------------------------------------------------------------- ]
+[                               2                               ]
+[                                                               ]
+[        2       2       2       2       2       2       1/2 1/2]
+[  (-2 V1  - 2 V2  - 2 V3  - 2 W1  - 2 W2  - 2 W3  - 2 %1   )   ]
+[- -------------------------------------------------------------]
+[                                2                              ]
+
+        4       2   2       2   2       2   2       2   2       2   2                                     4
+%1 := V1  + 2 V1  V2  + 2 V1  V3  - 2 V1  W1  + 2 V1  W2  + 2 V1  W3  - 8 V1 V2 W1 W2 - 8 V1 V3 W1 W3 + V2
+
+           2   2       2   2       2   2       2   2                     4       2   2       2   2       2   2     4
+     + 2 V2  V3  + 2 V2  W1  - 2 V2  W2  + 2 V2  W3  - 8 V2 V3 W2 W3 + V3  + 2 V3  W1  + 2 V3  W2  - 2 V3  W3  + W1
+
+           2   2       2   2     4       2   2     4
+     + 2 W1  W2  + 2 W1  W3  + W2  + 2 W2  W3  + W3
+*/
+
+  T V_2 = a_V[0]*a_V[0]+a_V[1]*a_V[1]+a_V[2]*a_V[2];
+  T W_2 = a_W[0]*a_W[0]+a_W[1]*a_W[1]+a_W[2]*a_W[2];
+
+/*
+  T V_W = a_V[0]*a_W[0]+a_V[1]*a_W[1]+a_V[2]*a_W[2];
+
+  T V_cross_W[3];
+  V_cross_W[0] = a_V[1]*a_W[2]-a_V[2]*a_W[1];
+  V_cross_W[1] = a_V[2]*a_W[0]-a_V[0]*a_W[2];
+  V_cross_W[2] = a_V[0]*a_W[1]-a_V[1]*a_W[0];
+
+  T V_cross_W_2 = V_cross_W[0]*V_cross_W[0]+V_cross_W[1]*V_cross_W[1]+V_cross_W[2]*V_cross_W[2];
+  T xxx = V_2*V_2+W_2*W_2-2*V_W*V_W+2*V_cross_W_2;
+*/
+
+  T V_plus_W[3];
+  V_plus_W[0] = a_V[0]+a_W[0];
+  V_plus_W[1] = a_V[1]+a_W[1];
+  V_plus_W[2] = a_V[2]+a_W[2];
+
+  T V_minus_W[3];
+  V_minus_W[0] = a_V[0]-a_W[0];
+  V_minus_W[1] = a_V[1]-a_W[1];
+  V_minus_W[2] = a_V[2]-a_W[2];
+
+  T V_plus_W_2 = V_plus_W[0]*V_plus_W[0]+V_plus_W[1]*V_plus_W[1]+V_plus_W[2]*V_plus_W[2];
+  T V_minus_W_2 = V_minus_W[0]*V_minus_W[0]+V_minus_W[1]*V_minus_W[1]+V_minus_W[2]*V_minus_W[2];
+
+  T xxx = V_plus_W_2*V_minus_W_2;
+
+ {T yyy = V_2+W_2+a_sqrt(xxx);
+  a_eigens[0] = COMPLEX(0,a_sqrt(yyy));
+  a_eigens[0] /= a_sqrt(T(2));
+  a_eigens[1] = -a_eigens[0];}
+
+ {T yyy = V_2+W_2-a_sqrt(xxx); //should be always >=0.
+  a_eigens[2] = COMPLEX(0,a_sqrt(yyy));
+  a_eigens[2] /= a_sqrt(T(2));
+  a_eigens[3] = -a_eigens[2];}
+
+  //a_eigens orders so that in same order than what is given by exlib::eigenvectors().
+
+}
+
+template <class VECTOR>
+inline void set_eta_Es(VECTOR& a_eta_Es) {
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  1  0|  | 0  0  0  1|
+  //  | 0  0  0  0|  | 0  0  0  1|  | 0  0 -1  0|  | 1  0  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0 -1|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  0  0|  | 1  0  0  0|  | 0  0  0  0|
+  //  | 0  0  1  0|  | 0 -1  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 1  0  0  0|
+
+  typedef typename VECTOR::value_type MAT;
+
+  a_eta_Es.clear();
+  VECTOR Es;
+  set_Es(Es);
+  MAT eta;
+  set_eta(eta);
+ {for(size_t a=0;a<6;a++) a_eta_Es.push_back(eta*Es[a]);}
+}
+
+template <class VECTOR>
+inline void set_Es_eta(VECTOR& a_vec) {
+  typedef typename VECTOR::value_type MAT;
+  a_vec.clear();
+  VECTOR Es;
+  set_Es(Es);
+  MAT eta;
+  set_eta(eta);
+ {for(size_t a=0;a<6;a++) a_vec.push_back(Es[a]*eta);}
+}
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+template <class MAT>
+inline void set_diag1(MAT& a_m) {
+  matrix_set(a_m,  1, 0, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_diag2(MAT& a_m) {
+  matrix_set(a_m,  0, 0, 0, 0,
+                   0, 1, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_diag3(MAT& a_m) {
+  matrix_set(a_m,  0, 0, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 1, 0,
+                   0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_diag4(MAT& a_m) {
+  matrix_set(a_m,  0, 0, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 0,
+                   0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void set_S1(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 1,
+                         0, 0, 1, 0);
+}
+
+template <class MAT>
+inline void set_S2(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 0, 1,
+                         0, 0, 0, 0,
+                         0, 1, 0, 0);
+}
+
+template <class MAT>
+inline void set_S3(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 0,
+                         0, 0, 1, 0,
+                         0, 1, 0, 0,
+                         0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_S4(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 0, 1,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0,
+                         1, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_S5(MAT& a_m) {
+  matrix_set(a_m,        0, 0, 1, 0,
+                         0, 0, 0, 0,
+                         1, 0, 0, 0,
+                         0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_S6(MAT& a_m) {
+  matrix_set(a_m,        0, 1, 0, 0,
+                         1, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0);
+}
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+template <class VECTOR3,class VECTOR4,class MAT>
+inline void set_S_U_V_W(const VECTOR4& a_U,const VECTOR3& a_V,const VECTOR3& a_W,MAT& a_S) {
+  // same as : a_S = U*D1234+V*|E123|+W*|E654|
+  matrix_set(a_S,
+                  a_U[0],  a_W[0], a_W[1], a_W[2],
+                  a_W[0],  a_U[1], a_V[2], a_V[1],
+                  a_W[1],  a_V[2], a_U[2], a_V[0],
+                  a_W[2],  a_V[1], a_V[0], a_U[3]);
+}
+
+////////////////////////////////////
+/// LJ,LK of the Lorentz group /////
+/// LJ[1,2,3] = eta*E[1,2,3]
+/// LK[1,2,3] = eta*E[6,5,4]
+////////////////////////////////////
+template <class MAT>
+inline void set_LJ1(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0, 0,
+                     0, 0, 0, 0,
+                     0, 0, 0,-1,
+                     0, 0, 1, 0);
+}
+template <class MAT>
+inline void set_LJ2(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0, 0, 0,
+                     0,-1, 0, 0);
+}
+template <class MAT>
+inline void set_LJ3(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0, 0,
+                     0, 0,-1, 0,
+                     0, 1, 0, 0,
+                     0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_LK1(MAT& a_m) {
+  matrix_set(a_m,    0, 1, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0, 0,
+                     0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_LK2(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_LK3(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0, 1,
+                     0, 0, 0, 0,
+                     0, 0, 0, 0,
+                     1, 0, 0, 0);
+}
+
+///////////////////////////////////////////////////////////////////
+//  Standard Dirac matrices : /////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+//  D0               D1               D2              D3
+//    1  0  0  0       0  0  0  1       0  0  0 -i      0  0  1  0
+//    0  1  0  0       0  0  1  0       0  0  i  0      0  0  0 -1
+//    0  0 -1  0       0 -1  0  0       0  i  0  0     -1  0  0  0
+//    0  0  0 -1      -1  0  0  0      -i  0  0  0      0  1  0  0
+
+//  D0          D1         D2         D3
+//    I  0       0  P1       0  P2      0  P3
+//    0 -I      -P1  0      -P2  0    -P3   0
+
+// D4 = D0*D1*D2*D3 : D4*D4 = -I, {D4,D0123} = 0
+//  -i * |0 I|
+//       |I 0|
+
+template <class MAT>
+inline void set_D0(MAT& a_m) {
+  matrix_set(a_m,
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0,-1, 0,
+                0, 0, 0,-1);
+}
+template <class MAT>
+inline void set_D1(MAT& a_m) {
+  matrix_set(a_m,
+                0, 0, 0, 1,
+                0, 0, 1, 0,
+                0,-1, 0, 0,
+               -1, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_D2(MAT& a_m) { 
+  typedef typename MAT::elem_t T;
+  //T i;set_i(i);
+  T i(0,1);
+  T _i = T(-1)*i;
+  matrix_set(a_m,   0,   0,   0,  _i,
+                    0,   0,   i,   0,
+                    0,   i,   0,   0,
+                   _i,   0,   0,   0);
+}
+template <class MAT>
+inline void set_D3(MAT& a_m) {
+  matrix_set(a_m,
+                0, 0, 1, 0,
+                0, 0, 0,-1,
+               -1, 0, 0, 0,
+                0, 1, 0, 0);
+}
+
+/*
+template <class MAT>
+inline void set_DC(MAT& a_m) {
+  // It is i*D2*D0 in all reps.
+  // We have (Iz p 85) : DC*t(D(mu))*DC_inv = -D(mu). It is ok too in chiral rep.
+  matrix_set(a_m,
+                0, 0, 0,-1,
+                0, 0, 1, 0,
+                0,-1, 0, 0,
+                1, 0, 0, 0);
+}
+*/
+
+template <class MAT>
+inline void set_D0_ab(double a_a,double a_b,MAT& a_D0) {
+  //WARNING : a,b must be the pending of set_T0.
+  //          T0 = a_m = a_a*K+a_b*J*K;
+
+  // a=0, b=-1 => D0.
+
+  typedef typename MAT::elem_t T;
+
+  MAT D0;set_D0(D0);
+
+  MAT T1;
+  matrix_set(T1,
+                 0, 0, 1, 0,
+                 0, 0, 0, 1,
+                 1, 0, 0, 0,
+                 0, 1, 0, 0);
+
+  // T1 = i * D4 // D4 = D0*D1*D2*D3 
+
+  //a_m = T(-1)*a_b*D0+a_a*i*D4;
+
+  a_D0 = T(-1)*T(a_b)*D0+T(a_a)*T1;
+}
+
+template <class VECTOR>
+inline void set_diracs_ab(double a_a,double a_b,VECTOR& a_diracs) {
+  a_diracs.resize(4);
+
+  // a_a = 0, a_b = -1  diracs[0] = D0
+  // a_a = 1, a_b =  0  diracs[0] = i*D4
+
+  set_D0_ab(a_a,a_b,a_diracs[0]);
+  set_D1(a_diracs[1]);
+  set_D2(a_diracs[2]);
+  set_D3(a_diracs[3]);
+}
+
+template <class VECTOR>
+inline void set_diracs(VECTOR& a_diracs) {set_diracs_ab(0,-1,a_diracs);}
+
+template <class MAT>
+inline void set_tau_to_dirac(MAT& a_mat) {
+  // dirac = -zi*U_inv*tau*U
+  // U_inv = conj(t(U))
+  // det(U) = -1
+  // U = exp(AH) / dagger(AH) = -AH. (AH = A+iS). See exlib/tests/UTD.cpp for a numerical value.
+  typedef typename MAT::elem_t T; //std::complex
+  T zi(0,1);
+  matrix_set(a_mat,
+                1, -zi,  zi,  -1,
+                1,  zi, -zi,  -1,
+               zi,   1,   1,  zi,
+               zi,  -1,  -1,  zi);
+  a_mat.multiply(0.5);  
+}
+
+template <class MAT>
+inline void set_dirac_to_chiral(MAT& a_mat,double(*a_sqrt)(double)) {
+  // chiral[mu] = U*dirac[mu]*U_inv
+  // U_inv = t(U) = dagger(U)
+  // det(U) = 1
+  // U = exp(-pi/4 * I_tild) = sqrt(2) * (I4-I_tild)
+  typedef typename MAT::elem_t T;
+  matrix_set(a_mat,
+                1,  0, -1,  0,
+                0,  1,  0, -1,
+                1,  0,  1,  0,
+                0,  1,  0,  1);
+  a_mat.multiply(T(a_sqrt(0.5)));  
+}
+
+
+template <class MAT>
+inline void set_dirac_to_majorana(MAT& a_mat,double(*a_sqrt)(double)) {
+  // majorana[mu] = U*dirac[mu]*U_inv
+  // U_inv = conj(t(U)) = dagger(U) = U.
+  // det(U) = 1
+  // U = sqrt(2)*(D0-i*J). We have [D0,J] = 0.
+  // U = exp(AH) / dagger(AH) = -AH. (AH = A+iS). See exlib/tests/UDM.cpp for a numerical value.
+  typedef typename MAT::elem_t T; //std::complex
+  T zi(0,1);
+  matrix_set(a_mat,
+                1,   0,  0, -zi,
+                0,   1, zi,   0,
+                0, -zi, -1,   0,
+               zi,   0,  0,  -1);
+  a_mat.multiply(T(a_sqrt(0.5)));  
+}
+
+////////////////////////////////////
+/// i*Majoranas ////////////////////
+////////////////////////////////////
+template <class MAT>
+inline void set_M0(MAT& a_m) {
+  set_J(a_m);
+}
+
+template <class MAT>
+inline void set_M1(MAT& a_m) { // -diag1+diag2-diag3+diag4
+  matrix_set(a_m,   -1, 0, 0, 0,
+                     0, 1, 0, 0,
+                     0, 0,-1, 0,
+                     0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void set_M2(MAT& a_m) { // E3-E4
+  matrix_set(a_m,    0, 0, 0,-1,
+                     0, 0, 1, 0,
+                     0, 1, 0, 0,
+                    -1, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_M3(MAT& a_m) { // E1+E6
+  matrix_set(a_m,    0, 1, 0, 0,
+                     1, 0, 0, 0,
+                     0, 0, 0, 1,
+                     0, 0, 1, 0);
+}
+
+template <class VECTOR>
+inline void set_majoranas(VECTOR& a_majs) {
+  a_majs.resize(4);
+  set_M0(a_majs[0]);  //J
+  set_M1(a_majs[1]);
+  set_M2(a_majs[2]);
+  set_M3(a_majs[3]);
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T; //std::complex
+  T minus_zi(0,-1);  
+  for(size_t mu=0;mu<4;mu++) a_majs[mu] *= minus_zi;
+}
+
+//  Chiral Dirac matrices :
+
+//  C0          C1         C2         C3
+//    0  I       0  P1       0  P2      0  P3
+//    I  0      -P1  0      -P2  0    -P3   0
+
+template <class VECTOR>
+inline void set_chirals(VECTOR& a_diracs) {
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T; //std::complex
+
+  typedef mat<T,2> mat2;
+
+  mat2 I2;I2.set_identity();
+
+  mat2 P1;set_P1(P1);
+  mat2 P2;set_P2(P2);
+  mat2 P3;set_P3(P3);
+
+  a_diracs.resize(4);
+
+ {for(size_t j=0;j<2;j++) {
+  for(size_t k=0;k<2;k++) {
+    a_diracs[0].set_value(j,k+2,I2.value(j,k));  //Itzykson : -I2.value() !
+    a_diracs[0].set_value(j+2,k,I2.value(j,k));  //Itzykson : -I2.value() !
+  }}}
+ {for(size_t j=0;j<2;j++) {
+  for(size_t k=0;k<2;k++) {
+    a_diracs[1].set_value(j,k+2, P1.value(j,k));
+    a_diracs[1].set_value(j+2,k,-P1.value(j,k));
+  }}}
+ {for(size_t j=0;j<2;j++) {
+  for(size_t k=0;k<2;k++) {
+    a_diracs[2].set_value(j,k+2, P2.value(j,k));
+    a_diracs[2].set_value(j+2,k,-P2.value(j,k));
+  }}}
+ {for(size_t j=0;j<2;j++) {
+  for(size_t k=0;k<2;k++) {
+    a_diracs[3].set_value(j,k+2, P3.value(j,k));
+    a_diracs[3].set_value(j+2,k,-P3.value(j,k));
+  }}}
+}
+
+template <class VECTOR>
+inline void set_G_rot_boost_rep(const VECTOR& a_mus,double a_factor,VECTOR& a_reps) {
+  // a_mus : for exa the four dirac matrices.
+  // a_reps will have six matrices : a_rep[a] = a_factor*[a_mus[mu],a_mus[nu]]*Es[b](mu,nu)*G6(b,a)
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+  typedef mat<T,4> mat4;
+  mat4 Es[6];
+  set_Es(Es);
+  typedef inlib::mat<T,6> m6d;
+  m6d G6;set_G6(G6);
+  a_reps.resize(6);
+  MAT tmp,cm;
+  for(size_t a=0;a<6;a++) {
+    MAT& res = a_reps[a];
+    res.set_zero();
+    for(size_t mu=0;mu<4;mu++) {
+    for(size_t nu=0;nu<4;nu++) {
+      commutator(a_mus[mu],a_mus[nu],tmp,cm);
+      res += Es[a].value(mu,nu)*cm;
+    }}
+    res.multiply(T(a_factor)*G6.value(a,a));
+  }
+}
+
+template <class VECTOR>
+inline void set_rot_boost_rep_3(const VECTOR& a_js,double a_factor,VECTOR& a_reps) {
+  // a_js : for exa the three decomplexifed pauli matrices.
+  // a_reps will have three matrices : a_rep[j] = a_factor*epsilon[j](k,l)*[a_js[k],a_mus[l]]
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+  typedef mat<T,3> mat3;
+  mat3 R1;set_R1(R1);
+  mat3 R2;set_R2(R2);
+  mat3 R3;set_R3(R3);
+  mat3* rots[3];rots[0] = &R1;rots[1] = &R2;rots[2] = &R3;
+  a_reps.resize(3);
+  MAT tmp,cm;
+  for(size_t j=0;j<3;j++) {
+    MAT& res = a_reps[j];
+    res.set_zero();
+    for(size_t k=0;k<3;k++) {
+    for(size_t l=0;l<3;l++) {
+      commutator(a_js[k],a_js[l],tmp,cm);
+      res += rots[j]->value(k,l)*cm;
+    }}
+    res.multiply(T(a_factor));
+  }
+}
+
+template <class VECTOR>
+inline void set_Cs(VECTOR& a_Cs) {
+  // i*p1/2  0       | i*p2/2  0       | i*p3/2  0       |  p1/2  0     |  p2/2  0     |  p1/2  0
+  //  0      i*p1/2  |  0      i*p2/2  |  0      i*p3/2  |  0    -p1/2  |  0    -p2/2  |  0    -p1/2
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;
+  VECTOR diracs;
+  set_chirals(diracs);
+  set_G_rot_boost_rep(diracs,1.0/8.0,a_Cs);
+}
+
+////////////////////////////////////
+////////////////////////////////////
+////////////////////////////////////
+// Note : R4_plus_123 = PR231 = 0.5*i*Paulis_231 decomplexification.
+
+template <class VECTOR>
+inline void set_R4_plus(VECTOR& a_reps) {
+  // we have [R4_plus(j),R4_plus(k)] = -epsilon(j,k,l)*R4_plus{j)
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;  
+  MAT E1;set_E1(E1);
+  MAT E2;set_E2(E2);
+  MAT E3;set_E3(E3);
+  MAT E4;set_E4(E4);
+  MAT E5;set_E5(E5);
+  MAT E6;set_E6(E6);  
+  a_reps.resize(3);
+  a_reps[0] = E1+E6;
+  a_reps[1] = E2+E5;
+  a_reps[2] = E3+E4;  
+ {for(size_t j=0;j<3;j++) a_reps[j] *= T(0.5);}
+}
+
+template <class VECTOR>
+inline void set_R4_minus(VECTOR& a_reps) {
+  // we have [R4_minus(j),R4_minus(k)] = -epsilon(j,k,l)*R4_minus{j)
+  typedef typename VECTOR::value_type MAT; //mat4
+  typedef typename MAT::elem_t T;  
+  MAT E1;set_E1(E1);
+  MAT E2;set_E2(E2);
+  MAT E3;set_E3(E3);
+  MAT E4;set_E4(E4);
+  MAT E5;set_E5(E5);
+  MAT E6;set_E6(E6);  
+  a_reps.resize(3);
+  a_reps[0] = E1-E6;
+  a_reps[1] = E2-E5;
+  a_reps[2] = E3-E4;  
+ {for(size_t j=0;j<3;j++) a_reps[j] *= T(0.5);}
+}
+
+template <class MAT>
+inline void e4_conj(const typename MAT::elem_t a_e4[4][4][4][4],const MAT& a_m,MAT& a_conj) {
+  typedef typename MAT::elem_t T;
+  for(size_t alpha=0;alpha<4;alpha++) {
+  for(size_t beta=0;beta<4;beta++) {
+    T val = 0;    
+    for(size_t mu=0;mu<4;mu++) {
+    for(size_t nu=0;nu<4;nu++) {
+      val += a_e4[alpha][beta][mu][nu]*a_m.value(mu,nu);
+    }}
+    a_conj.set_value(alpha,beta,val);
+  }}
+}
+
+////////////////////////////////////////////////
+/// vector of : ////////////////////////////////
+////////////////////////////////////////////////
+template <class VECTOR>
+inline void set_Es(VECTOR& a_Es) {
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  1  0|  | 0  0  0  1|
+  //  | 0  0  0  0|  | 0  0  0 -1|  | 0  0  1  0|  |-1  0  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0  1|  | 0  0  0  0|  | 0 -1  0  0|  | 0  0  0  0|  |-1  0  0  0|  | 0  0  0  0|
+  //  | 0  0 -1  0|  | 0  1  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  |-1  0  0  0|
+
+  // [E(j),    E(k)] = -epsilon(j,k,l) E(l)
+  // [E(j),  E(3+k)] = -epsilon(j,k,l) E(3+l)
+  // [E(3+j),E(3+k)] = -epsilon(j,k,l) E(l)
+
+  a_Es.resize(6);
+  set_E1(a_Es[0]);
+  set_E2(a_Es[1]);
+  set_E3(a_Es[2]);
+  //WARNING E6,5,4 and note E4,5,6
+  set_E6(a_Es[3]);
+  set_E5(a_Es[4]);
+  set_E4(a_Es[5]);
+}
+
+template <class MAT>
+inline void set_Es(MAT a_Es[6]) {
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  1  0|  | 0  0  0  1|
+  //  | 0  0  0  0|  | 0  0  0 -1|  | 0  0  1  0|  |-1  0  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0  1|  | 0  0  0  0|  | 0 -1  0  0|  | 0  0  0  0|  |-1  0  0  0|  | 0  0  0  0|
+  //  | 0  0 -1  0|  | 0  1  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  |-1  0  0  0|
+
+  set_E1(a_Es[0]);
+  set_E2(a_Es[1]);
+  set_E3(a_Es[2]);
+  //WARNING E6,5,4 and note E4,5,6
+  set_E6(a_Es[3]);
+  set_E5(a_Es[4]);
+  set_E4(a_Es[5]);
+}
+
+template <class VECTOR>
+inline void set_Ss(VECTOR& a_Ss) {
+  // 10 symmetric matrix generators :
+  //  | 1  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0  0|  | 0  1  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  1  0|  | 0  0  0  0|
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  1|
+
+  //  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  1  0|  | 0  0  0  1|
+  //  | 0  0  0  0|  | 0  0  0  1|  | 0  0  1  0|  | 1  0  0  0|  | 0  0  0  0|  | 0  0  0  0|
+  //  | 0  0  0  1|  | 0  0  0  0|  | 0  1  0  0|  | 0  0  0  0|  | 1  0  0  0|  | 0  0  0  0|
+  //  | 0  0  1  0|  | 0  1  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 0  0  0  0|  | 1  0  0  0|
+
+  a_Ss.resize(10);
+  set_diag1(a_Ss[0]);
+  set_diag2(a_Ss[1]);
+  set_diag3(a_Ss[2]);
+  set_diag4(a_Ss[3]);
+
+  set_S1(a_Ss[4]);
+  set_S2(a_Ss[5]);
+  set_S3(a_Ss[6]);
+  //WARNING S6,5,4 and note S4,5,6
+  set_S6(a_Ss[7]);
+  set_S5(a_Ss[8]);
+  set_S4(a_Ss[9]);
+}
+
+template <class VECTOR>
+inline void set_Ms(VECTOR& a_Ms) {
+  a_Ms.resize(4);
+  set_M0(a_Ms[0]);  //J
+  set_M1(a_Ms[1]);
+  set_M2(a_Ms[2]);
+  set_M3(a_Ms[3]);
+}
+
+template <class VECTOR>
+inline void _644_to_csts(const VECTOR& a_644,double a_csts[6][4][4],double a_factor = 1.0) {
+  for(size_t a=0;a<6;a++) {
+    for(size_t mu=0;mu<4;mu++) {
+      for(size_t nu=0;nu<4;nu++) {
+        a_csts[a][mu][nu] = a_factor*a_644[a].value(mu,nu);
+      }
+    }
+  }
+}
+
+template <class MAT>
+inline void set_T1m(MAT& a_m) { // E2+E5
+  matrix_set(a_m,    0, 0, 1, 0,
+                     0, 0, 0,-1,
+                     1, 0, 0, 0,
+                     0,-1, 0, 0);
+}
+template <class MAT>
+inline void set_T2m(MAT& a_m) {
+  matrix_set(a_m,    1, 0, 0, 0,
+                     0,-1, 0, 0,
+                     0, 0,-1, 0,
+                     0, 0, 0, 1);
+}
+template <class MAT>
+inline void set_T3m(MAT& a_m) {  //-E1-E6
+  matrix_set(a_m,    0,-1, 0, 0,
+                    -1, 0, 0, 0,
+                     0, 0, 0,-1,
+                     0, 0,-1, 0);
+}
+
+template <class VECTOR>
+inline bool set__A_n_n(const double a_n[3],VECTOR& a_reps,
+                      typename VECTOR::value_type& a_M4,
+                      typename VECTOR::value_type& a_MC,
+                      double(*a_sqrt)(double)) {
+  // We assume that a_n is normalized.
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  MAT M1;set_T1m(M1);
+  MAT M2;set_T2m(M2);
+  MAT M3;set_T3m(M3);
+
+  MAT E1;set_E1(E1);
+  MAT E2;set_E2(E2);
+  MAT E3;set_E3(E3);
+  MAT E4;set_E4(E4);
+  MAT E5;set_E5(E5);
+  MAT E6;set_E6(E6);
+
+  MAT R1 = E1+E6; //2*PR2  PR123 = 0.5*i*Paulis_123 decomplexification.
+  MAT R2 = E2+E5; //2*PR3
+  MAT R3 = E3+E4; //2*PR1
+
+  MAT M0;
+
+  //n[0] = c*a;
+  //n[1] = c*b;
+  //n[2] = -d;
+  double c = a_sqrt(a_n[0]*a_n[0]+a_n[1]*a_n[1]);
+  if(!c) {
+    double d = -a_n[2];
+    
+    MAT L;set_L(L);
+
+    M0 = d*L;
+    a_MC = R3*L;
+
+    //A = -d*R3 = a_MC*M0
+
+    a_M4 = M0*M1*M2*M3;
+    
+  } else {
+    double a = a_n[0]/c;
+    double b = a_n[1]/c;
+    double d = -a_n[2];
+
+    // M0 = a*R1+b*R2
+    // MC = c*I4-d*M4;
+    // A = MC*M0 = (c*I4-d*M4)*M0 = c*M0 - d*M4*M0
+    // A = c*a*R1+c*b*R2-d*R3
+    // R3 = M4*M0
+    // M4 = R3*M0_inv = M0*M1*M2*M3
+    // M0_inv = -M0
+  
+    MAT A = c*(a*R1+b*R2)-d*R3;
+    M0 = a*R1+b*R2;
+    MAT M0_inv;
+    if(!M0.invert(M0_inv)) {
+      a_reps.clear();
+      a_M4.set_zero();
+      a_MC.set_zero();
+      return false;
+    }
+  
+    a_M4 = R3*M0_inv;
+  
+    //MAT A_n_n;set_A_V_W(n,n,A_n_n);
+    // A should be A_n_n.
+
+    MAT I4;I4.set_identity();
+    
+    a_MC = c*I4-d*a_M4;
+    
+  }
+  
+  VECTOR Ms;  
+  Ms.push_back(a_MC*M0);
+  Ms.push_back(a_MC*M1); 
+  Ms.push_back(a_MC*M2); 
+  Ms.push_back(a_MC*M3); 
+  
+  VECTOR sigmas;
+  set_G_rot_boost_rep(Ms,-1.0/8.0,sigmas);
+
+  a_reps.clear();
+ {for(size_t mu=0;mu<4;mu++)  a_reps.push_back(Ms[mu]);}
+ {for(size_t a=0;a<6;a++)  a_reps.push_back(sigmas[a]);}
+
+  return true;
+}
+
+template <class VECTOR>
+inline bool set__A_n_minus_n(const double a_n[3],VECTOR& a_reps,
+                            typename VECTOR::value_type& a_M4,
+                            typename VECTOR::value_type& a_MC,
+			    double(*a_sqrt)(double)) {
+  // We assume that a_n is normalized.
+
+  typedef typename VECTOR::value_type MAT;
+  typedef typename MAT::elem_t T;
+
+  MAT M1;set_T1(M1);
+  MAT M2;set_T2(M2);
+  MAT M3;set_T3(M3);
+		      
+  MAT J;set_J(J);
+  MAT K;set_K(K);
+
+  MAT M0;
+
+  //n[0] = c*a;
+  //n[1] = c*b;
+  //n[2] = -d;
+  double c = a_sqrt(a_n[0]*a_n[0]+a_n[1]*a_n[1]);
+  if(!c) {
+    double d = -a_n[2];
+    
+    M0 = -d*K;
+    a_MC = J*K;
+
+    //A = d*J = a_MC*M0
+
+    a_M4 = M0*M1*M2*M3;
+
+  } else {
+    double a = a_n[0]/c;
+    double b = a_n[1]/c;
+    double d = -a_n[2];
+
+    // M0 = a*K+b*J*K
+    // MC = c*I4+d*M4
+    // metric = A = MC*M0
+    // M0_inv = -M0
+
+    MAT A = c*(a*K+b*J*K)+d*J;
+    // A = (c*I4+d*M4)*M0 = c*M0 + d*M4*M0
+    // J = M4*M0
+    // M4 = J*M0_inv
+    M0 = a*K+b*J*K;
+    MAT M0_inv;
+    if(!M0.invert(M0_inv)) {
+      a_reps.clear();
+      a_M4.set_zero();
+      a_MC.set_zero();
+      return false;
+    }
+  
+    a_M4 = J*M0_inv;
+  
+    // M4 = M0*M1*M2*M3
+    // M123 = M0_inv*M4
+
+    //double minus_n[3];
+    //minus_n[0] = -n[0];
+    //minus_n[1] = -n[1];
+    //minus_n[2] = -n[2];
+    //MAT A_n_minus_n;set_A_V_W(n,minus_n,A_n_minus_n);
+    // A should be A_n_minus_n.
+
+    MAT I4;I4.set_identity();
+    
+    a_MC = c*I4+d*a_M4;
+  }
+
+  VECTOR Ms;
+  Ms.push_back(a_MC*M0); 
+  Ms.push_back(a_MC*M1); 
+  Ms.push_back(a_MC*M2); 
+  Ms.push_back(a_MC*M3); 
+  
+  VECTOR sigmas;
+  set_G_rot_boost_rep(Ms,-1.0/8.0,sigmas);
+
+  a_reps.clear();
+ {for(size_t mu=0;mu<4;mu++)  a_reps.push_back(Ms[mu]);}
+ {for(size_t a=0;a<6;a++)  a_reps.push_back(sigmas[a]);}
+
+  return true;
+}
+
+// Oppenheimer matrices, see :
+//   NOTE ON LIGHT QUANTA AND THE ELECTROMAGNETIC FIELD, BY J. R. OPPENHEIMER, AUGUST 15, 1931 PHYSICAL REVIEW, VOL 38 :
+
+template <class MAT>
+inline void set_OP1(MAT& a_m,double (*a_dsqrt)(const double&)) {
+  typedef typename MAT::elem_t T;
+  T zi(0,1);
+  matrix_set(a_m, 0,zi, 0, 1,
+                 zi, 0,zi, 0,
+                  0,zi, 0,-1,
+		 -1, 0, 1, 0);
+  a_m.multiply(T(1.0/a_dsqrt(2.0),0));		 
+}
+template <class MAT>
+inline void set_OP2(MAT& a_m,double (*a_dsqrt)(const double&)) {
+  typedef typename MAT::elem_t T;
+  T zi(0,1);
+  matrix_set(a_m,  0, 1, 0,zi,
+                  -1, 0, 1, 0,
+                   0,-1, 0,zi,
+		  zi, 0,zi, 0);
+  a_m.multiply(T(1.0/a_dsqrt(2.0),0));		 
+}
+template <class MAT>
+inline void set_OP3(MAT& a_m) {
+  typedef typename MAT::elem_t T;
+  T zi(0,1);
+  matrix_set(a_m, zi, 0, 0,  0,
+                   0, 0, 0,-zi,
+                   0, 0,-zi, 0,
+		   0,-zi, 0, 0);
+}
+
+template <class MAT>
+inline void set_decomplex_to_vector_4(MAT& a_m) {
+  matrix_set(a_m,  1, 0, 0,  0,
+                   0, 0, 1,  0,
+                   0,-1, 0,  0,
+                   0, 0, 0, -1);
+}
+
+////////////////////////////////////////////////
+/// specific D=5 ///////////////////////////////
+////////////////////////////////////////////////
+
+// Duffin Kemmer Petiau matrices :
+template <class MAT>
+inline void set_DKP_0(MAT& a_m) {
+  matrix_set(a_m,    0, 1, 0, 0, 0,
+                     1, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_DKP_1(MAT& a_m) {
+  matrix_set(a_m,    0, 0,-1, 0, 0,
+                     0, 0, 0, 0, 0,
+                     1, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_DKP_2(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0,-1, 0,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     1, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0);
+}
+template <class MAT>
+inline void set_DKP_3(MAT& a_m) {
+  matrix_set(a_m,    0, 0, 0, 0,-1,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0,
+                     1, 0, 0, 0, 0);
+}
+
+template <class MAT>
+inline void set_eta_131(MAT& a_m) {
+  matrix_set(a_m,    1, 0, 0, 0, 0,
+                     0,-1, 0, 0, 0,
+                     0, 0,-1, 0, 0,
+                     0, 0, 0,-1, 0,
+                     0, 0, 0, 0, 1);
+}
+
+template <class MAT>
+inline void set_eta_14(MAT& a_m) {
+  matrix_set(a_m,    1, 0, 0, 0, 0,
+                     0,-1, 0, 0, 0,
+                     0, 0,-1, 0, 0,
+                     0, 0, 0,-1, 0,
+                     0, 0, 0, 0,-1);
+}
+
+/*
+template <class VECTOR>
+inline void set_SO5(VECTOR& a_reps) {
+  typedef typename VECTOR::value_type MAT; //mat5
+  typedef typename MAT::elem_t T;
+  a_reps.resize(10);
+  // rotation :			 
+  matrix_set(a_reps[0],  0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 1, 0,
+                         0, 0,-1, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[1],  0, 0, 0, 0, 0,
+                         0, 0, 0,-1, 0,
+                         0, 0, 0, 0, 0,
+                         0, 1, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[2],  0, 0, 0, 0, 0,
+                         0, 0, 1, 0, 0,
+                         0,-1, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  // boost :			 
+  matrix_set(a_reps[3],  0, 1, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[4],  0, 0, 1, 0, 0,
+                         0, 0, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[5],  0, 0, 0, 1, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  // translation :			 
+  matrix_set(a_reps[6],  0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1,
+			 0, 0, 0,-1, 0);
+  matrix_set(a_reps[7],  0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1,
+                         0, 0, 0, 0, 0,
+			 0, 0,-1, 0, 0);
+  matrix_set(a_reps[8],  0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 1,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0,-1, 0, 0, 0);
+  matrix_set(a_reps[9],  0, 0, 0, 0, 1,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			-1, 0, 0, 0, 0);
+}
+*/
+
+template <class VECTOR> 
+inline void set_SO_131(VECTOR& a_reps) { //10 matrices.
+  typedef typename VECTOR::value_type MAT; //mat5
+  typedef typename MAT::elem_t T;
+  a_reps.resize(10);
+
+  MAT eta_131;set_eta_131(eta_131);
+  
+ {MAT T0;
+  T0.set_value(0,4, 1);
+  T0.set_value(4,0,-1);
+  a_reps[0] = 2.0*T0*eta_131;}
+ {MAT T1;
+  T1.set_value(1,4,-1);
+  T1.set_value(4,1, 1);
+  a_reps[1] = 2.0*T1*eta_131;}
+ {MAT T2;
+  T2.set_value(2,4,-1);
+  T2.set_value(4,2, 1);
+  a_reps[2] = 2.0*T2*eta_131;}
+ {MAT T3;
+  T3.set_value(3,4,-1);
+  T3.set_value(4,3, 1);
+  a_reps[3] = 2.0*T3*eta_131;}
+
+  // rotation :			 
+  matrix_set(a_reps[4],  0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 1, 0,
+                         0, 0,-1, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[5],  0, 0, 0, 0, 0,
+                         0, 0, 0,-1, 0,
+                         0, 0, 0, 0, 0,
+                         0, 1, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[6],  0, 0, 0, 0, 0,
+                         0, 0, 1, 0, 0,
+                         0,-1, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  // boost :			 
+  matrix_set(a_reps[7],  0, 1, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[8],  0, 0, 1, 0, 0,
+                         0, 0, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+  matrix_set(a_reps[9],  0, 0, 0, 1, 0,
+                         0, 0, 0, 0, 0,
+                         0, 0, 0, 0, 0,
+                        -1, 0, 0, 0, 0,
+			 0, 0, 0, 0, 0);
+
+ {for(unsigned int a=4;a<10;a++) a_reps[a] *= eta_131;}
+
+}
+
+template <class MAT>
+inline void set_rot_5D_web_1(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  T sqrt_3 = a_sqrt(T(3));
+  
+  a_mat.set_zero();
+  a_mat.set_value(0,3,     -1);
+  a_mat.set_value(1,2, sqrt_3);
+  a_mat.set_value(1,4,      1);
+  a_mat.set_value(2,1,-sqrt_3);
+  a_mat.set_value(3,0,      1);
+  a_mat.set_value(4,1,     -1);
+
+  a_mat.multiply(-1);
+}
+template <class MAT>
+inline void set_rot_5D_web_2(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  T sqrt_3 = a_sqrt(T(3));
+  a_mat.set_zero();
+  a_mat.set_value(0,4,     -2);
+  a_mat.set_value(1,3,      1);
+  a_mat.set_value(3,1,     -1);
+  a_mat.set_value(4,0,      2);
+  a_mat.multiply(-1);
+}  
+template <class MAT>
+inline void set_rot_5D_web_3(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  T sqrt_3 = a_sqrt(T(3));
+  a_mat.set_zero();
+  a_mat.set_value(0,1,     -1);
+  a_mat.set_value(1,0,      1);
+  a_mat.set_value(2,3,-sqrt_3);
+  a_mat.set_value(3,2, sqrt_3);
+  a_mat.set_value(3,4,     -1);
+  a_mat.set_value(4,3,      1);
+  a_mat.multiply(-1);
+}  
+
+template <class VECTOR>
+inline void set_rots_5D_web(VECTOR& a_rots,typename VECTOR::value_type::elem_t(*a_sqrt)(typename VECTOR::value_type::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  a_rots.resize(3);
+  set_rot_5D_web_1(a_rots[0],a_sqrt);
+  set_rot_5D_web_2(a_rots[1],a_sqrt);
+  set_rot_5D_web_3(a_rots[2],a_sqrt);
+}
+
+template <class MAT>
+inline void set_rot_5D_rutwig_1(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from symmetry-07-01655.pdf. Symmetry 2015, 7, 1655-1669; doi:10.3390/sym7031655.
+  // ISSN 2073-8994. www.mdpi.com/journal/symmetry
+  // An Elementary Derivation of the Matrix Elements of Real Irreducible Representations of so(3).
+  //   Rutwig Campoamor-Stursberg
+  // page 1662.
+  typedef typename MAT::elem_t T;
+  T sqrt_3 = a_sqrt(T(3));
+  a_mat.set_zero();
+  a_mat.set_value(0,3,      1);
+  a_mat.set_value(1,2,     -1);
+  a_mat.set_value(2,1,      1);
+  a_mat.set_value(3,0,     -1);
+  a_mat.set_value(3,4, sqrt_3);
+  a_mat.set_value(4,3,-sqrt_3);
+  a_mat.multiply(-1);
+}  
+template <class MAT>
+inline void set_rot_5D_rutwig_2(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from symmetry-07-01655.pdf. Symmetry 2015, 7, 1655-1669; doi:10.3390/sym7031655.
+  // ISSN 2073-8994. www.mdpi.com/journal/symmetry
+  // An Elementary Derivation of the Matrix Elements of Real Irreducible Representations of so(3).
+  //   Rutwig Campoamor-Stursberg
+  // page 1662.
+  typedef typename MAT::elem_t T;
+  T sqrt_3 = a_sqrt(T(3));
+  a_mat.set_zero();
+  a_mat.set_value(0,2,      1);
+  a_mat.set_value(1,3,      1);
+  a_mat.set_value(2,0,     -1);
+  a_mat.set_value(2,4,-sqrt_3);
+  a_mat.set_value(3,1,     -1);
+  a_mat.set_value(4,2, sqrt_3);
+  a_mat.multiply(-1);
+}  
+template <class MAT>
+inline void set_rot_5D_rutwig_3(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from symmetry-07-01655.pdf. Symmetry 2015, 7, 1655-1669; doi:10.3390/sym7031655.
+  // ISSN 2073-8994. www.mdpi.com/journal/symmetry
+  // An Elementary Derivation of the Matrix Elements of Real Irreducible Representations of so(3).
+  //   Rutwig Campoamor-Stursberg
+  // page 1662.
+  typedef typename MAT::elem_t T;
+  a_mat.set_zero();
+  a_mat.set_value(0,1,     -2);
+  a_mat.set_value(1,0,      2);
+  a_mat.set_value(2,3,     -1);
+  a_mat.set_value(3,2,      1);
+  a_mat.multiply(-1);
+}  
+template <class VECTOR>
+inline void set_rots_5D_rutwig(VECTOR& a_rots,typename VECTOR::value_type::elem_t(*a_sqrt)(typename VECTOR::value_type::elem_t)) {
+  // from symmetry-07-01655.pdf. Symmetry 2015, 7, 1655-1669; doi:10.3390/sym7031655.
+  // ISSN 2073-8994. www.mdpi.com/journal/symmetry
+  // An Elementary Derivation of the Matrix Elements of Real Irreducible Representations of so(3).
+  //   Rutwig Campoamor-Stursberg
+  // page 1662.
+  a_rots.resize(3);
+  set_rot_5D_rutwig_1(a_rots[0],a_sqrt);
+  set_rot_5D_rutwig_2(a_rots[1],a_sqrt);
+  set_rot_5D_rutwig_3(a_rots[2],a_sqrt);
+}
+
+////////////////////////////////////////////////
+/// specific D=6 ///////////////////////////////
+////////////////////////////////////////////////
+
+template <class MAT>
+inline void set_G6(MAT& a_m) {
+  //    | I3   0|
+  //    | 0  -I3|
+  a_m.set_zero();
+  a_m.set_value(0,0,1);
+  a_m.set_value(1,1,1);
+  a_m.set_value(2,2,1);
+  a_m.set_value(3,3,-1);
+  a_m.set_value(4,4,-1);
+  a_m.set_value(5,5,-1);
+}
+
+template <class MAT>
+inline void set_H6(MAT& a_m) {
+  //    | 0  I3|
+  //    | I3  0|
+  a_m.set_zero();
+  a_m.set_value(0,3,1);
+  a_m.set_value(1,4,1);
+  a_m.set_value(2,5,1);
+  a_m.set_value(3,0,1);
+  a_m.set_value(4,1,1);
+  a_m.set_value(5,2,1);
+}
+
+// We have :
+//   G6*H6 = I_tild
+//   {G6,I_tild} = 0
+//   {H6,I_tild} = 0
+//   {G6,H6} = 0
+
+template <class MAT>
+inline void set_I_tild_6(MAT& a_m) {
+  //    | 0  I3|
+  //    |-I3  0|
+  a_m.set_zero();
+  a_m.set_value(0,3, 1);
+  a_m.set_value(1,4, 1);
+  a_m.set_value(2,5, 1);
+  a_m.set_value(3,0,-1);
+  a_m.set_value(4,1,-1);
+  a_m.set_value(5,2,-1);
+}
+
+////////////////////////////////////////////////
+/// specific D=7 ///////////////////////////////
+////////////////////////////////////////////////
+
+template <class MAT>
+inline void set_rot_7D_1(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  T sqrt_3_2 = a_sqrt(T(3)/T(2));
+  T sqrt_5_2 = a_sqrt(T(5)/T(2));
+  T sqrt_6 = a_sqrt(T(6));
+  a_mat.set_zero();
+  a_mat.set_value(0,5, -sqrt_3_2);
+  a_mat.set_value(1,4,  sqrt_5_2);
+  a_mat.set_value(1,6,  sqrt_3_2);
+  a_mat.set_value(2,3,  sqrt_6);
+  a_mat.set_value(2,5, -sqrt_5_2);
+  a_mat.set_value(3,2, -sqrt_6);
+  a_mat.set_value(4,1, -sqrt_5_2);
+  a_mat.set_value(5,0,  sqrt_3_2);
+  a_mat.set_value(5,2,  sqrt_5_2);
+  a_mat.set_value(6,1, -sqrt_3_2);
+  a_mat.multiply(-1);
+}
+template <class MAT>
+inline void set_rot_7D_2(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  a_mat.set_zero();
+  a_mat.set_value(0,6,    -3);
+  a_mat.set_value(1,5,     2);
+  a_mat.set_value(2,4,    -1);
+  a_mat.set_value(4,2,     1);
+  a_mat.set_value(5,1,    -2);
+  a_mat.set_value(6,0,     3);
+  a_mat.multiply(-1);
+}
+template <class MAT>
+inline void set_rot_7D_3(MAT& a_mat,typename MAT::elem_t(*a_sqrt)(typename MAT::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  typedef typename MAT::elem_t T;
+  T sqrt_3_2 = a_sqrt(T(3)/T(2));
+  T sqrt_5_2 = a_sqrt(T(5)/T(2));
+  T sqrt_6 = a_sqrt(T(6));
+  a_mat.set_zero();
+  a_mat.set_value(0,1, -sqrt_3_2);
+  a_mat.set_value(1,0,  sqrt_3_2);
+  a_mat.set_value(1,2, -sqrt_5_2);
+  a_mat.set_value(2,1,  sqrt_5_2);
+  a_mat.set_value(3,4,  sqrt_6);
+  a_mat.set_value(4,3, -sqrt_6);
+  a_mat.set_value(4,5, -sqrt_5_2);
+  a_mat.set_value(5,4,  sqrt_5_2);
+  a_mat.set_value(5,6, -sqrt_3_2);
+  a_mat.set_value(6,5,  sqrt_3_2);
+  a_mat.multiply(-1);
+}
+template <class VECTOR>
+inline void set_rots_7D(VECTOR& a_rots,typename VECTOR::value_type::elem_t(*a_sqrt)(typename VECTOR::value_type::elem_t)) {
+  // from http://visuallietheory.blogspot.fr/2013/07/real-representations-of-lie-algebra.html
+  a_rots.resize(3);
+  set_rot_7D_1(a_rots[0],a_sqrt);
+  set_rot_7D_2(a_rots[1],a_sqrt);
+  set_rot_7D_3(a_rots[2],a_sqrt);
+}
+
+////////////////////////////////////////////////
+/// specific D=8 ///////////////////////////////
+////////////////////////////////////////////////
+
+template <class MAT>
+inline void set_G8(MAT& a_m) {
+  //    | I4   0|
+  //    | 0  -I4|
+  a_m.set_zero();
+  a_m.set_value(0,0,1);
+  a_m.set_value(1,1,1);
+  a_m.set_value(2,2,1);
+  a_m.set_value(3,3,1);
+  a_m.set_value(4,4,-1);
+  a_m.set_value(5,5,-1);
+  a_m.set_value(6,6,-1);
+  a_m.set_value(7,7,-1);
+}
+
+template <class MAT>
+inline void set_I_tild_8(MAT& a_m) {
+  //    | 0  I4|
+  //    |-I4  0|
+  a_m.set_zero();
+  a_m.set_value(0,4,1);
+  a_m.set_value(1,5,1);
+  a_m.set_value(2,6,1);
+  a_m.set_value(3,7,1);
+  
+  a_m.set_value(4,0,-1);
+  a_m.set_value(5,1,-1);
+  a_m.set_value(6,2,-1);
+  a_m.set_value(7,3,-1);
+}
+
+template <class MAT>
+inline void set_H8(MAT& a_m) {
+  //    | 0  I4|
+  //    |I4   0|
+  a_m.set_zero();
+  a_m.set_value(0,4,1);
+  a_m.set_value(1,5,1);
+  a_m.set_value(2,6,1);
+  a_m.set_value(3,7,1);
+  
+  a_m.set_value(4,0,1);
+  a_m.set_value(5,1,1);
+  a_m.set_value(6,2,1);
+  a_m.set_value(7,3,1);
+}
+
+template <class MAT>
+inline void set_J_05_05(MAT& a_m) {
+  //    |            1 0 0 0|
+  //    |            0 0 1 0| 
+  //    |            0 1 0 0| 
+  //    |            0 0 0 1| 
+  //    |-1  0  0  0        |
+  //    | 0  0 -1  0        |
+  //    | 0 -1  0  0        |
+  //    | 0  0  0 -1        |
+  a_m.set_zero();
+  a_m.set_value(0,4,1);
+  a_m.set_value(1,6,1);
+  a_m.set_value(2,5,1);
+  a_m.set_value(3,7,1);
+  a_m.set_value(4,0,-1);
+  a_m.set_value(5,2,-1);
+  a_m.set_value(6,1,-1);
+  a_m.set_value(7,3,-1);
+}
+
+template <class MAT>
+inline void set_decomplex_to_vector_8(MAT& a_m) {
+  a_m.set_zero();
+  a_m.set_value(0,0,1);
+  a_m.set_value(1,2,1);
+  a_m.set_value(2,4,1);
+  a_m.set_value(3,6,1);
+  a_m.set_value(4,1,-1);
+  a_m.set_value(5,3,-1);
+  a_m.set_value(6,5,-1);
+  a_m.set_value(7,7,-1);
+}
+
+////////////////////////////////////////////////
+/// specific D=10 //////////////////////////////
+////////////////////////////////////////////////
+template <class MAT>
+inline void set_G10(MAT& a_m) {
+  //    | eta     0|
+  //    | 0    G6/4|
+
+  // = Sp4_adjoint_rep_metric/(-24)
+  typedef typename MAT::elem_t T;
+  T fourth = T(1.0/4.0);
+  T minus_one = T(-1);
+
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1, minus_one);
+  a_m.set_value(2,2, minus_one);
+  a_m.set_value(3,3, minus_one);
+  a_m.set_value(4,4, fourth);
+  a_m.set_value(5,5, fourth);
+  a_m.set_value(6,6, fourth);
+  a_m.set_value(7,7, minus_one*fourth);
+  a_m.set_value(8,8, minus_one*fourth);
+  a_m.set_value(9,9, minus_one*fourth);
+}
+
+template <class MAT>
+inline void set_I4_2I6(MAT& a_m) {
+  //    | I4     0|
+  //    | 0   2*I6|
+
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1, 1);
+  a_m.set_value(2,2, 1);
+  a_m.set_value(3,3, 1);
+  a_m.set_value(4,4, 2);
+  a_m.set_value(5,5, 2);
+  a_m.set_value(6,6, 2);
+  a_m.set_value(7,7, 2);
+  a_m.set_value(8,8, 2);
+  a_m.set_value(9,9, 2);
+}
+
+template <class MAT>
+inline void set_eta_G6(MAT& a_m) {
+  //    | eta   0|
+  //    | 0    G6|
+
+  typedef typename MAT::elem_t T;
+  T minus_one = T(-1);
+
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1, minus_one);
+  a_m.set_value(2,2, minus_one);
+  a_m.set_value(3,3, minus_one);
+  a_m.set_value(4,4, 1);
+  a_m.set_value(5,5, 1);
+  a_m.set_value(6,6, 1);
+  a_m.set_value(7,7, minus_one);
+  a_m.set_value(8,8, minus_one);
+  a_m.set_value(9,9, minus_one);
+}
+
+template <class MAT>
+inline void set_I4_minus_G6(MAT& a_m) {
+  //    | I4    0|
+  //    | 0   -G6|
+
+  typedef typename MAT::elem_t T;
+  T minus_one = T(-1);
+
+  a_m.set_zero();
+  a_m.set_value(0,0, 1);
+  a_m.set_value(1,1, 1);
+  a_m.set_value(2,2, 1);
+  a_m.set_value(3,3, 1);
+  a_m.set_value(4,4, minus_one);
+  a_m.set_value(5,5, minus_one);
+  a_m.set_value(6,6, minus_one);
+  a_m.set_value(7,7, 1);
+  a_m.set_value(8,8, 1);
+  a_m.set_value(9,9, 1);
+}
+
+}
+
+////////////////////////////////////////////////
+/// specific D=n ///////////////////////////////
+////////////////////////////////////////////////
+#include "mathT" //power
+
+namespace inlib {
+
+/*
+template <class MATRIX>
+inline bool set_E(MATRIX& a_m,size_t a_order,size_t a_index) {
+  typedef typename MATRIX::elem_t T;
+
+  a_m.set_constant(T());
+
+  size_t number = a_order * (a_order-1)/2;
+  if(a_index>number) return false;
+
+  // Find column from index :
+  bool found = false;
+  size_t c = 0;
+  size_t mn = 0;
+  size_t mx = 0;
+  for(c=1;c<a_order;c++) {
+    mn = c*(c-1)/2;
+    mx = c*(c+1)/2-1;
+    if((mn<=a_index)&&(a_index<=mx)) {
+      found = true;
+      break;
+    }
+  }
+  if(!found) return false;
+  // ok, then compute row :
+  size_t r = a_index - mn;
+  //printf("debug : %d : r %d c %d : mn %d mx %d\n",a_index,r,c,mn,mx);
+  // then set value :
+  T _value;
+  power(-1,r+c+1,_value);
+  // If one, then rot 3D vec csts are no more epsilon(i,j,k).
+  //T _value = 1;
+  a_m.set_value(r,c,_value);
+  a_m.set_value(c,r,-_value);
+  
+  size_t icheck = c*(c-1)/2+r;
+  if(a_index!=icheck) return false;
+  return true;
+}
+*/
+
+template <class MATRIX>
+inline bool set_S(MATRIX& a_m,size_t a_order,size_t a_index) {
+
+  typedef typename MATRIX::elem_t T;
+
+  a_m.set_constant(T());
+
+  if(a_index<a_order) {
+    a_m.set_value(a_index,a_index,1);
+    return true;
+  }
+
+  size_t index = a_index-a_order;
+  size_t number = a_order * (a_order-1)/2;
+  if(index>number) return false;
+
+  // Find column from index :
+  bool found = false;
+  size_t c = 0;
+  size_t mn = 0;
+  size_t mx = 0;
+  for(c=1;c<a_order;c++) {
+    mn = c*(c-1)/2;
+    mx = c*(c+1)/2-1;
+    if((mn<=index)&&(index<=mx)) {
+      found = true;
+      break;
+    }
+  }
+  if(!found) return false;
+  // ok, then compute row :
+  size_t r = index - mn;
+
+  a_m.set_value(r,c,1);
+  a_m.set_value(c,r,1);
+  
+  size_t icheck = c*(c-1)/2+r;
+  if(index!=icheck) return false;
+  return true;
+}
+
+template <class MATRIX>
+inline bool set_Ap_2n(MATRIX& a_m) {
+  //a_m matrix 2*a_n x 2*a_n.
+  typedef typename MATRIX::elem_t T;
+  size_t dim = a_m.dimension();
+  size_t half_dim = a_m.dimension()/2;
+  if(2*half_dim!=dim) return false;
+
+  a_m.set_constant(T());
+
+  for(size_t index=0;index<half_dim;index++) {
+    size_t c = index+half_dim;
+    size_t r = index;
+    a_m.set_value(r,c,1);
+    a_m.set_value(c,r,-1);
+  }
+  return true;
+}
+
+template <class MATRIX>
+inline bool set_J_2n(MATRIX& a_m) {
+  //a_m matrix 2*n x 2*n.
+  //dim=2*n   : a_m is antisym
+  //dim=2*n+1 : a_m is sym.
+  typedef typename MATRIX::elem_t T;
+  size_t dim = a_m.dimension();
+  size_t half_dim = a_m.dimension()/2;
+  if(2*half_dim!=dim) return false;
+  a_m.set_constant(T());
+ {double sign = 1;
+  for(size_t a=0;a<half_dim;a++) {
+    a_m.set_value(a,dim-1-a,sign);
+    a_m.set_value(a+half_dim,half_dim-1-a,sign);
+    sign *= -1;
+  }}
+  return true;
+}
+
+template <class VECTOR>
+inline void set_rotation_irep(VECTOR& a_reps,size_t a_2s,
+                     typename VECTOR::value_type::elem_t::value_type(*a_sqrt)(typename VECTOR::value_type::elem_t::value_type)) {
+  typedef typename VECTOR::value_type MATRIX;
+  typedef typename MATRIX::elem_t COMPLEX;
+  typedef typename COMPLEX::value_type T;
+  
+  a_reps.clear();
+
+  T s = T(a_2s)/T(2);
+
+  size_t D = a_2s+1;
+
+  MATRIX s_pls(D);
+ {for(unsigned int j=0;j<(D-1);j++) {
+    unsigned int k = j+1;
+    //j=0  ->  s
+    //j=2s -> -s
+    T js = s-j;
+    s_pls.set_value(j,k,a_sqrt((s+js)*(s-js+1)));
+  }}
+
+  MATRIX s_min(D);
+ {for(unsigned int j=1;j<D;j++) {
+    unsigned int k = j-1;
+    T js = s-j;
+    s_min.set_value(j,k,a_sqrt((s-js)*(s+js+1)));
+  }}
+
+  //inlib::mat_dump(std::cout,"s+ :",s_pls);
+  //inlib::mat_dump(std::cout,"s- :",s_min);
+
+  COMPLEX zi(0,1); 
+
+ {MATRIX s1 = s_pls+s_min;
+  s1 *= COMPLEX(T(1)/T(2),0);
+  a_reps.push_back(s1);}
+
+ {MATRIX s2 = s_pls-s_min;
+  s2 *= -zi/T(2);
+  a_reps.push_back(s2);}
+
+ {MATRIX s3(D);
+  for(unsigned int j=0;j<D;j++) {
+    T js = s-j;
+    s3.set_value(j,j,js);
+  } 
+  a_reps.push_back(s3);}
+
+  // so that commutators match rotation_group_constants :
+ {for(unsigned int j=0;j<3;j++) a_reps[j] *= zi;}
+
+}
+
+template <class VECTOR>
+inline void set_lorentz_irep(VECTOR& a_reps,size_t a_2r,size_t a_2s,
+                     typename VECTOR::value_type::elem_t::value_type(*a_sqrt)(typename VECTOR::value_type::elem_t::value_type)) {
+  typedef typename VECTOR::value_type MATRIX;
+  typedef typename MATRIX::elem_t COMPLEX;
+  typedef typename COMPLEX::value_type T;
+  
+  a_reps.clear();
+  
+  COMPLEX zi(0,1); 
+
+  VECTOR rreps; //dim = 2r+1
+  VECTOR sreps; //dim = 2s+1
+  set_rotation_irep(rreps,a_2r,a_sqrt);
+  set_rotation_irep(sreps,a_2s,a_sqrt);
+
+  size_t dr = a_2r+1;
+  size_t ds = a_2s+1;
+  MATRIX m(dr*ds);
+  MATRIX idr(dr);idr.set_identity();
+  MATRIX ids(ds);ids.set_identity();
+
+  a_reps.resize(6,m); //dim = (2r+1)*(2s+1)
+  
+ {for(size_t a=0;a<3;a++) {
+   {for(size_t i=0;i<dr;i++) {
+      for(size_t j=0;j<dr;j++) {
+        for(size_t k=0;k<ds;k++) {
+          for(size_t l=0;l<ds;l++) {
+            COMPLEX value = rreps[a].value(i,j)*ids.value(k,l)+idr.value(i,j)*sreps[a].value(k,l);
+            m.set_value(i*ds+k,j*ds+l,-value);
+          }
+        }
+      }
+    }}
+  //a_reps[a] = COMPLEX(-1)*m;
+    a_reps[a] = m;
+
+   {for(size_t i=0;i<dr;i++) {
+      for(size_t j=0;j<dr;j++) {
+        for(size_t k=0;k<ds;k++) {
+          for(size_t l=0;l<ds;l++) {
+            COMPLEX value = rreps[a].value(i,j)*ids.value(k,l)-idr.value(i,j)*sreps[a].value(k,l);
+            m.set_value(i*ds+k,j*ds+l,-zi*value);
+          }
+        }
+      }
+    }}
+    a_reps[3+a] = COMPLEX(-1)*m;
+  }}
+  
+}
+
+
+////////////////////////////////////////////////
+/// not specific ///////////////////////////////
+////////////////////////////////////////////////
+template <class RMAT,class CMAT>
+inline void r2z(const RMAT& a_real,CMAT& a_z) {
+  typedef typename CMAT::elem_t T; //std::complex
+  size_t dim = a_real.dimension();
+  for(size_t r=0;r<dim;r++) {
+    for(size_t c=0;c<dim;c++) {
+      a_z.set_value(r,c,T(a_real.value(r,c),0));
+    }
+  }
+}
+
+template <class VECTOR,class METRIC>
+inline bool set_metric(const VECTOR& a_reps,METRIC& a_metric) {
+  typedef typename VECTOR::value_type REP;
+  a_metric.set_zero();
+  size_t number = a_reps.size();
+  if(!number) return false;
+  REP tmp(a_reps[0]);
+ {for(size_t j=0;j<number;j++) {
+    for(size_t k=0;k<number;k++) {
+      tmp = a_reps[j]*a_reps[k];
+      a_metric.set_value(j,k,tmp.trace());
+    }
+  }}
+  return true;
+}
+
+template <size_t NUM,class VECTOR>
+inline void set_from_csts(VECTOR& a_reps,
+                          const typename VECTOR::value_type::elem_t a_csts[NUM][NUM][NUM],
+                          typename VECTOR::value_type::elem_t a_factor = 1) {
+  typedef typename VECTOR::value_type REP;
+  typedef typename REP::elem_t T;
+  a_reps.resize(NUM);
+ {for(size_t a=0;a<NUM;a++) {
+    REP& _mat = a_reps[a];
+    for(size_t j=0;j<NUM;j++) {
+      for(size_t k=0;k<NUM;k++) {
+        _mat.set_value(j,k,a_factor*a_csts[a][j][k]);
+      }
+  }}} 
+}
+
+template <size_t NUM>
+inline void csts_mul(double a_csts[NUM][NUM][NUM],double a_factor = 1) {
+  for(size_t a=0;a<NUM;a++) {
+    for(size_t j=0;j<NUM;j++) {
+      for(size_t k=0;k<NUM;k++) {
+        a_csts[a][j][k] *= a_factor;
+      }
+  }} 
+}
+
+template <size_t NUM,class VECTOR>
+inline void set_adjoint_representation(const double a_csts[NUM][NUM][NUM],VECTOR& a_reps) {
+  set_from_csts<NUM,VECTOR>(a_reps,a_csts,-1.0);
+}
+
+template <class VECTOR,class METRIC>
+inline bool set_casimir(const VECTOR& a_reps,const METRIC& a_adjoint_metric,typename VECTOR::value_type& a_casimir) {
+  typedef typename VECTOR::value_type REP;
+  a_casimir.set_zero();
+  METRIC metric_inv(a_adjoint_metric);
+  if(!a_adjoint_metric.invert(metric_inv)) return false;
+  size_t number = a_reps.size();
+  if(!number) return false;
+  REP tmp(a_reps[0]);
+ {for(size_t j=0;j<number;j++) {
+    for(size_t k=0;k<number;k++) {
+      tmp = a_reps[j]*a_reps[k];
+      tmp.multiply(metric_inv.value(j,k));
+      a_casimir += tmp;
+    }
+  }} 
+  return true;
+}
+
+template <class MATRIX,class MATRIX_2>
+inline bool set_H_S_A(MATRIX& a_H,const MATRIX_2& a_S,const MATRIX_2& a_A) {
+  // H = | S  A|
+  //     |-A  S|
+
+  if(2*a_S.dimension()!=a_H.dimension()) {a_H.set_zero();return false;}
+  if(2*a_A.dimension()!=a_H.dimension()) {a_H.set_zero();return false;}
+
+  size_t dim_2 = a_S.dimension();
+
+ {for(size_t mu=0;mu<dim_2;mu++) {
+  for(size_t nu=0;nu<dim_2;nu++) {
+    a_H.set_value(mu      ,      nu, a_S.value(mu,nu)); //UL= S
+    a_H.set_value(mu+dim_2,      nu, a_A.value(mu,nu)); //UR= A
+    a_H.set_value(mu      ,nu+dim_2,-a_A.value(mu,nu)); //DL=-A
+    a_H.set_value(mu+dim_2,nu+dim_2, a_S.value(mu,nu)); //DR= S
+  }}}
+  
+  return true;
+}
+
+template <class MATRIX,class RANDOM>
+inline void set_random_antisym(MATRIX& a_m,RANDOM& a_rd) {
+  typedef typename MATRIX::elem_t T;
+  size_t dim = a_m.dimension();
+  T value;
+ {for(size_t mu=0;mu<dim;mu++) {
+  for(size_t nu=mu+1;nu<dim;nu++) {
+    value = a_rd.shoot();
+    a_m.set_value(mu,nu,value);
+    a_m.set_value(nu,mu,-value);
+  }}}
+ {for(size_t mu=0;mu<dim;mu++) {
+    a_m.set_value(mu,mu,T(0));
+  }}
+}
+
+template <class MATRIX,class RANDOM>
+inline void set_random_sym(MATRIX& a_m,RANDOM& a_rd) {
+  typedef typename MATRIX::elem_t T;
+  size_t dim = a_m.dimension();
+  T value;
+ {for(size_t mu=0;mu<dim;mu++) {
+  for(size_t nu=mu+1;nu<dim;nu++) {
+    value = a_rd.shoot();
+    a_m.set_value(mu,nu,value);
+    a_m.set_value(nu,mu,value);
+  }}}
+ {for(size_t mu=0;mu<dim;mu++) {
+    a_m.set_value(mu,mu,a_rd.shoot());
+  }}
+}
+
+template <class VECTOR,class PREC>
+inline bool mats_are_equal_prec(const VECTOR& a_1,const VECTOR& a_2,const PREC& a_prec,PREC(*a_fabs)(const PREC&)) {
+  typedef typename VECTOR::value_type MAT;
+  size_t number = a_1.size();
+  if(a_1.size()!=a_2.size()) return false;
+ {for(size_t index=0;index<number;index++) {
+    if(!a_2[index].equal_prec(a_1[index],a_prec,a_fabs)) return false;
+  }}
+  return true;
+}
+
+}
+
+#endif

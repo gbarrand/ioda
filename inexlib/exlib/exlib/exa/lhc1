@@ -1,0 +1,75 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_exa_lhc1
+#define exlib_exa_lhc1
+
+#include <inlib/sg/view_evd>
+#include <inlib/net/wget>
+
+#include "../sg/lhc1"
+
+namespace exlib {
+namespace exa {
+
+inline inlib::sg::return_action action_lhc1(inlib::sg::gui_viewer& a_gv,const inlib::sg::pos_data& a_data) {
+  inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_gv);
+  if(!_evd) return inlib::sg::return_none;
+
+  inlib::atime _now(0,0);
+  if(!a_gv.get_time_now(_now)) {
+    a_gv.pop_warn(a_data,"get_time_now() failed");
+    return inlib::sg::return_to_render;
+  }
+
+  if(!_evd->is_evd()) { 
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(1)); //and not 2.
+  }
+  a_gv.set_plane_viewer(true);
+
+  inlib::sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+  inlib::sg::separator* sep = new inlib::sg::separator;
+
+  inlib::sg::matrix* tsf = new inlib::sg::matrix;
+  sep->add(tsf);
+
+  inlib::sg::infos* infos = new inlib::sg::infos;
+  infos->add_title("LHC status");
+  sep->add(infos);
+
+  inlib::sg::rgba* mat = new inlib::sg::rgba();
+  mat->color = inlib::colorf_white();
+  sep->add(mat);
+     
+  inlib::net::wget* wget = new inlib::net::wget(a_gv.out());
+
+  exlib::sg::lhc1* node = new exlib::sg::lhc1(*wget,_now);
+  //node->show_border = true;
+  node->expand = true;
+  node->time_interval = 20000;
+  node->load_first_image();
+  sep->add(node);
+
+  sep->add(new inlib::sg::holder<inlib::net::wget>(wget)); // to delete wget.
+
+  dsep.add(sep);
+
+  //float cam_height = node->height;
+  //_evd->replace_camera(a_gv.create_2D_camera(cam_height));    
+
+  a_gv.enable_anim();
+
+  if(!a_data.m_popup) a_gv.hide_main_menu();
+
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+//exlib_build_use inlib inlib_glutess freetype png zlib kernel
+
+#endif
+

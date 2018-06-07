@@ -1,0 +1,338 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_spinor_pauli
+#define inlib_sg_spinor_pauli
+
+#include "arrow"
+
+#include <cmath>
+#include "../matTs"
+
+//#include "../matout"
+//#include <iostream>
+
+//#define INLIB_SG_SPINOR_PAULI_4V
+
+namespace inlib {
+namespace sg {
+
+class spinor_pauli : public node {
+  typedef mat<double,4> m4d;
+  INLIB_NODE(spinor_pauli,inlib::sg::spinor_pauli,node)
+public:
+  sf<float> phi_x;
+  sf<float> phi_y;
+  sf<float> xi_x;
+  sf<float> xi_y;
+  sf<float> length_head;
+  sf<float> radius;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::spinor_pauli)
+    static const desc_fields s_v(parent::node_desc_fields(),6, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(phi_x),
+      INLIB_ARG_FIELD_DESC(phi_y),
+      INLIB_ARG_FIELD_DESC(xi_x),
+      INLIB_ARG_FIELD_DESC(xi_y),
+      INLIB_ARG_FIELD_DESC(length_head),
+      INLIB_ARG_FIELD_DESC(radius)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&phi_x);
+    add_field(&phi_y);
+    add_field(&xi_x);
+    add_field(&xi_y);
+    add_field(&length_head);
+    add_field(&radius);
+  }
+
+public:
+  virtual void render(render_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.render(a_action);
+  }
+  virtual void pick(pick_action& a_action) { 
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    nodekit_pick(a_action,m_group,this);
+  }
+  virtual void search(search_action& a_action) { 
+    node::search(a_action);
+    if(a_action.done()) return;
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.search(a_action);
+  }
+  virtual void bbox(bbox_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.bbox(a_action);
+  }
+  virtual bool write(write_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    //if(!write_fields(a_action)) return false;
+    return m_group.write(a_action);
+  }
+  virtual void event(event_action& a_action) {
+    if(touched()) {
+      update_sg();
+      reset_touched();
+    }
+    m_group.event(a_action);
+  }
+  //virtual bool get_matrix(get_matrix_action&);
+  //virtual bool read(read_action& a_action)
+  //virtual void is_visible(visible_action&)
+public:
+  spinor_pauli()
+  :parent()
+  ,phi_x(1)
+  ,phi_y(0)
+  ,xi_x(1)
+  ,xi_y(0)
+  ,length_head(0.1f)
+  ,radius(0.05f)
+  {
+    add_fields();
+    init_sg(); // skeleton of scene graph.
+  }
+  virtual ~spinor_pauli(){}
+public:
+  spinor_pauli(const spinor_pauli& a_from)
+  :parent(a_from)
+  ,phi_x(a_from.phi_x)
+  ,phi_y(a_from.phi_y)
+  ,xi_x(a_from.xi_x)
+  ,xi_y(a_from.xi_y)
+  ,length_head(a_from.length_head)
+  ,radius(a_from.radius)
+  {
+    add_fields();
+    init_sg(); // skeleton of scene graph.
+  }
+  spinor_pauli& operator=(const spinor_pauli& a_from){
+    parent::operator=(a_from);
+    if(&a_from==this) return *this;
+    phi_x = a_from.phi_x;
+    phi_y = a_from.phi_y;
+    xi_x = a_from.xi_x;
+    xi_y = a_from.xi_y;
+    length_head = a_from.length_head;
+    radius = a_from.radius;
+    return *this;
+  }
+
+public:
+protected:
+  void init_sg(){
+    ////////////////////////////////////////////
+    /// phi vector : ///////////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_phi_sep));
+    m_phi_sep.add(new noderef(m_phi_matrix));
+    m_phi_sep.add(new noderef(m_phi_color));
+    m_phi_sep.add(new noderef(m_phi));
+  
+    ////////////////////////////////////////////
+    /// xi vector : ////////////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_xi_sep));
+    m_xi_sep.add(new noderef(m_xi_matrix));
+    m_xi_sep.add(new noderef(m_xi_color));
+    m_xi_sep.add(new noderef(m_xi));
+
+#ifdef INLIB_SG_SPINOR_PAULI_4V
+    ////////////////////////////////////////////
+    /// 4v vector : ////////////////////////////
+    ////////////////////////////////////////////
+    m_group.add(new noderef(m_4v_sep));
+    m_4v_sep.add(new noderef(m_4v_matrix));
+    m_4v_sep.add(new noderef(m_4v_color));
+    m_4v_sep.add(new noderef(m_4v));
+#endif
+
+    update_sg();
+  }
+  
+  void update_sg(){
+    ////////////////////////////////////////////
+    /// matrices : /////////////////////////////
+    ////////////////////////////////////////////
+    m_I4.set_identity();
+    set_P1_4(m_RP1);
+    set_P2_4(m_RP2);
+    set_P3_4(m_RP3);
+    set_I_tild_4(m_I_tild);
+    set_decomplex_to_vector_4(m_Z);
+    m_Z.invert(m_Z_inv);
+  
+    ////////////////////////////////////////////
+    /// phi vector : ///////////////////////////
+    ////////////////////////////////////////////
+    float phi_length = ::sqrtf(phi_x*phi_x+phi_y*phi_y);
+    float phi_theta = ::atan2f(phi_y,phi_x);
+   
+    m_phi_matrix.set_rotate(0,0,1,phi_theta);
+    m_phi_matrix.mul_rotate(0,1,0,fhalf_pi());
+    
+    m_phi_color.color = colorf_red();
+    
+    m_phi.length_base = phi_length-length_head;
+    m_phi.length_head = length_head;
+    m_phi.radius = radius;
+    
+    ////////////////////////////////////////////
+    /// xi vector : ////////////////////////////
+    ////////////////////////////////////////////
+    float xi_length = ::sqrtf(xi_x*xi_x+xi_y*xi_y);
+    float xi_theta = ::atan2f(xi_y,xi_x);
+
+    m_xi_matrix.set_rotate(0,0,1,xi_theta);
+    m_xi_matrix.mul_rotate(0,1,0,fhalf_pi());
+
+    m_xi_color.color = colorf_blue();
+    
+    m_xi.length_base = xi_length-length_head;
+    m_xi.length_head = length_head;
+    m_xi.radius = radius;
+
+#ifdef INLIB_SG_SPINOR_PAULI_4V
+    ////////////////////////////////////////////
+    /// 4v vector : ////////////////////////////
+    ////////////////////////////////////////////
+    // phi_x, phi_y, xi_x, xi_y :
+    float _4v_x = phi_x;
+    float _4v_y = phi_y;
+    float _4v_z = xi_x;
+    
+    float _4v_length = ::sqrtf(_4v_x*_4v_x+_4v_y*_4v_y+_4v_z*_4v_z);
+
+    m_4v_matrix.set_rotate(vec3f(0,0,1),vec3f(_4v_x,_4v_y,_4v_z));
+
+    m_4v_color.color = colorf_pink();
+    
+    m_4v.length_base = _4v_length-length_head;
+    m_4v.length_head = length_head;
+    m_4v.radius = radius;
+#endif    
+  }
+
+  void rotate(float a_x,float a_y,float a_z,float a_theta,
+              float& a_phi_x,float& a_phi_y,float& a_xi_x,float& a_xi_y) {
+    // exp(i/2*theta*n.paulis) = cos(theta/2)*I2+i*sin(theta/2) n.paulis
+
+    m4d n_rpaulis;
+    n_rpaulis = double(a_x)*m_RP1+double(a_y)*m_RP2+double(a_z)*m_RP3;
+    
+    m4d exp_M;
+    exp_M = ::cos(a_theta*0.5)*m_I4+::sin(a_theta*0.5)*m_Z_inv*m_I_tild*n_rpaulis*m_Z;
+
+    double v[4];
+    v[0] = a_phi_x;
+    v[1] = a_phi_y;
+    v[2] = a_xi_x;
+    v[3] = a_xi_y;
+    //::printf("debug : v before : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    double dtmp[4];
+    exp_M.mul_array(v,dtmp);
+
+    //::printf("debug : v after : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    a_phi_x = float(v[0]);
+    a_phi_y = float(v[1]);
+    a_xi_x  = float(v[2]);
+    a_xi_y  = float(v[3]);
+  }
+  
+  void boost(float a_x,float a_y,float a_z,float a_theta,
+             float& a_phi_x,float& a_phi_y,float& a_xi_x,float& a_xi_y) {
+    // exp(1/2*theta*n.paulis)
+
+    m4d n_rpaulis;
+    n_rpaulis = double(a_x)*m_RP1+double(a_y)*m_RP2+double(a_z)*m_RP3;
+
+    m4d exp_M;
+    exp_M = ::cosh(a_theta*0.5)*m_I4+::sinh(a_theta*0.5)*m_Z_inv*n_rpaulis*m_Z;
+
+/*
+    inlib::mat_dump(std::cout,"tmp*tmp",n_rpaulis*n_rpaulis);
+    double depsilon = 1e-10;
+    m4d _exp_M;
+    m4d theta_n_rpaulis = double(a_theta*0.5f)*n_rpaulis;
+    theta_n_rpaulis.exp(40,_exp_M);
+    if(!_exp_M.equal_prec(exp_M,depsilon,inlib::dfabs)) {
+      inlib::mat_dump(std::cout,"exp_M",exp_M);
+      inlib::mat_dump(std::cout,"_exp_M",_exp_M);
+      ::exit(0);
+    }
+*/
+
+    double v[4];
+    v[0] = a_phi_x;
+    v[1] = a_phi_y;
+    v[2] = a_xi_x;
+    v[3] = a_xi_y;
+    //::printf("debug : v before : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    double dtmp[4];
+    exp_M.mul_array(v,dtmp);
+
+    //::printf("debug : v after : %g %g %g %g\n",v[0],v[1],v[2],v[3]);
+
+    a_phi_x = float(v[0]);
+    a_phi_y = float(v[1]);
+    a_xi_x  = float(v[2]);
+    a_xi_y  = float(v[3]);
+  }
+
+protected:
+  group m_group;
+  
+  separator m_phi_sep;
+  matrix m_phi_matrix;
+  rgba m_phi_color;
+  arrow m_phi;
+  
+  separator m_xi_sep;
+  matrix m_xi_matrix;
+  rgba m_xi_color;
+  arrow m_xi;
+
+#ifdef INLIB_SG_SPINOR_PAULI_4V
+  separator m_4v_sep;
+  matrix m_4v_matrix;
+  rgba m_4v_color;
+  arrow m_4v;
+#endif
+
+protected:
+  m4d m_I4;
+  m4d m_RP1;
+  m4d m_RP2;
+  m4d m_RP3;
+  m4d m_I_tild;
+  m4d m_Z,m_Z_inv;
+};
+
+}}
+
+#undef INLIB_SG_SPINOR_PAULI_4V
+
+#endif

@@ -1,0 +1,49 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_sg_pv_hoder_gl2ps
+#define exlib_sg_pv_hoder_gl2ps
+
+#include "gl2ps_action"
+#include "text_freetype"
+
+#include <inlib/sg/selection>
+
+namespace exlib {
+namespace sg {
+
+class pv_holder_gl2ps {
+public:
+  pv_holder_gl2ps(std::ostream& a_out)
+  :m_out(a_out)
+  ,m_ttf()
+  ,m_selection()
+  {}
+  virtual ~pv_holder_gl2ps(){}
+protected:
+  pv_holder_gl2ps(const pv_holder_gl2ps& a_from)
+  :m_out(a_from.m_out)
+  ,m_ttf(a_from.m_ttf)
+  ,m_selection(a_from.m_selection)
+  {}
+  pv_holder_gl2ps& operator=(const pv_holder_gl2ps& a_from) {
+    m_ttf = a_from.m_ttf;
+    m_selection = a_from.m_selection;
+    return *this;
+  }
+public:
+  inlib::sg::render_manager& gra_mgr() {return m_mgr_gra;}
+  inlib::sg::base_freetype& ttf() {return m_ttf;}
+  inlib::sg::selection& selection() {return m_selection;}
+protected:
+  std::ostream& m_out;
+  text_freetype m_ttf;
+  inlib::sg::selection m_selection;
+  gl2ps_manager m_mgr_gra;
+};
+
+}}
+
+//exlib_build_use inlib exlib freetype gl2ps
+
+#endif

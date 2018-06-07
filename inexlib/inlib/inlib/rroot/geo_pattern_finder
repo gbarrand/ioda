@@ -1,0 +1,794 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_pattern_finder
+#define inlib_rroot_geo_pattern_finder
+
+#include "named"
+#include "geo_cids"
+
+#include "geo_matrix"
+
+#include "geo_volume_cls"
+
+namespace inlib {
+namespace rroot {
+  class geo_volume;
+}}
+
+namespace inlib {
+namespace rroot {
+
+class geo_pattern_finder : public virtual iro {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternFinder");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_finder");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_finder>(this,a_class)) return p;
+    return 0;
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_finder(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+   {uint32 id;
+    if(!Object_stream(a_buffer,id,m_bits)) return false;}
+
+    if(!a_buffer.read(m_step)) return false;
+    if(!a_buffer.read(m_start)) return false;
+    if(!a_buffer.read(m_end)) return false;
+    if(!a_buffer.read(m_current)) return false;
+    if(!a_buffer.read(m_divisions)) return false;
+    if(!a_buffer.read(m_div_index)) return false;
+
+    ifac::args args;
+    if(!pointer_stream(a_buffer,m_fac,args,m_matrix)){
+      a_buffer.out() << "inlib::rroot::geo_pattern_finder::stream : "
+                     << "can't read fMatrix."
+                     << std::endl;
+      return false;
+    }
+
+    if(!pointer_stream(a_buffer,m_fac,args,geo_volume_cls(),m_volume)){
+      a_buffer.out() << "inlib::rroot::geo_pattern_finder::stream : "
+                     << "can't read fVolume."
+                     << std::endl;
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_finder_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_finder>(this,a_class)) {return p;}
+    else return 0;
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_finder(ifac& a_fac)
+  :m_fac(a_fac)
+  ,m_bits(0)
+  ,m_step(0)
+  ,m_start(0)
+  ,m_end(0)
+  ,m_current(-1)
+  ,m_divisions(0)
+  ,m_div_index(0)
+  ,m_matrix(0) //not owner
+  ,m_volume(0) //not owner
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_finder(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_finder(const geo_pattern_finder& a_from)
+  :iro(a_from)
+  ,m_fac(a_from.m_fac)
+
+  ,m_bits(a_from.m_bits)
+  ,m_step(a_from.m_step)
+  ,m_start(a_from.m_start)
+  ,m_end(a_from.m_end)
+  ,m_current(a_from.m_current)
+  ,m_divisions(a_from.m_divisions)
+  ,m_div_index(a_from.m_div_index)
+  ,m_matrix(a_from.m_matrix)
+  ,m_volume(a_from.m_volume)
+  {}
+  geo_pattern_finder& operator=(const geo_pattern_finder& a_from){
+    m_bits = a_from.m_bits;
+    m_step = a_from.m_step;
+    m_start = a_from.m_start;
+    m_end = a_from.m_end;
+    m_current = a_from.m_current;
+    m_divisions = a_from.m_divisions;
+    m_div_index = a_from.m_div_index;
+    m_matrix = a_from.m_matrix;
+    m_volume = a_from.m_volume;
+    return *this;
+  }
+public:
+  static uint32 kPatternReflected() {return (1<<14);}
+  bool is_reflected() const {
+    return ((m_bits&kPatternReflected())?true:false);
+  }
+
+  double step() const {return m_step;}
+  double start() const {return m_start;}
+  double end() const {return m_end;}
+  int current() const {return m_current;}
+  int divisions() const {return m_divisions;}
+  int div_index() const {return m_div_index;}
+
+  const geo_matrix* matrix() const {return m_matrix;}
+  geo_matrix* matrix() {return m_matrix;}
+  const geo_volume* volume() const {return m_volume;}
+  geo_volume* volume() {return m_volume;}
+protected:
+  ifac& m_fac;
+
+  uint32 m_bits;
+
+  double m_step;           // division step length
+  double m_start;          // starting point on divided axis
+  double m_end;            // ending point
+  int    m_current;        // current division element
+  int    m_divisions;      // number of divisions
+  int    m_div_index;      // index of first div. node
+  geo_matrix* m_matrix;    // generic matrix
+  geo_volume* m_volume;    // volume to which applies
+};
+
+class geo_pattern_cyl_phi : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternCylPhi");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_cyl_phi");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_cyl_phi>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_cyl_phi(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_cyl_phi_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_cyl_phi>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_cyl_phi(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_cyl_phi(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_cyl_phi(const geo_pattern_cyl_phi& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_cyl_phi& operator=(const geo_pattern_cyl_phi& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_pattern_x : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternX");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_x");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_x>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_x(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_x_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_x>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_x(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_x(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_x(const geo_pattern_x& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_x& operator=(const geo_pattern_x& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_pattern_y : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternY");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_y");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_y>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_y(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_y_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_y>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_y(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_y(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_y(const geo_pattern_y& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_y& operator=(const geo_pattern_y& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_pattern_z : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternZ");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_z");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_z>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_z(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_z_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_z>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_z(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_z(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_z(const geo_pattern_z& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_z& operator=(const geo_pattern_z& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_pattern_para_x : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternParaX");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_para_x");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_x>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_para_x(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_para_x_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_x>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_para_x(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_para_x(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_para_x(const geo_pattern_para_x& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_para_x& operator=(const geo_pattern_para_x& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_pattern_para_y : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternParaY");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_para_y");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_y>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_para_y(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_txy)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_para_y_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_y>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_para_y(ifac& a_fac)
+  :geo_pattern_finder(a_fac)
+  ,m_txy(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_para_y(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_para_y(const geo_pattern_para_y& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  ,m_txy(a_from.m_txy)
+  {}
+  geo_pattern_para_y& operator=(const geo_pattern_para_y& a_from){
+    geo_pattern_finder::operator=(a_from);
+    m_txy = a_from.m_txy;
+    return *this;
+  }
+public:
+  double txy() const {return m_txy;}
+protected:
+  double m_txy;      // tangent of alpha
+};
+
+class geo_pattern_para_z : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternParaZ");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_para_z");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_z>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_para_z(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_txz)) return false;
+    if(!a_buffer.read(m_tyz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_para_z_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_para_z>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_para_z(ifac& a_fac)
+  :geo_pattern_finder(a_fac)
+  ,m_txz(0)
+  ,m_tyz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_para_z(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_para_z(const geo_pattern_para_z& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  ,m_txz(a_from.m_txz)
+  ,m_tyz(a_from.m_tyz)
+  {}
+  geo_pattern_para_z& operator=(const geo_pattern_para_z& a_from){
+    geo_pattern_finder::operator=(a_from);
+    m_txz = a_from.m_txz;
+    m_tyz = a_from.m_tyz;
+    return *this;
+  }
+public:
+  double txz() const {return m_txz;}
+  double tyz() const {return m_tyz;}
+protected:
+  double m_txz;  // tangent of alpha xz
+  double m_tyz;  // tangent of alpha yz
+};
+
+/*
+class geo_pattern_xxx : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternXxx");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_xxx");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_xxx>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_xxx(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    uint32 startpos = a_buffer.length();
+
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    a_buffer.set_offset(startpos+c+sizeof(unsigned int));
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  geo_pattern_xxx(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_xxx(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_xxx(const geo_pattern_xxx& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_xxx& operator=(const geo_pattern_xxx& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+*/
+
+class geo_pattern_trap_z : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternTrapZ");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_trap_z");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_trap_z>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_trap_z(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_txz)) return false;
+    if(!a_buffer.read(m_tyz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_trap_z_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_trap_z>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_trap_z(ifac& a_fac)
+  :geo_pattern_finder(a_fac)
+  ,m_txz(0)
+  ,m_tyz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_trap_z(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_trap_z(const geo_pattern_trap_z& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  ,m_txz(a_from.m_txz)
+  ,m_tyz(a_from.m_tyz)
+  {}
+  geo_pattern_trap_z& operator=(const geo_pattern_trap_z& a_from){
+    geo_pattern_finder::operator=(a_from);
+    m_txz = a_from.m_txz;
+    m_tyz = a_from.m_tyz;
+    return *this;
+  }
+public:
+  double txz() const {return m_txz;}
+  double tyz() const {return m_tyz;}
+protected:
+  double m_txz;  // tangent of alpha xz
+  double m_tyz;  // tangent of alpha yz
+};
+
+
+class geo_pattern_cyl_r : public geo_pattern_finder {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPatternCylR");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pattern_cyl_r");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pattern_cyl_r>(this,a_class)) return p;
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pattern_cyl_r(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pattern_finder::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pattern_cyl_r_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pattern_cyl_r>(this,a_class)) {return p;}
+    else return geo_pattern_finder::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pattern_cyl_r(ifac& a_fac):geo_pattern_finder(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pattern_cyl_r(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pattern_cyl_r(const geo_pattern_cyl_r& a_from)
+  :iro(a_from)
+  ,geo_pattern_finder(a_from)
+  {}
+  geo_pattern_cyl_r& operator=(const geo_pattern_cyl_r& a_from){
+    geo_pattern_finder::operator=(a_from);
+    return *this;
+  }
+};
+
+template <class T>
+inline const T* cast_pattern_finder(const geo_pattern_finder& a_pf) {
+  return id_cast<geo_pattern_finder,T>(a_pf);
+}
+template <class T>
+inline T* cast_pattern_finder(geo_pattern_finder& a_pf) {
+  return id_cast<geo_pattern_finder,T>(a_pf);
+}
+  
+}}
+
+#endif

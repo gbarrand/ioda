@@ -1,0 +1,286 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_dcmtk_reader
+#define exlib_dcmtk_reader
+
+/////////////////////////////////////////////////////
+/// dcmtk ///////////////////////////////////////////
+/////////////////////////////////////////////////////
+#include <dcmtk/config/osconfig.h>
+#include <dcmtk/dcmdata/dctk.h>
+#include <dcmtk/dcmimgle/dcmimage.h>
+#include <dcmtk/dcmimgle/diplugin.h>
+#include <dcmtk/dcmimage/diregist.h> //there is a naugthy static.
+#include <dcmtk/dcmdata/dcrledrg.h>
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+#include <inlib/typedefs>
+#include <inlib/img>
+#include <inlib/image>
+#include <inlib/system>
+#include <inlib/file>
+
+namespace exlib {
+namespace dcmtk {
+
+class reader : public virtual inlib::image::ireader {
+public:
+  virtual inlib::image::ireader* copy() const {return new reader(*this);}
+  virtual bool is(const std::string& a_file) const {
+    bool _is;
+    if(!inlib::file::is_dcm(a_file,_is)) return false;
+    return _is;
+  }
+  virtual bool infos(std::ostream& a_out,
+                     const std::string& a_file,
+                     unsigned int& a_width,unsigned int& a_height,
+                     unsigned int& a_bpp) const {
+    if(!init(a_out)) {
+      a_width = 0;
+      a_height = 0;
+      a_bpp = 0;
+      return false;
+    }
+
+    DcmFileFormat dfile;
+    OFCondition status = dfile.loadFile(a_file.c_str());
+    if(status.bad()) {
+      a_out << "exlib::dcmtk::reader::infos :"
+            << " cannot read DICOM file (" << status.text() << ")"
+            << std::endl;
+      a_width = 0;
+      a_height = 0;
+      a_bpp = 0;
+      return false;
+    }
+  
+    DcmDataset* dds = dfile.getDataset();
+  
+    E_TransferSyntax xfer = dds->getOriginalXfer();
+    unsigned long flags = CIF_MayDetachPixelData | CIF_TakeOverExternalDataset;
+  
+    DicomImage* dimg = new DicomImage(&dfile,xfer,flags,0,1);
+    if(dimg->getStatus()!=EIS_Normal)  {
+      a_out << "exlib::dcmtk::reader::infos :"
+            << " bad DicomImage : "
+            << DicomImage::getString(dimg->getStatus())
+            << std::endl;
+      a_width = 0;
+      a_height = 0;
+      a_bpp = 0;
+      return false;
+    }
+
+    a_width = (unsigned int)dimg->getWidth();
+    a_height = (unsigned int)dimg->getHeight();
+    a_bpp = dimg->isMonochrome()?1:3;
+
+    return true;
+  }
+  virtual unsigned char* read(std::ostream& a_out,
+                              const std::string& a_file,
+                              unsigned int& a_width,unsigned int& a_height,
+                              unsigned int& a_bpp) const {
+    inlib::img<inlib::byte> img;
+    if(!get_img(a_out,a_file,img)) {
+      a_width = 0;
+      a_height = 0;
+      a_bpp = 0;
+      return 0;
+    }
+    a_width = img.width();
+    a_height = img.height();
+    a_bpp = img.bpp();
+    inlib::byte* buffer = img.buffer();
+    img.make_empty(false); //IMPORTANT : false.
+    return buffer;
+  }
+  virtual unsigned char* read_part(std::ostream& a_out,
+                                   const std::string& a_file,
+                                   unsigned int a_sx,unsigned int a_sy,
+                                   unsigned int a_sw,unsigned int a_sh,
+                                   unsigned int& a_rw,unsigned int& a_rh,
+                                   unsigned int& a_rbpp) const {
+    inlib::img<inlib::byte> img;
+    if(!get_img(a_out,a_file,img)) {
+      a_rw = 0;
+      a_rh = 0;
+      a_rbpp = 0;
+      return 0;
+    }
+    inlib::img<inlib::byte> res;
+    if(!img.get_part(a_sx,a_sy,a_sw,a_sh,res)) {
+      a_rw = 0;
+      a_rh = 0;
+      a_rbpp = 0;
+      return 0;
+    }
+    a_rw = res.width();
+    a_rh = res.height();
+    a_rbpp = res.bpp();
+    inlib::byte* buffer = res.buffer();
+    res.make_empty(false); //IMPORTANT : false.
+    return buffer;
+  }
+public:
+  reader(const std::string& a_res_dir):m_res_dir(a_res_dir){}
+  virtual ~reader(){}
+public:
+  reader(const reader& a_from):ireader(),m_res_dir(a_from.m_res_dir){}
+  reader& operator=(const reader& a_from){
+    m_res_dir = a_from.m_res_dir;
+    return *this;
+  }
+protected:
+  INLIB_CLASS_STRING(DCMDICTPATH)
+  static const std::string& s_dicom_dic() {
+    static const std::string s_v("dcmtk_3_6_0_dicom.dic");
+    return s_v;
+  }  
+
+  bool init(std::ostream& a_out) const {
+    if(dcmDataDict.isDictionaryLoaded()) return true; //done
+
+    if(!inlib::is_env(s_DCMDICTPATH())) {
+      std::string dic;
+      if(m_res_dir.size()) dic = m_res_dir+inlib::sep();
+      dic += s_dicom_dic();
+      if(!inlib::file::exists(dic)) {
+        a_out << "exlib::dcmtk::reader::init :"
+              << " file " << dic << " not found."
+              << std::endl;
+        return false;
+      }
+      inlib::putenv(s_DCMDICTPATH(),dic);
+    }
+
+    if(!dcmDataDict.wrlock().reloadDictionaries(OFFalse,OFTrue)) {
+      a_out << "exlib::dcmtk::reader::init :"
+            << " reloadDictionaries() failed."
+            << std::endl;
+      return false;
+    }
+
+    if(!dcmDataDict.isDictionaryLoaded()) {
+      a_out << "exlib::dcmtk::reader::init :"
+            << " dcmDataDict.isDictionaryLoaded() failed."
+            << " " << DCM_DICT_ENVIRONMENT_VARIABLE
+            << std::endl;
+      return false;
+    }
+
+    DcmRLEDecoderRegistration::registerCodecs();
+
+    return true;  
+  }
+  bool get_img(std::ostream& a_out,
+               const std::string& a_path,
+               inlib::img<inlib::byte>& a_img) const {
+    if(!init(a_out)) {a_img.make_empty();return false;}
+
+    DcmFileFormat dfile;
+    OFCondition status = dfile.loadFile(a_path.c_str());
+    if(status.bad()) {
+      a_out << "exlib::dcmtk::reader::get_img :"
+            << " cannot read DICOM file (" << status.text() << ")"
+            << std::endl;
+      a_img.make_empty();
+      return false;
+    }
+  
+    DcmDataset* dds = dfile.getDataset();
+  
+    E_TransferSyntax xfer = dds->getOriginalXfer();
+    unsigned long flags = CIF_MayDetachPixelData | CIF_TakeOverExternalDataset;
+  
+    DicomImage* dimg = new DicomImage(&dfile,xfer,flags,0,1);
+    if(dimg->getStatus()!=EIS_Normal)  {
+      a_out << "exlib::dcmtk::reader::get_img :"
+            << " bad DicomImage : "
+            << DicomImage::getString(dimg->getStatus())
+            << std::endl;
+      a_img.make_empty();
+      return false;
+    }
+  
+    //::printf("debug : frame count : %lu\n",dimg->getFrameCount());
+  
+    //if(!dimg->setPolarity(EPP_Reverse)){}
+    if(!dimg->flipImage(0,1)) {}
+  
+    unsigned long frame = 0;
+    plugin _plugin;
+    int result = dimg->writePluginFormat(&_plugin,(FILE*)&a_img,frame);
+    if(!result){
+      a_out << "exlib::dcmtk::reader::get_img :"
+            << " plugin::writePluginFormat failed."
+            << std::endl;
+      a_img.make_empty();
+      return false;
+    }
+
+    return true;  
+  }
+
+protected:
+  std::string m_res_dir;
+protected:
+
+  class plugin : public DiPluginFormat {
+  public:
+    virtual int write(DiImage* a_image,
+                      FILE* a_tag,
+                      const unsigned long a_frame = 0) const { 
+      //::printf("debug : plugin::write : 000 : %lu\n",a_frame);
+  
+      const void* data = a_image->getOutputData(a_frame,8,0);
+      if(!data) return 0;
+  
+      const OFBool is_mono =
+        (a_image->getInternalColorModel() == EPI_Monochrome1) ||
+        (a_image->getInternalColorModel() == EPI_Monochrome2);
+  
+      //::printf("debug : plugin : %d %d : mono %d\n",
+      //    a_image->getColumns(),a_image->getRows(),is_mono);
+  
+      unsigned int w = a_image->getColumns();
+      unsigned int h = a_image->getRows();
+      unsigned int bpp = is_mono?1:3;
+      
+      inlib::img<inlib::byte>& img = *((inlib::img<inlib::byte>*)a_tag);
+      img.copy(w,h,bpp,(inlib::byte*)data);
+  
+      /* flip vertically :
+      unsigned int stride = w*bpp;
+      if(!(h*stride)) return 0;
+      char* buffer = new char[h*stride];
+      char* b = buffer+h*stride-stride;
+      char* p = (char*)data;
+      for(unsigned int row=0;row<h;row++,b-=stride,p+=stride) {
+        ::memcpy(b,p,stride);
+      }
+      img.set(w,h,bpp,(inlib::byte*)buffer,true);
+      */
+  
+      a_image->deleteOutputData();
+  
+      return 1; //ok
+    }
+  public:
+    plugin(){}
+    virtual ~plugin(){}
+  protected:
+    plugin(const plugin& a_from):DiPluginFormat(a_from){}
+    plugin& operator=(const plugin&){return *this;}
+  };
+
+};
+
+}}
+
+#endif
+
+//exlib_build_use inlib dcmtk

@@ -1,0 +1,51 @@
+// Copyright (C) 2010, Guy Barrand. Allved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_mathT
+#define inlib_mathT
+
+namespace inlib {
+
+/*
+template <class T,class UINT>
+inline T power(const T& a_x,UINT a_n) {
+  T v = T(1);
+  for(UINT i=UINT(0);i<a_n;i++) v *= a_x; 
+  return v;
+}
+
+template <class UINT,class T>
+inline T factorial(UINT a_n) {
+  T v = T(1);
+  for(UINT i=UINT(1);i<=a_n;i++) v *= T(i); 
+  return v;
+}
+*/
+
+template <class T,class UINT>
+inline void power(const T& a_x,UINT a_n,T& a_value) { // without return copy :
+  a_value = T(1);
+  for(UINT i=UINT(0);i<a_n;i++) a_value *= a_x; 
+}
+
+template <class UINT,class T>
+inline void factorial(UINT a_n,T& a_value) { // without return copy :
+  a_value = T(1);
+  for(UINT i=UINT(1);i<=a_n;i++) a_value *= T(i); 
+}
+
+template <class UINT,class T>
+inline void pochhammer_inc(const UINT& a_n,const T& a_x,T& a_value) {
+  // From Wolfram page.
+  a_value = T(1);
+  for(UINT index=UINT(0);index<a_n;index++) a_value *= a_x+T(index);
+}
+
+//template <class UINT>
+//inline UINT C_binome(UINT a_n,UINT a_p) {
+//  return factorial<UINT,UINT>(a_n)/(factorial<UINT,UINT>(a_p)*factorial<UINT,UINT>(a_n-a_p));
+//}
+
+}
+
+#endif

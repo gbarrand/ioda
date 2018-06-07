@@ -1,0 +1,356 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_xml_heprep2
+#define inlib_xml_heprep2
+
+// read heprep2 files.
+
+#include "tree"
+
+#include "../heprep"
+#include "../words"
+
+namespace inlib {
+namespace heprep2 {
+
+class type {
+public:
+  INLIB_SCLASS(inlib::heprep2::type)
+public:
+  type() 
+  :m_DrawAs(heprep::s_Line())
+  ,m_Visibility(true)
+  ,m_color(colorf_grey())
+  ,m_MarkName(sg::marker_circle_line)
+  ,m_MarkSize(5)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~type() {
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  type(const type& a_from)
+  :m_name(a_from.m_name)
+  ,m_DrawAs(a_from.m_DrawAs)
+  ,m_Visibility(a_from.m_Visibility)
+  ,m_color(a_from.m_color)  
+  ,m_MarkName(a_from.m_MarkName)
+  ,m_MarkSize(a_from.m_MarkSize)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  type& operator=(const type& a_from){
+    m_name = a_from.m_name;
+    m_DrawAs = a_from.m_DrawAs;
+    m_Visibility = a_from.m_Visibility;
+    m_color = a_from.m_color;
+    m_MarkName = a_from.m_MarkName;
+    m_MarkSize = a_from.m_MarkSize;
+    return *this;
+  }
+public:
+  bool match(const std::string& a_path) const {
+    if(a_path.find('/')==std::string::npos) {
+      if(m_name.empty()) return false;      
+      return m_name.back()==a_path;
+    } else {
+      std::vector<std::string> items;
+      words(a_path,"/",false,items); 
+      return m_name==items;
+    }
+  }
+public:
+  std::vector<std::string> m_name;
+  std::string m_DrawAs;
+  bool m_Visibility;
+  colorf m_color; 
+  sg::marker_style m_MarkName;
+  double m_MarkSize;
+};
+
+class main {
+public:
+  INLIB_SCLASS(inlib::heprep2::main)
+public:
+  main() {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~main() {
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  main(const main& a_from)
+  :m_types(a_from.m_types)
+  ,m_vols(a_from.m_vols)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    m_type_path.clear();
+  }
+  main& operator=(const main& a_from){
+    m_types = a_from.m_types;
+    m_vols = a_from.m_vols;
+    m_type_path.clear();
+    return *this;
+  }
+public:
+  void clear() {
+    m_types.clear();
+    m_vols.clear();
+    m_type_path.clear();
+  }
+  const type* find_type(const std::string& a_path) const {
+    inlib_vforcit(type,m_types,it) {
+      if((*it).match(a_path)) {return &(*it);}
+    }
+    return 0;
+  }
+public:
+  std::vector<type> m_types;
+  std::vector<heprep::volume> m_vols;
+  std::vector<std::string> m_type_path;
+};
+
+// trees (=tags) :
+INLIB_GLOBAL_STRING(heprep)
+INLIB_GLOBAL_STRING(typetree)
+INLIB_GLOBAL_STRING(type)
+INLIB_GLOBAL_STRING(instancetree)
+INLIB_GLOBAL_STRING(instance)
+
+// elements :
+INLIB_GLOBAL_STRING(attvalue)
+INLIB_GLOBAL_STRING(point)
+
+// attributes :
+INLIB_GLOBAL_STRING(name)
+
+inline bool load_primitive(std::ostream& a_out,const xml::tree& a_tree,
+                           const std::string& a_type,std::vector<heprep::primitive>& a_prims) {
+  // a_tree is a <instance>.
+
+  heprep::primitive prim;
+
+  if(a_type==heprep::s_Cylinder()) {
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_attvalue,Radius1)
+    double Radius1;
+    if(!heprep::s2value(a_out,s_Radius1_value,Radius1,5.0)) return false;
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_attvalue,Radius2)
+    double Radius2;
+    if(!heprep::s2value(a_out,s_Radius2_value,Radius2,5.0)) return false;
+
+    if(!is_Radius1||!is_Radius2) {
+      a_out << "inlib::heprep2::load_primitive :"
+            << " Cylinder prim but Radius1 or Radius2 attribute missing."
+            << std::endl;
+      return false;
+    }
+
+    prim.m_Radius1 = Radius1;
+    prim.m_Radius2 = Radius2;
+  }
+
+ {xml::looper _for(a_tree);
+  while(xml::element* _elem = _for.next_element()) {
+    if(_elem->name()==s_point()) {
+      double x,y,z;
+      bool found_x = false;
+      bool found_y = false;
+      bool found_z = false;
+      inlib_vforcit(xml::element::atb,_elem->attributes(),it) {
+        const std::string& name = (*it).first;
+        const std::string& value = (*it).second;
+        if(name==heprep::s_x()) {
+          if(!to<double>(value,x)) {
+            a_out << "inlib::heprep2::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_x = true;
+        } else if(name==heprep::s_y()) {
+          if(!to<double>(value,y)) {
+            a_out << "inlib::heprep2::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_y = true;
+        } else if(name==heprep::s_z()) {
+          if(!to<double>(value,z)) {
+            a_out << "inlib::heprep2::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_z = true;
+        }
+      }
+      if(!found_x||!found_y||!found_z) {
+        a_out << "inlib::heprep2::load_primitive : x or y or z missing." << std::endl;
+        return false;
+      }
+      prim.m_pts.push_back(heprep::point(x,y,z));
+    } else if(_elem->name()==s_attvalue()) {
+    } else {
+      a_out << "inlib::heprep2::load_primitive :"
+            << " unknown field " << sout(_elem->name()) << "."
+            << std::endl; 
+    }
+  }}
+
+  a_prims.push_back(prim);
+
+  return true;
+}
+
+inline bool load_types(std::ostream& a_out,const xml::tree& a_tree,main& a_main) {
+  // a_tree is a <typetree> or <type>.
+
+ {xml::looper _for(a_tree);
+  while(xml::tree* _tree = _for.next_tree()) {
+    const std::string& tag = _tree->tag_name();
+    //a_out << "inlib::heprep2::load_types : tag " << tag << std::endl;
+    if(tag==s_type()) {
+      std::string name;
+      if(!_tree->attribute_value(s_name(),name)) {
+        a_out << "inlib::heprep2::load_types : <type> had no name attribute." << std::endl; 
+        return false;
+      }
+      //a_out << "inlib::heprep2::load_types :"
+      //      << " <type> with name " << sout(name) << "."
+      //      << std::endl; 
+      INLIB_HEPREP_ATT_VALUE((*_tree),s_attvalue,DrawAs)
+
+      INLIB_HEPREP_ATT_VALUE((*_tree),s_attvalue,Color)
+      colorf color;
+      if(!heprep::s2color(a_out,s_Color_value,color,colorf_white())) return false;    
+      
+      INLIB_HEPREP_ATT_VALUE(*_tree,s_attvalue,Visibility)
+      bool Visibility;
+      if(!heprep::s2value(a_out,s_Visibility_value,Visibility,true)) return false;    
+
+      INLIB_HEPREP_ATT_VALUE(*_tree,s_attvalue,MarkName)
+      sg::marker_style MarkName = sg::marker_circle_line;
+      if(!heprep::s2marker_style(a_out,s_MarkName_value,MarkName)) return false;
+
+      INLIB_HEPREP_ATT_VALUE(*_tree,s_attvalue,MarkSize)
+      double MarkSize;
+      if(!heprep::s2value(a_out,s_MarkSize_value,MarkSize,5.0)) return false;    
+
+      a_main.m_type_path.push_back(name);
+      type _type;
+      _type.m_name = a_main.m_type_path;
+      _type.m_DrawAs = s_DrawAs_value;
+      _type.m_Visibility = Visibility;    
+      _type.m_color = color;    
+      _type.m_MarkName = MarkName;    
+      _type.m_MarkSize = MarkSize;    
+    //a_out << "inlib::heprep2::load_types :"
+    //      << " push_back type " << sout(name) << " with DrawAs " << s_DrawAs_value << "."
+    //      << std::endl; 
+    //{inlib_vforcit(std::string,_type.m_name,it) a_out << " " << *it << std::endl;}
+      a_main.m_types.push_back(_type);
+      if(!load_types(a_out,*_tree,a_main)) return false;
+      a_main.m_type_path.pop_back();
+
+    } else {
+      a_out << "inlib::heprep2::load_types :"
+            << " unknown tag " << sout(tag) << "."
+            << std::endl; 
+//      return false;
+    }
+  }}
+
+  return true;
+}
+
+inline bool load_instances(std::ostream& a_out,const xml::tree& a_tree,main& a_main) {
+  // a_tree is a <instancetree> or <instance>.
+
+ {xml::looper _for(a_tree);
+  while(xml::tree* _tree = _for.next_tree()) {
+    const std::string& tag = _tree->tag_name();
+    //a_out << "inlib::heprep2::load_instances : tag " << tag << std::endl;
+    if(tag==s_instance()) {
+      std::string stype;
+      if(!_tree->attribute_value(s_type(),stype)) {
+        a_out << "inlib::heprep2::load_instances : <instane> had no type attribute." << std::endl; 
+        return false;
+      }
+      //a_out << "inlib::heprep2::load_instances :"
+      //      << " <instance> with type " << sout(stype) << "."
+      //      << std::endl; 
+      const type* _type = a_main.find_type(stype);
+      if(!_type) {
+        a_out << "inlib::heprep2::load_instances :"
+              << " <instance> of type " << sout(stype) << ", but type not found."
+              << std::endl; 
+        return false;
+      }
+    //a_out << "inlib::heprep2::load_instances :"
+    //      << " <instance> with type " << sout(stype) << " and Draw As " << _type->m_DrawAs << "."
+    //      << std::endl; 
+      if(_type->m_DrawAs.size()) {
+        heprep::volume vol;
+        vol.m_DrawAs = _type->m_DrawAs;
+        vol.m_color = _type->m_color;
+        vol.m_Visibility = _type->m_Visibility;
+
+        if(!load_primitive(a_out,*_tree,_type->m_DrawAs,vol.m_prims)) return false;
+        a_main.m_vols.push_back(vol);
+      }      
+
+      if(!load_instances(a_out,*_tree,a_main)) return false;
+    } else {
+      a_out << "inlib::heprep2::load_instances :"
+            << " unknown tag " << sout(tag) << "."
+            << std::endl; 
+//      return false;
+    }
+  }}
+
+  return true;
+}
+
+inline bool scan_tree(std::ostream& a_out,const xml::tree& a_tree,main& a_main) {
+
+  const std::string& tag = a_tree.tag_name();
+  //a_out << "scan_tree : tag " << tag << std::endl;
+
+  if(tag==s_heprep()){
+    xml::looper _for(a_tree);
+    while(xml::tree* _tree = _for.next_tree()) {
+      if(!scan_tree(a_out,*_tree,a_main)) return false;
+    }
+
+  } else if(tag==s_typetree()) {
+
+    a_main.m_type_path.clear();
+    if(!load_types(a_out,a_tree,a_main)) return false;
+
+  } else if(tag==s_instancetree()) {
+
+    if(!load_instances(a_out,a_tree,a_main)) return false;
+
+  } else {
+    a_out << "inlib::heprep::scan_tree :"
+          << " unknown tag " << sout(tag) << "."
+          << std::endl; 
+//      return false;
+  }
+
+  return true;
+}
+
+}}
+
+#endif

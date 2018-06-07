@@ -1,0 +1,99 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_yacc_calc
+#define exlib_yacc_calc
+
+#include <string>
+#include <vector>
+#include <ostream>
+
+#include "cexpr_eval.h"
+
+#include <inlib/sout>
+
+namespace exlib {
+
+inline bool calc(std::ostream& a_out,const std::string& a_formula,const std::vector<double>& a_vals,double& a_value){
+  exlib::yacc::cexpr_eval proc(a_out,a_formula);
+  std::vector<std::string> vars;
+  if(!proc.find_variables(vars)) {
+    a_out << "exlib::calc : can't find variables in " << inlib::sout(a_formula) << "." << std::endl;
+    return false;
+  }
+  if(!proc.compile(vars)) {
+    a_out << "exlib::calc : can't compile " << inlib::sout(a_formula) << "." << std::endl;
+    return false;
+  }
+  unsigned int number = vars.size();
+  if(a_vals.size()!=number) {
+    a_out << "exlib::calc : bad number of values. " << (int)number << " required." << std::endl;
+    return false;
+  }
+  std::vector<inlib::value> vals;
+  vals.resize(number,inlib::value(0.));
+
+ {std::vector<double>::const_iterator it1 = a_vals.begin();
+  std::vector<inlib::value>::iterator it2 = vals.begin();
+  for(;it1!=a_vals.end();++it1,++it2) (*it2).set(*it1);}
+
+  inlib::value res;
+  std::string serror;
+  if(!proc.execute(vals,res,serror)) {
+    a_out << "exlib::calc : execution failure of " << inlib::sout(a_formula)
+          << ". Error message " << inlib::sout(serror) << std::endl;
+    return false;
+  }
+  return inlib::value::to_double(res,a_value);
+}
+
+inline bool calc(std::ostream& a_out,const std::string& a_formula,const std::vector<std::string>& a_vals,std::string& a_value){
+  exlib::yacc::cexpr_eval proc(a_out,a_formula);
+  std::vector<std::string> vars;
+  if(!proc.find_variables(vars)) {
+    a_out << "exlib::calc : can't find variables in " << inlib::sout(a_formula) << "." << std::endl;
+    return false;
+  }
+  if(!proc.compile(vars)) {
+    a_out << "exlib::calc : can't compile " << inlib::sout(a_formula) << "." << std::endl;
+    return false;
+  }
+  unsigned int number = vars.size();
+  if(a_vals.size()!=number) {
+    a_out << "exlib::calc : bad number of values. " << (int)number << " required." << std::endl;
+    return false;
+  }
+  std::vector<inlib::value> vals;
+  vals.resize(number,inlib::value(0.));
+
+ {std::vector<std::string>::const_iterator it1 = a_vals.begin();
+  std::vector<inlib::value>::iterator it2 = vals.begin();
+  for(;it1!=a_vals.end();++it1,++it2) {
+    double d;
+    if(!inlib::to<double>(*it1,d)) {
+      a_out << "exlib::calc : argument " << inlib::sout(*it1) << " not a double." << std::endl;
+      return false;
+    }
+    (*it2).set(d);
+  }}
+
+  inlib::value res;
+  std::string serror;
+  if(!proc.execute(vals,res,serror)) {
+    a_out << "exlib::calc : exection failure of " << inlib::sout(a_formula)
+          << ". Error message " << inlib::sout(serror) << std::endl;
+    return false;
+  }
+
+  if(res.type()!=inlib::value::DOUBLE) {
+    a_out << "exlib::calc : result not a double." << std::endl;
+    return false;
+  }
+
+  a_value = inlib::value::to_string(res);
+  return true;
+}
+
+}
+
+#endif

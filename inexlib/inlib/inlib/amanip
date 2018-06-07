@@ -1,0 +1,67 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_amanip
+#define inlib_amanip
+
+//fixed array manips
+
+namespace inlib {
+namespace amanip {
+
+template <class T,class I>
+inline bool copy(T*& a_v,I a_n,const T* a_from){
+  delete [] a_v;
+  a_v = 0;
+  if(a_n) {
+    a_v = new T[a_n];
+    if(!a_v) return false;
+  }
+  for(I i=0;i<a_n;i++) a_v[i] = a_from[i];
+  return true;
+}
+
+/*
+template <class T>
+inline T value(const T* a_v,
+               unsigned int a_q,
+               unsigned int a_i,unsigned int a_j){
+  // to get value in the case a x[p][q] is stored in a x[p*q].
+  // (used in hep/polyhedron_arb8)
+  // WARNING : no check is done on a_i, a_j
+  return a_v[a_i*a_q+a_j];
+}
+*/
+
+}}
+
+#include <cmath>
+
+namespace inlib {
+namespace amanip {
+
+template <class T,class I>
+inline bool normalize(I a_n,T*& a_v){
+  T sz = T();
+  for(I i=0;i<a_n;i++) sz += a_v[i]*a_v[i];
+  sz = (T)::sqrt(sz);
+  if(sz==T()) return false;
+  for(I i=0;i<a_n;i++) a_v[i] /= sz;
+  return true;
+}
+
+/*
+template <class T>
+inline T value(const T* a_v,
+               unsigned int a_q,
+               unsigned int a_i,unsigned int a_j){
+  // to get value x[i][j] in the case a x[p][q] is stored in a x[p*q].
+  // (used in hep/polyhedron_arb8)
+  // WARNING : no check is done on a_i, a_j
+  return a_v[a_i*a_q+a_j];
+}
+*/
+
+}}
+
+#endif

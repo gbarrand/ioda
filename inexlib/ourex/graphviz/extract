@@ -1,0 +1,385 @@
+#!/bin/sh -f
+
+save_dir=`pwd`
+
+bush_home=../../../bush
+${bush_home}/check_app _incs '_incs not found.'
+use_status=$?;if [ ${use_status} != 0 ] ; then exit ${use_status};fi
+
+graphviz_home=../../ourex_zips/graphviz-2.28.0
+
+#verbose=-verbose
+
+#/bin/rm -R -f ./lib
+find ./lib -name '*.h' -exec /bin/rm -f {} \;
+find ./lib -name '*.c' -exec /bin/rm -f {} \;
+
+find ./plugin -name '*.h' -exec /bin/rm -f {} \;
+find ./plugin -name '*.c' -exec /bin/rm -f {} \;
+
+#set -x
+
+#/////////////////////////////////////////////////////////////////////
+#/// cdt /////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/cdt
+cd ${graphviz_home}/lib/cdt
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+
+#/////////////////////////////////////////////////////////////////////
+#/// graph ///////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/graph
+cd ${graphviz_home}/lib/graph
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// pathplan ////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/pathplan
+cd ${graphviz_home}/lib/pathplan
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} pathgeom.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} pathplan.h
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// sparse //////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/sparse
+cd ${graphviz_home}/lib/sparse
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// pack ////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/pack
+cd ${graphviz_home}/lib/pack
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// neatogen ////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/neatogen
+cd ${graphviz_home}/lib/neatogen
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// fdpgen //////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/fdpgen
+cd ${graphviz_home}/lib/fdpgen
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// xdot ////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/xdot
+cd ${graphviz_home}/lib/xdot
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// common //////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/common
+cd ${graphviz_home}/lib/common
+
+dirs="."
+
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} types.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} const.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} color.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} logic.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} macros.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} memory.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} colorprocs.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} geomprocs.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} utils.h
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} pointset.h
+
+#_incs ${verbose} -pack -dirs=${dirs} -to=${to} args.c
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+
+/bin/cp ./modified/psusershape.c ./lib/common/.
+/bin/cp ./modified/timing.c ./lib/common/.
+
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// gvc /////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/gvc
+cd ${graphviz_home}/lib/gvc
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// dotgen //////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/lib/dotgen
+cd ${graphviz_home}/lib/dotgen
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// plugin/dot_layout ///////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/plugin/dot_layout
+cd ${graphviz_home}/plugin/dot_layout
+
+dirs="."
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// plugin/core /////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/plugin/core
+cd ${graphviz_home}/plugin/core
+
+dirs="."
+
+_incs ${verbose} -pack -dirs=${dirs} -to=${to} gvrender_core_dot.c
+
+cd ${save_dir}
+dirs=
+#exit
+
+#//////////////////////////
+#//////////////////////////
+#//////////////////////////
+
+/bin/cp ${graphviz_home}/builddate.h .
+
+/bin/rm -f ./lib/pack/ptest.c
+/bin/rm -f ./lib/gvc/regex_win32.c
+/bin/rm -f ./lib/gvc/regex_win32.h
+/bin/rm -f ./lib/common/strcasecmp.c
+/bin/rm -f ./lib/common/strncasecmp.c
+
+/bin/rm -f ./lib/common/y.tab.c
+/bin/rm -f ./lib/graph/y.tab.c
+
+/bin/rm -R ./lib/common/libltdl
+/bin/rm -R ./plugin/dot_layout/gvplugin_dot_layout.c
+
+#//////////////////////////
+#/// HAVE_CONFIG_H ////////
+#//////////////////////////
+# Avoid HAVE_CONFIG_H that can clashes with ones in other packages.
+
+/bin/rm -f tmp_0
+find . -name '*.h' -print > tmp_0
+find . -name '*.c' -print >> tmp_0
+for file in $(cat tmp_0) ; do
+  sed -e 's:ifdef HAVE_CONFIG_H:ifndef GV_HAVE_CONFIG_H /*G.Barrand*/:g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+  sed -e 's:"config.h":"gv_config.h":g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+  sed -e 's:<config.h>:<gv_config.h>:g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+done
+/bin/rm -f tmp_0
+
+#//////////////////////////
+#/// memory.h problem /////
+#//////////////////////////
+# Android : memory.h exist in ndk and is taken first !
+
+/bin/mv ./lib/common/memory.h ./lib/common/gv_memory.h 
+
+/bin/rm -f tmp_0
+echo './lib/common/render.h' > tmp_0
+find . -name '*.c' -print >> tmp_0
+for file in $(cat tmp_0) ; do
+  sed -e 's:"memory.h":"gv_memory.h":g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+done
+/bin/rm -f tmp_0
+
+file=./lib/sparse/general.h
+sed -e 's:<memory.h>:<gv_memory.h>:g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+
+#//////////////////////////
+#/// utils.h problem //////
+#//////////////////////////
+# clash with the ourex/SOPHYA one.
+
+/bin/mv ./lib/common/utils.h ./lib/common/gv_utils.h 
+
+/bin/rm -f tmp_0
+echo './lib/common/render.h' > tmp_0
+find . -name '*.c' -print >> tmp_0
+for file in $(cat tmp_0) ; do
+  sed -e 's:"utils.h":"gv_utils.h":g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+done
+/bin/rm -f tmp_0
+
+#//////////////////////////
+#/// poly.h problem ///////
+#//////////////////////////
+# clash with the ourex/SOPHYA one.
+
+/bin/mv ./lib/neatogen/poly.h ./lib/neatogen/gv_poly.h 
+
+files=
+files="${files} ./lib/neatogen/info.h"
+files="${files} ./lib/neatogen/poly.c"
+
+for file in ${files} ; do
+  echo "sed poly.h on ${file} ..."
+  sed -e 's:"poly.h":"gv_poly.h":g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+done
+
+#//////////////////////////
+#/// rm CVS id ////////////
+#//////////////////////////
+/bin/rm -f tmp_0
+find . -name '*.c' -print >> tmp_0
+find . -name '*.cP' -print >> tmp_0
+find . -name '*.h' -print >> tmp_0
+s_id='$'
+s_id="${s_id}id:"
+s_Id='$'
+s_Id="${s_Id}Id:"
+for file in $(cat tmp_0) ; do
+  if [ "`echo ${file} | sed -e 's:dtopen.c::g'`" = ${file} ] ; then
+    #echo ${file}
+    grep -v "${s_id}" ${file} > tmp_1;/bin/mv tmp_1 ${file}
+    grep -v "${s_Id}" ${file} > tmp_1;/bin/mv tmp_1 ${file}
+  fi
+done
+/bin/rm -f tmp_0
+
+#//////////////////////////
+#//////////////////////////
+#//////////////////////////
+/bin/cp ./modified/gvlayout_dot_layout.c ./plugin/dot_layout/.
+/bin/cp ./modified/gvrender_core_dot.c ./plugin/core/.
+/bin/cp ./modified/general.h ./lib/sparse/.
+/bin/cp ./modified/general.c ./lib/sparse/.
+/bin/cp ./modified/stuff.c ./lib/neatogen/.
+/bin/cp ./modified/stress.c ./lib/neatogen/.
+/bin/cp ./modified/multispline.c ./lib/neatogen/.
+/bin/cp ./modified/adjust.c ./lib/neatogen/.
+/bin/cp ./modified/gvusershape.c ./lib/gvc/.
+/bin/cp ./modified/gvdevice.c ./lib/gvc/.
+/bin/cp ./modified/gvc.c ./lib/gvc/.
+/bin/cp ./modified/gvcjob.h ./lib/gvc/.
+/bin/cp ./modified/lexer.c ./lib/graph/.
+/bin/cp ./modified/rank.c ./lib/dotgen/.
+/bin/cp ./modified/utils.c ./lib/common/.
+/bin/cp ./modified/splines.c ./lib/common/.
+/bin/cp ./modified/postproc.c ./lib/common/.
+/bin/cp ./modified/geomprocs.h ./lib/common/.
+/bin/cp ./modified/geom.c ./lib/common/.
+/bin/cp ./modified/emit.c ./lib/common/.
+/bin/cp ./modified/arith.h ./lib/common/.
+/bin/cp ./modified/colxlate.c ./lib/common/.
+/bin/cp ./modified/cdt.h ./lib/cdt/.
+/bin/cp ./modified/dtopen.c ./lib/cdt/.
+/bin/cp ./modified/shapes.c ./lib/common/.
+/bin/cp ./modified/dotsplines.c ./lib/dotgen/.
+/bin/cp ./modified/fastgr.c ./lib/dotgen/.
+/bin/cp ./modified/libgraph.h ./lib/graph/.
+
+/bin/cp ./modified/circuit.c ./lib/neatogen/.
+/bin/cp ./modified/matinv.c ./lib/neatogen/.
+/bin/cp ./modified/neatoprocs.h ./lib/neatogen/.
+
+#//////////////////////////
+#/// strcasecmp ///////////
+#//////////////////////////
+# WIN32 strcasecmp, strncasecmp clashes with the one in cfitsio.
+
+/bin/rm -f tmp_0
+find ./lib -name '*.h' -print > tmp_0
+find ./lib -name '*.c' -print >> tmp_0
+for file in $(cat tmp_0) ; do
+  sed -e 's:strcasecmp:gv_strcasecmp:g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+  sed -e 's:strncasecmp:gv_strncasecmp:g' ${file} > tmp_1;/bin/mv tmp_1 ${file}
+done
+/bin/rm -f tmp_0
+
+#/////////////////////////////
+#/// rm file with no code ////
+#/////////////////////////////
+/bin/rm ./lib/neatogen/compute_hierarchy.c
+/bin/rm ./lib/neatogen/constrained_majorization.c
+/bin/rm ./lib/neatogen/constrained_majorization_ipsep.c
+/bin/rm ./lib/neatogen/mosek_quad_solve.c
+/bin/rm ./lib/neatogen/opt_arrangement.c
+/bin/rm ./lib/neatogen/quad_prog_solve.c
+/bin/rm ./lib/neatogen/quad_prog_vpsc.c
+/bin/rm ./lib/neatogen/smart_ini_x.c

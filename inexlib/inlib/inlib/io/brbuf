@@ -1,0 +1,347 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_io_brbuf
+#define inlib_io_brbuf
+
+#include "irbuf"
+
+#ifdef INLIB_MEM
+#include "../mem"
+#endif
+
+#include <ostream>
+
+#include "../realloc"
+#include "../rroot/rbuf"
+#include "../cstr"
+
+namespace inlib {
+namespace io {
+
+class brbuf : public virtual irbuf {
+#ifdef INLIB_MEM
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::io::brbuf");
+    return s_v;
+  }
+#endif
+public: //irbuf
+  virtual bool read(uchar& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(char& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(uint16& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(int16& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(uint32& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(int32& a_x){return m_rbuf.read(a_x);}
+
+  virtual bool read(uint64& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(int64& a_x){return m_rbuf.read(a_x);}
+
+  virtual bool read(bool& a_v) {
+    uchar v;
+    bool status = read(v);
+    a_v = (v==1?true:false);
+    return status;
+  }
+
+  virtual bool read(float& a_x){return m_rbuf.read(a_x);}
+  virtual bool read(double& a_x){return m_rbuf.read(a_x);}
+
+  virtual bool read_cstr(char*& a_cstr) {
+    uint32 sz;
+    if(!m_rbuf.read(sz)) {a_cstr = 0;return false;}
+    if(int32(sz)>remaining()) {a_cstr = 0;return false;}
+    a_cstr = str_new(sz);
+    ::memcpy(a_cstr,m_pos,sz);
+    *(a_cstr+sz) = 0;
+    m_pos += sz;
+    return true;
+  }
+
+  virtual bool read_img(uint32& a_w,uint32& a_h,uint32& a_n,uchar*& a_b) {
+    a_w = a_h = a_n = 0;a_b = 0;
+
+    uint32 w,h,n;
+    if(!m_rbuf.read(w)) return false;
+    if(!m_rbuf.read(h)) return false;
+    if(!m_rbuf.read(n)) return false;
+
+    uint32 sz = w*h*n;
+    if(!sz) return true; //it is ok.
+    if(int32(sz)>remaining()) return false;
+
+    a_b = new uchar[sz];
+#ifdef INLIB_MEM
+    mem::increment(s_new().c_str());
+#endif
+    ::memcpy(a_b,m_pos,sz);
+    m_pos += sz;
+
+    a_w = w;
+    a_h = h;
+    a_n = n;
+    return true;
+  }
+
+  virtual bool read_vec(uint32& a_n,uchar*& a_x){
+    return _read_array<uchar>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,char*& a_x){
+    return _read_array<char>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,uint16*& a_x){
+    return _read_array<uint16>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,int16*& a_x){
+    return _read_array<int16>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,uint32*& a_x){
+    return _read_array<uint32>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,int32*& a_x){
+    return _read_array<int32>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,uint64*& a_x){
+    return _read_array<uint64>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,int64*& a_x){
+    return _read_array<int64>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,float*& a_x){
+    return _read_array<float>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,double*& a_x){
+    return _read_array<double>(a_n,a_x);
+  }
+  virtual bool read_vec(uint32& a_n,bool*& a_x){
+    return _read_array<bool>(a_n,a_x);
+  }
+
+  virtual bool read_vec(std::vector<std::string>& a_a){
+    uint32 n;
+    if(!m_rbuf.read(n)) {a_a.clear();return false;}
+    a_a.resize(n);
+    for(uint32 index=0;index<n;index++) {
+      char* cstr;
+      if(!read_cstr(cstr)) {a_a.clear();return false;}
+      a_a[index] = cstr;
+      str_del(cstr);
+    }
+    return true;
+  }
+
+  virtual bool read_std_vec_vec(std_vec_vec_uint_t& a_vv) {
+    return _read_std_vec_vec<unsigned int>(a_vv);
+  }
+  virtual bool read_std_vec_vec(std_vec_vec_float_t& a_vv) {
+    return _read_std_vec_vec<float>(a_vv);
+  }
+  virtual bool read_std_vec_vec(std_vec_vec_double_t& a_vv) {
+    return _read_std_vec_vec<double>(a_vv);
+  }
+
+  virtual bool read_std_vec_vec(std_vec_vec_string_t& a_vv) {
+    uint32 n;
+    if(!m_rbuf.read(n)) {a_vv.clear();return false;}
+
+    for(uint32 index=0;index<n;index++) {
+      std::vector<std::string> v;
+      if(!read_vec(v)) {
+        a_vv.clear();
+        return false;
+      }
+      a_vv.push_back(v);
+    }
+
+    return true;
+  }
+
+public:
+  brbuf(std::ostream& a_out,bool a_byte_swap,size_t a_size = 1024)
+  :m_out(a_out)
+  ,m_size(0)
+  ,m_owner(false)
+  ,m_buffer(0)
+  ,m_max(0)
+  ,m_pos(0)
+  ,m_rbuf(a_out,a_byte_swap,0,m_pos)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    m_size = a_size;
+    m_owner = true;
+    m_buffer = new char[m_size];
+#ifdef INLIB_MEM
+    mem::increment(s_new().c_str());
+#endif
+    m_max = m_buffer+m_size;
+    m_pos = m_buffer;
+    m_rbuf.set_eob(m_max);
+  }
+  virtual ~brbuf(){
+    if(m_owner) {
+      delete [] m_buffer;
+#ifdef INLIB_MEM
+      mem::decrement(s_new().c_str());
+#endif
+    }
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  brbuf(const brbuf& a_from)
+  :irbuf(a_from)
+  ,m_out(a_from.m_out)
+  ,m_size(0)
+  ,m_owner(false)
+  ,m_buffer(0)
+  ,m_max(0)
+  ,m_pos(0)
+  ,m_rbuf(a_from.m_rbuf)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  brbuf& operator=(const brbuf&){return *this;}
+public:
+  void reset_pos() {m_pos = m_buffer;}
+  void set_byte_swap(bool a_value) {m_rbuf.set_byte_swap(a_value);}
+/*
+  bool copy(size_t a_size,const char* a_buffer) {
+    if(m_owner) {
+      delete [] m_buffer;
+#ifdef INLIB_MEM
+      mem::decrement(s_new().c_str());
+#endif
+    }
+    m_owner = true;
+    m_buffer = new char[a_size];
+    if(!m_buffer) {m_size = 0;m_max = 0;m_pos = 0;return false;}
+#ifdef INLIB_MEM
+    mem::increment(s_new().c_str());
+#endif
+    ::memcpy(m_buffer,a_buffer,a_size);
+    m_size = a_size;
+    m_max = m_buffer + m_size;
+    m_pos = m_buffer;
+    m_rbuf.set_eob(m_max);
+    return true;
+  }
+
+  bool set(size_t a_size,char* a_buffer,bool a_owner) {
+    if(m_owner) {
+      delete [] m_buffer;
+#ifdef INLIB_MEM
+      mem::decrement(s_new().c_str());
+#endif
+    }
+    m_owner = a_owner;
+    m_buffer = a_buffer;
+    m_size = a_size;
+    m_max = m_buffer + m_size;
+    m_pos = m_buffer;
+    m_rbuf.set_eob(m_max);
+    return true;
+  }
+*/
+
+  bool set(size_t a_size,const char* a_buffer) {
+    if(m_owner) {
+      delete [] m_buffer;
+#ifdef INLIB_MEM
+      mem::decrement(s_new().c_str());
+#endif
+    }
+    m_owner = false;
+    m_buffer = (char*)a_buffer;
+    m_size = a_size;
+    m_max = (char*)m_buffer + m_size;
+    m_pos = (char*)m_buffer;
+    m_rbuf.set_eob(m_max);
+    return true;
+  }
+
+  bool read_std_string(std::string& a_s){
+    char* cstr;
+    if(!read_cstr(cstr)) {a_s.clear();return false;}
+    a_s = cstr;
+    str_del(cstr);
+    return true;
+  }
+
+  int32 remaining() const {return (int32)(m_max - m_pos);}
+
+  // for read_bsg :
+  size_t length() const {return m_pos-m_buffer;}
+  bool set_at_offset(size_t a_offset) {
+    if(m_buffer+a_offset>m_max) return false;
+    m_pos = m_buffer+a_offset;
+    return true;
+  }
+protected:
+  template <class ta_type>
+  bool _read_array(uint32& a_n,ta_type*& a_a){
+    if(!m_rbuf.read(a_n)) {a_n = 0;a_a = 0;return false;}
+    unsigned int sz = a_n*sizeof(ta_type);
+    if(int32(sz)>remaining()) {a_n = 0;a_a = 0;return false;}
+    a_a = new ta_type[a_n+1]; //+1 to handle a_n=0.
+    if(!a_a) {a_n = 0;return false;}
+#ifdef INLIB_MEM
+    mem::increment(s_new().c_str());
+#endif
+    for(uint32 index=0;index<a_n;index++) {
+      ta_type v;
+      if(!m_rbuf.read(v)) {
+        delete [] a_a;
+#ifdef INLIB_MEM
+        mem::decrement(s_new().c_str());
+#endif
+        a_a = 0;
+        a_n = 0;
+        return false;
+      }
+      *(a_a+index) = v;
+    }
+    return true;
+  }
+
+  template <class T>
+  bool _read_std_vec_vec(std::vector< std::vector<T> >& a_vv) {
+    uint32 n;
+    if(!m_rbuf.read(n)) {a_vv.clear();return false;}
+
+    for(uint32 index=0;index<n;index++) {
+      uint32 sz;
+      T* v;
+      if(!_read_array<T>(sz,v)) { //v is allocated with new T[].
+        a_vv.clear();
+        return false;
+      }
+      std::vector<T> sv(sz); //sz could be 0.
+      for(unsigned int i=0;i<sz;i++) sv[i] = v[i];
+      delete [] v;
+#ifdef INLIB_MEM
+      mem::decrement(s_new().c_str());
+#endif
+      a_vv.push_back(sv);
+    }
+
+    return true;
+  }
+
+protected:
+  std::ostream& m_out;
+  size_t m_size;
+  bool m_owner;
+  char* m_buffer;
+  char* m_max;
+  char* m_pos;
+  rroot::rbuf m_rbuf;
+};
+
+}}
+
+#endif

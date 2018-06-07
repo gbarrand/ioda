@@ -1,0 +1,25 @@
+#ifndef wrap_styles_help
+#define wrap_styles_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    styles.help
+//
+
+inline const char** styles_help(unsigned int& a_linen){
+  static const char _0[] = "  A lot can be customized by editing and installing";
+  static const char _1[] = "  a ioda.style file in the document directory. The";
+  static const char _2[] = "  best is to have a look at the @@double_quote@@Customization@@double_quote@@ section";
+  static const char _3[] = "  in the web pages.";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+};
+ a_linen = 4;
+ return _lines;
+}
+
+#endif

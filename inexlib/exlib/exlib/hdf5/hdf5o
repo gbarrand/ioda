@@ -1,0 +1,186 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_hdf5o
+#define exlib_hdf5_hdf5o
+
+#include "atb"
+#include "tools"
+
+#include <string>
+#include <vector>
+#include <cstdio>
+
+namespace exlib {
+namespace hdf5 {
+
+class hdf5o {
+public:
+  hdf5o(int level = 1);
+  virtual ~hdf5o(){
+    if(m_scalar>=0) ::H5Sclose(m_scalar);
+    if(m_simple>=0) ::H5Sclose(m_simple);
+    if(m_CPT>=0) ::H5Pclose(m_CPT);
+  }
+public:
+  bool write_atb(hid_t aDS,const std::string& a_name,const std::string& aData) const {
+    // From H5LT.c/H5LTset_attribute_string.
+    int has_attr = H5LT_find_attribute(aDS,a_name.c_str());
+    if(has_attr==1)  {
+      if(::H5Adelete(aDS,a_name.c_str())<0) return false;
+    }
+    hid_t datatype = string_datatype(aData.size()+1);
+    if(datatype<0) return false;
+    hid_t aid = exlib_H5Acreate(aDS,a_name.c_str(),datatype,m_scalar,H5P_DEFAULT);
+    if(aid<0) {
+      ::H5Tclose(datatype);
+      return false;
+    }
+    if(::H5Awrite(aid,datatype,aData.c_str())<0) {
+      ::H5Aclose(aid);
+      ::H5Tclose(datatype);
+      return false;
+    }
+    ::H5Aclose(aid);
+    ::H5Tclose(datatype);
+    return true;
+  }
+
+  bool write_atb(hid_t aDS,const std::string& a_name,int aData) const {
+    int has_attr = H5LT_find_attribute(aDS,a_name.c_str());
+    if(has_attr==1)  {
+      if(::H5Adelete(aDS,a_name.c_str())<0) return false;
+    }
+    hid_t aid = 
+      exlib_H5Acreate(aDS,a_name.c_str(),H5T_STD_I32XX(),m_scalar,H5P_DEFAULT);
+    if(aid<0) return false;
+    if(::H5Awrite(aid,H5T_NATIVE_INT,&aData)<0) {
+      ::H5Aclose(aid);
+      return false;
+    }
+    ::H5Aclose(aid);
+    return true;
+  }
+
+  bool write_atb(hid_t aDS,const std::string& a_name,unsigned int aData) const {
+    int has_attr = H5LT_find_attribute(aDS,a_name.c_str());
+    if(has_attr==1)  {
+      if(::H5Adelete(aDS,a_name.c_str())<0) return false;
+    }
+    hid_t aid = 
+      exlib_H5Acreate(aDS,a_name.c_str(),H5T_STD_U32XX(),m_scalar,H5P_DEFAULT);
+    if(aid<0) return false;
+    if(::H5Awrite(aid,H5T_NATIVE_UINT,&aData)<0) {
+      ::H5Aclose(aid);
+      return false;
+    }
+    ::H5Aclose(aid);
+    return true;
+  }
+
+  bool write_object(hid_t a_loc,const std::string& a_name,hid_t a_file_type,unsigned int,char* aData) const {
+    if(m_simple<0) return false;
+    if(m_CPT<0) return false;
+
+    hid_t mem_type = compound_mem_type(a_file_type);
+    if(mem_type<0) {
+      //printf("debug : write_object : compound_mem_type failed.\n");
+      return false;
+    }
+
+    hid_t dataset = exlib_H5Dcreate(a_loc,a_name.c_str(),a_file_type,m_simple,m_CPT);
+    if(dataset<0) {
+      ::H5Tclose(mem_type);                 
+      return false;
+    }
+    if(::H5Dwrite(dataset,mem_type,H5S_ALL,H5S_ALL,H5P_DEFAULT,aData)<0) {
+      ::H5Dclose(dataset);                 
+      ::H5Tclose(mem_type);                 
+      return false;
+    }
+    ::H5Dclose(dataset);                 
+    ::H5Tclose(mem_type);                 
+    return true;
+  }
+
+  bool read_object(hid_t a_loc,const std::string& a_name,size_t& aSize,char*& aData) const {
+    hid_t dataset = exlib_H5Dopen(a_loc,a_name.c_str());
+    if(dataset<0) {
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+
+    hid_t filetype = ::H5Dget_type(dataset);
+    if(filetype<0) {
+      ::H5Dclose(dataset);
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+
+    H5T_class_t t_class = ::H5Tget_class(filetype);
+    if(t_class!=H5T_COMPOUND) {
+      ::H5Tclose(filetype);
+      ::H5Dclose(dataset);
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+  
+    size_t sz = ::H5Tget_size(filetype);
+
+    hid_t memtype = compound_mem_type(filetype);
+    if(memtype<0) {
+      ::H5Tclose(filetype);
+      ::H5Dclose(dataset);
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+
+    ::H5Tclose(filetype);
+
+    hid_t dataspace = ::H5Dget_space(dataset);
+    if(dataspace<0) {
+      ::H5Tclose(memtype);
+      ::H5Dclose(dataset);
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+
+    char* buffer = new char[sz];
+    if(::H5Dread(dataset,memtype,m_scalar,dataspace,H5P_DEFAULT,buffer)<0) {
+      delete [] buffer;
+      ::H5Sclose(dataspace);
+      ::H5Tclose(memtype);
+      ::H5Dclose(dataset);
+      aSize = 0;
+      aData = 0;
+      return false;
+    }
+
+    ::H5Sclose(dataspace);
+    ::H5Tclose(memtype);
+    ::H5Dclose(dataset);
+
+    aSize = sz;
+    aData = buffer;  
+    return true;
+  }
+
+protected:
+  int m_compress;
+  hid_t m_scalar;
+  hid_t m_simple;
+  hid_t m_CPT;
+};
+
+}}
+
+#include "hdf5o.icc"
+
+//exlib_build_use inlib hdf5
+
+#endif

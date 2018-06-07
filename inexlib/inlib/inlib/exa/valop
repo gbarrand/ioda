@@ -1,0 +1,567 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_exa_valop
+#define inlib_exa_valop
+
+#include "../valop2mathml"
+#include "../valop_exec"
+#include "../sg/valop2sg"
+
+#include "../sg/edvalop"
+
+#include "../sg/view_evd"
+
+#include <fstream>
+
+namespace inlib {
+namespace exa {
+
+////////////////////////////////////////
+////////////////////////////////////////
+/// formulas options :
+///   do=sg;what=schrodinger
+////////////////////////////////////////
+////////////////////////////////////////
+/// s_do() : ///////////////////////////
+////////////////////////////////////////
+INLIB_GLOBAL_STRING(do)
+INLIB_GLOBAL_STRING(text)
+INLIB_GLOBAL_STRING(sg)
+INLIB_GLOBAL_STRING(ml)
+////////////////////////////////////////
+/// s_what() : /////////////////////////
+////////////////////////////////////////
+INLIB_GLOBAL_STRING(what)
+INLIB_GLOBAL_STRING(schrodinger)
+INLIB_GLOBAL_STRING(dirac)
+INLIB_GLOBAL_STRING(add)
+INLIB_GLOBAL_STRING(pderiv)
+INLIB_GLOBAL_STRING(sqrt_4)
+INLIB_GLOBAL_STRING(cos_half_pi)
+INLIB_GLOBAL_STRING(sqrt_div)
+INLIB_GLOBAL_STRING(cos_div)
+INLIB_GLOBAL_STRING(mod)
+INLIB_GLOBAL_STRING(div)
+////////////////////////////////////////
+////////////////////////////////////////
+////////////////////////////////////////
+INLIB_GLOBAL_STRING(clear)
+////////////////////////////////////////
+////////////////////////////////////////
+////////////////////////////////////////
+
+inline void valop_(sg::gui_viewer& a_gv,const args& a_opts) {
+  bool sg_clear;
+  if(!a_opts.find(s_clear(),sg_clear)) sg_clear = false;
+
+  std::string sdo;
+  a_opts.find(s_do(),sdo);
+  std::string swhat;
+  if(!a_opts.find(s_what(),swhat)) swhat = s_schrodinger();
+
+  valop* ex = 0;
+
+  val_funcs funcs;
+
+  if(swhat==s_add()) {
+    //  3+4    
+    ex = new valop(valop::ADD,new valop(valop::REAL,3.0),new valop(valop::REAL,4.0));
+
+  } else if(swhat==s_div()) {
+    //    3+4
+    //  -------
+    //  10-3.14
+
+    valop* up = new valop(valop::ADD,new valop(valop::REAL,3.0),new valop(valop::REAL,4.0));
+    valop* down = new valop(valop::SUB,new valop(valop::REAL,10.0),new valop(valop::REAL,3.14));
+    valop* div = new valop(valop::DIV,up,down);
+
+    ex = div;
+
+  } else if(swhat==s_sqrt_4()) {
+    //  sqrt 4
+
+    ival_func* f_sqrt = funcs.find(s_sqrt());
+    if(!f_sqrt) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* what = new valop(valop::REAL,4.0);
+    valop* _sqrt = new valop(valop::FUNC,f_sqrt,what);
+  
+    ex = _sqrt;
+  
+  } else if(swhat==s_cos_half_pi()) {
+    //  cos(3.14/2)
+
+    ival_func* f_cos = funcs.find(s_cos());
+    if(!f_cos) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* what = new valop(valop::REAL,half_pi());
+    valop* _cos = new valop(valop::FUNC,f_cos,what);
+  
+    ex = _cos;
+  
+  } else if(swhat==s_mod()) {
+    //  mod(1,2)
+
+    ival_func* f_mod = funcs.find(s_mod());
+    if(!f_mod) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* _mod = new valop(valop::FUNC,
+      f_mod,
+      new valop(valop::REAL,1.0),
+      new valop(valop::REAL,2.0));
+
+    ex = _mod;
+  
+  } else if(swhat==s_sqrt_div()) {
+    //         3*4
+    //  sqrt -------
+    //       10-3.14
+
+    ival_func* f_sqrt = funcs.find(s_sqrt());
+    if(!f_sqrt) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* up = new valop(valop::MUL,new valop(valop::REAL,3.0),new valop(valop::REAL,4.0));
+    valop* down = new valop(valop::SUB,new valop(valop::REAL,10.0),new valop(valop::REAL,3.14));
+    valop* div = new valop(valop::DIV,up,down);
+    valop* _sqrt = new valop(valop::FUNC,f_sqrt,div);
+  
+    ex = _sqrt;
+  
+  } else if(swhat==s_cos_div()) {
+    //       3.14
+    //  cos  ----
+    //        2
+
+    ival_func* f_cos = funcs.find(s_cos());
+    if(!f_cos) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* div = new valop(valop::DIV,new valop(valop::REAL,pi()),new valop(valop::REAL,2.0));
+    valop* _sqrt = new valop(valop::FUNC,f_cos,div);
+  
+    ex = _sqrt;
+  
+  } else if(swhat==s_pderiv()) {
+    //  d psi
+    //  -------
+    //  d t
+
+    valop* fc = new valop(valop::SYMBOL,s_psi());
+    valop* va = new valop(valop::STRING,"t");
+
+    valop* up = new valop(valop::ASIDE,
+      new valop(valop::SYMBOL,s_partial_derivative()),
+      fc);
+
+    valop* down = new valop(valop::ASIDE,
+      new valop(valop::SYMBOL,s_partial_derivative()),
+      va);
+
+    valop* div = new valop(valop::DIV,up,down);
+
+    ex = div;
+
+  } else if(swhat==s_schrodinger()) {
+    //        d psi
+    // ih_bar ----- = -(h_bar**2/2m) Laplacian(psi) + V psi
+    //         d t
+
+    /////////////////////////////////////
+    /// left side : /////////////////////
+    /////////////////////////////////////
+    valop* fc = new valop(valop::SYMBOL,s_psi());
+    valop* va = new valop(valop::STRING,"t");
+
+    valop* up = new valop(valop::ASIDE,
+      new valop(valop::SYMBOL,s_partial_derivative()),
+      fc);
+    valop* down = new valop(valop::ASIDE,
+      new valop(valop::SYMBOL,s_partial_derivative()),
+      va);
+    valop* div = new valop(valop::DIV,up,down);
+
+    valop* h_bar_div = new valop(valop::NVMUL,
+      new valop(valop::SYMBOL,s_h_bar()),
+      div);
+
+    valop* left = new valop(valop::NVMUL,
+      new valop(valop::STRING,"i"),
+      h_bar_div);
+
+    /////////////////////////////////////
+    /// right side : ////////////////////
+    /////////////////////////////////////
+    ival_func* f_pow = funcs.find(s_pow());
+    if(!f_pow) {
+      a_gv.map_warn("function not found in val_funcs.");
+      return;
+    }
+
+    valop* h_bar_sqr = new valop(valop::FUNC,
+      f_pow,
+      new valop(valop::SYMBOL,s_h_bar()),
+      new valop(valop::REAL,2.0));
+
+    valop* m_2 = new valop(valop::NVMUL,
+      new valop(valop::REAL,2.0),
+      new valop(valop::STRING,"m"));
+
+    valop* fac = new valop(valop::DIV,h_bar_sqr,m_2);
+
+    valop* lap_psi = new valop(valop::ASIDE,
+      new valop(valop::SYMBOL,s_upper_delta()),
+      new valop(valop::SYMBOL,s_psi()));
+
+    valop* right_1 = new valop(valop::NVMUL,
+      new valop(valop::MINUS,fac),
+      lap_psi);
+
+    valop* right_2 = new valop(valop::NVMUL,
+      new valop(valop::STRING,"V"),
+      new valop(valop::SYMBOL,s_psi()));
+
+    valop* right = new valop(valop::ADD,
+      right_1,right_2);
+
+    // equation :
+    valop* equ = new valop(valop::EQUAL,left,right);
+
+    ex = equ;
+
+  } else if(swhat==s_dirac()) {
+    //        mu
+    // i gamma   d  psi = m psi
+    //            mu
+
+    /////////////////////////////////////
+    /// left side : /////////////////////
+    /////////////////////////////////////
+
+    valop* gamma_mu = new valop(valop::SUPS,
+      new valop(valop::SYMBOL,s_gamma()),
+      new valop(valop::SYMBOL,s_mu()));
+
+    valop* i_gamma_mu = new valop(valop::NVMUL,
+      new valop(valop::STRING,"i"),
+      gamma_mu);
+
+    valop* d_mu = new valop(valop::SUBS,
+      new valop(valop::SYMBOL,s_partial_derivative()),
+      new valop(valop::SYMBOL,s_mu()));
+
+    valop* d_mu_psi = new valop(valop::ASIDE,
+      d_mu,
+      new valop(valop::SYMBOL,s_psi()));
+
+    valop* left = new valop(valop::NVMUL,
+      i_gamma_mu,d_mu_psi);
+
+    /////////////////////////////////////
+    /// right side : ////////////////////
+    /////////////////////////////////////
+
+    valop* mc = new valop(valop::NVMUL,
+      new valop(valop::STRING,"m"),
+      new valop(valop::STRING,"c"));
+
+    valop* mc_div_h_bar = new valop(valop::DIV,
+      mc,
+      new valop(valop::SYMBOL,s_h_bar()));
+
+    valop* right = new valop(valop::NVMUL,
+      //new valop(valop::STRING,"m"),
+      mc_div_h_bar,
+      new valop(valop::SYMBOL,s_psi()));
+
+    // equation :
+    valop* equ = new valop(valop::EQUAL,left,right);
+
+    ex = equ;
+
+  } else {
+    a_gv.map_warn("unknown formula "+sout(swhat));
+  }
+
+  if(!ex) return;
+
+  if(sdo==s_ml()) { //produce out.mathml
+    std::string file;
+    if(a_gv.out_dir().size()) file = a_gv.out_dir()+sep();
+    file += "out.html";
+
+    std::ofstream writer(file.c_str());
+    if(writer.fail()) {
+      a_gv.map_warn("can't open out.html.");
+      delete ex;
+      return;
+    }
+
+    valop2mathml v(writer);
+
+    v.header();
+    if(!v.visit(*ex)) a_gv.map_warn("valop.visit failed.");
+    v.footer();
+
+    writer.close();
+
+    delete ex;
+    return;
+  }
+
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));    
+  }
+  a_gv.set_plane_viewer(true);
+
+  sg::separator& dsep = _evd->detector_sg();
+  if(sg_clear) dsep.clear();
+
+  sg::separator* sep = new sg::separator;
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_black();
+  sep->add(mat);
+
+  sep->add(new sg::normal);
+
+  //horizontal base line :
+/*
+ {sg::vertices* vtcs = new sg::vertices;
+  sep->add(vtcs);
+  vtcs->mode = gl::line_strip(); //polyline
+  vtcs->add(0,0,0);
+  vtcs->add(2,0,0);}
+
+  //y = 0 :
+ {sg::vertices* vtcs = new sg::vertices;
+  sep->add(vtcs);
+  vtcs->mode = gl::line_strip(); //polyline
+  vtcs->add(0,0,0);
+  vtcs->add(0,2,0);}
+*/
+
+  sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  if(sdo==s_text()) {
+    valop2s v;
+    if(!v.visit(*ex)) {
+      a_gv.map_warn("valop.visit failed.");
+      delete sep;
+      delete ex;
+      return;
+    }
+
+    sg::matrix* _tsf = new sg::matrix;
+    _sep->add(_tsf);
+
+    sg::base_freetype* tft = sg::base_freetype::create(a_gv.ttf());
+    tft->font = sg::font_arialbd_ttf();
+    tft->strings.add(v.m_s);
+    _sep->add(tft);
+
+    //confine to a width of 1 :
+    float xmn,ymn,zmn,xmx,ymx,zmx;
+    tft->height = 1;
+    tft->get_bounds(1,xmn,ymn,zmn,xmx,ymx,zmx);
+    float bxw = xmx-xmn;
+    float wtext = 1;
+    float nh = a_gv.wanted_size();
+    float th = nh*wtext/bxw;
+    tft->height = th;
+    tft->get_bounds(th,xmn,ymn,zmn,xmx,ymx,zmx);
+    //float bxh = box.mx()[1]-box.mn()[1];
+    float xx = -(xmn+xmx)*0.5F;
+    float yy = -(ymn+ymx)*0.5F;
+  
+    _tsf->mul_translate(xx,yy,0);
+  
+  } else if(sdo==s_sg()) {
+    valop2sg v(a_gv.out(),*_sep,a_gv.ttf());
+    if(!v.visit(*ex)) {
+      a_gv.map_warn("valop.visit failed.");
+      delete sep;
+      delete ex;
+      return;
+  }
+
+   //have an height of 1 and center :
+   {vec3f mn,mx;
+    mnmx(a_gv.out(),*_sep,mn,mx);
+    float h = mx[1]-mn[1];
+    float nh = a_gv.wanted_size();
+    float scale = h?nh/h:nh;
+    tsf->mul_scale(scale,scale,1);
+    tsf->mul_translate(-(mn[0]+mx[0])*0.5f,
+                       -(mn[1]+mx[1])*0.5f,0);}
+
+  } else {
+    a_gv.map_warn("unknown operation "+sout(sdo));
+    delete sep;
+    delete ex;
+    return;
+  }
+
+  dsep.add(sep);
+
+  a_gv.hide_main_menu();
+
+  delete ex;
+}
+
+inline sg::return_action action_edvalop(sg::gui_viewer& a_gv,sg::edvalop& a_widget) {
+  if(a_widget.edit_what==sg::edvalop::edit_calc) {
+    std::vector<value> input;
+    input.push_back(value(1.0)); //x
+    input.push_back(value(2.0)); //y
+    input.push_back(value(3.0)); //z        
+    std::string serror;
+    valop_exec v(input,serror);
+    if(!v.visit(a_widget.result())) {
+      a_gv.map_warn("exec failed");
+      return sg::return_to_render;     
+    }
+    a_gv.map_warn(value::to_string(v.ret()),false);
+
+  } else {
+    sg::view_evd* _evd = cast_view_evd(a_gv);
+    if(!_evd) return sg::return_none;
+    if(!_evd->is_evd()) {
+      _evd->create_sg_evd();
+      _evd->replace_camera(a_gv.create_2D_camera(2));
+    }
+    a_gv.set_plane_viewer(true);
+
+    sg::separator& dsep = _evd->detector_sg();
+  //if(sg_clear) dsep.clear();
+
+    sg::separator* sep = new sg::separator;
+
+    sg::matrix* tsf = new sg::matrix;
+    sep->add(tsf);
+
+    sg::rgba* mat = new sg::rgba();
+    mat->color = colorf_black();
+    sep->add(mat);
+    sep->add(new sg::normal);
+
+    valop2sg v(a_gv.out(),*sep,a_gv.ttf());
+    if(!v.visit(a_widget.result())) {
+      a_gv.map_warn("valop2sg failed.");
+      delete sep;
+      return sg::return_to_render;
+    }
+
+    dsep.add(sep);
+
+    //have an height of 1 and center :
+   {vec3f mn,mx;
+    mnmx(a_gv.out(),*sep,mn,mx);
+    float h = mx[1]-mn[1];
+    float nh = a_gv.wanted_size();
+    float scale = h?nh/h:nh;
+    tsf->mul_scale(scale,scale,1);
+    tsf->mul_translate(-(mn[0]+mx[0])*0.5f,
+                       -(mn[1]+mx[1])*0.5f,0);}
+
+    a_gv.hide_main_menu();
+  }
+  return sg::return_to_render;
+}
+
+inline sg::return_action edvalop(sg::gui_viewer& a_gv) {
+  sg::edvalop* node = new sg::edvalop(a_gv.ttf());
+  node->vars.add("x");
+  node->vars.add("y");
+  node->vars.add("z");
+
+  a_gv.set_style(*node);
+
+  node->edit_what = sg::edvalop::edit_calc;
+
+  //a_gv.sg_ui().up_cbks().add
+  //  (new sg::edvalop::_cbk
+  //     (*node,a_gv.out(),sg::edvalop::action_up()));
+
+  sg::add_callback(a_gv,*node,action_edvalop);
+
+  a_gv.push_list(node);
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_valop(sg::gui_viewer& a_gv,sg::entries& a_widget) {
+  const std::vector<std::string>& vals = a_widget.values.values();
+
+  args opts;
+  opts.add(s_do(),vals[0]);
+  opts.add(s_what(),vals[1]);
+  opts.add(s_clear(),vals[2]);
+  valop_(a_gv,opts);
+
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;     
+}
+
+inline sg::return_action formulas(sg::gui_viewer& a_gv,const sg::pos_data& a_data) {
+
+  sg::entries* node = new sg::entries(a_gv.ttf());
+  a_gv.set_style(*node);
+
+ {std::vector<std::string> opts;
+  opts.push_back(s_sg());
+  opts.push_back(s_text());
+  opts.push_back(s_ml());
+  node->add_opts(s_do(),s_sg(),opts);}
+
+ {std::vector<std::string> opts;
+  opts.push_back(s_schrodinger());
+  opts.push_back(s_dirac());
+  opts.push_back(s_add());
+  opts.push_back(s_pderiv());
+  opts.push_back(s_sqrt_4());
+  opts.push_back(s_cos_half_pi());
+  opts.push_back(s_sqrt_div());
+  opts.push_back(s_cos_div());
+  opts.push_back(s_mod());
+  opts.push_back(s_div());
+  node->add_opts(s_what(),s_schrodinger(),opts);}
+
+  node->add_bool(s_clear(),false);
+
+  sg::add_callback(a_gv,*node,action_valop);
+
+  a_gv.show_widget(a_data,node);
+
+  return sg::return_to_render;
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

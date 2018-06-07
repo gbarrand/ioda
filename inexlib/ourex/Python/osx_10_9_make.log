@@ -1,0 +1,727 @@
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Modules/python.o ./Modules/python.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/acceler.o Parser/acceler.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/grammar1.o Parser/grammar1.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/listnode.o Parser/listnode.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/node.o Parser/node.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/parser.o Parser/parser.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/parsetok.o Parser/parsetok.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/bitset.o Parser/bitset.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/metagrammar.o Parser/metagrammar.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/firstsets.o Parser/firstsets.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/grammar.o Parser/grammar.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/pgen.o Parser/pgen.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/myreadline.o Parser/myreadline.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/tokenizer.o Parser/tokenizer.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/abstract.o Objects/abstract.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/boolobject.o Objects/boolobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/bufferobject.o Objects/bufferobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/bytes_methods.o Objects/bytes_methods.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/bytearrayobject.o Objects/bytearrayobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/capsule.o Objects/capsule.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/cellobject.o Objects/cellobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/classobject.o Objects/classobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/cobject.o Objects/cobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/codeobject.o Objects/codeobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/complexobject.o Objects/complexobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/descrobject.o Objects/descrobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/enumobject.o Objects/enumobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/exceptions.o Objects/exceptions.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/genobject.o Objects/genobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/fileobject.o Objects/fileobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/floatobject.o Objects/floatobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/frameobject.o Objects/frameobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/funcobject.o Objects/funcobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/intobject.o Objects/intobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/iterobject.o Objects/iterobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/listobject.o Objects/listobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/longobject.o Objects/longobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/dictobject.o Objects/dictobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/memoryobject.o Objects/memoryobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/methodobject.o Objects/methodobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/moduleobject.o Objects/moduleobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/object.o Objects/object.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/obmalloc.o Objects/obmalloc.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/rangeobject.o Objects/rangeobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/setobject.o Objects/setobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/sliceobject.o Objects/sliceobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/stringobject.o Objects/stringobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/structseq.o Objects/structseq.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/tupleobject.o Objects/tupleobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/typeobject.o Objects/typeobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/weakrefobject.o Objects/weakrefobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/unicodeobject.o Objects/unicodeobject.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Objects/unicodectype.o Objects/unicodectype.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/_warnings.o Python/_warnings.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/Python-ast.o Python/Python-ast.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/asdl.o Python/asdl.c
+/Applications/Xcode.app/Contents/Developer/usr/bin/make Parser/pgen
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/mysnprintf.o Python/mysnprintf.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pyctype.o Python/pyctype.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/tokenizer_pgen.o Parser/tokenizer_pgen.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/printgrammar.o Parser/printgrammar.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Parser/pgenmain.o Parser/pgenmain.c
+gcc -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  Parser/acceler.o Parser/grammar1.o Parser/listnode.o Parser/node.o Parser/parser.o Parser/parsetok.o Parser/bitset.o Parser/metagrammar.o Parser/firstsets.o Parser/grammar.o Parser/pgen.o Objects/obmalloc.o Python/mysnprintf.o Python/pyctype.o Parser/tokenizer_pgen.o Parser/printgrammar.o Parser/pgenmain.o -ldl  -framework CoreFoundation -o Parser/pgen
+Parser/pgen ./Grammar/Grammar Include/graminit.h Python/graminit.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/ast.o Python/ast.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/bltinmodule.o Python/bltinmodule.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/ceval.o Python/ceval.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/compile.o Python/compile.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/codecs.o Python/codecs.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/errors.o Python/errors.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/frozen.o Python/frozen.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/frozenmain.o Python/frozenmain.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/future.o Python/future.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/getargs.o Python/getargs.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/getcompiler.o Python/getcompiler.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/getcopyright.o Python/getcopyright.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -DPLATFORM='"darwin"' -o Python/getplatform.o ./Python/getplatform.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/getversion.o Python/getversion.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/graminit.o Python/graminit.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/import.o Python/import.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -I. -o Python/importdl.o ./Python/importdl.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/marshal.o Python/marshal.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/modsupport.o Python/modsupport.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/mystrtoul.o Python/mystrtoul.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/peephole.o Python/peephole.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pyarena.o Python/pyarena.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pyfpe.o Python/pyfpe.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pymath.o Python/pymath.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pystate.o Python/pystate.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pythonrun.o Python/pythonrun.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/random.o Python/random.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/structmember.o Python/structmember.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/symtable.o Python/symtable.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/sysmodule.o Python/sysmodule.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/traceback.o Python/traceback.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/getopt.o Python/getopt.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pystrcmp.o Python/pystrcmp.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/pystrtod.o Python/pystrtod.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/dtoa.o Python/dtoa.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/formatter_unicode.o Python/formatter_unicode.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/formatter_string.o Python/formatter_string.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/dynload_shlib.o Python/dynload_shlib.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/mactoolboxglue.o Python/mactoolboxglue.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Python/thread.o Python/thread.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Modules/config.o Modules/config.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -DPYTHONPATH='":plat-darwin:plat-mac:plat-mac/lib-scriptpackages:lib-tk:lib-old"' \
+		-DPREFIX='"/usr/local/Python/2.7.8"' \
+		-DEXEC_PREFIX='"/usr/local/Python/2.7.8"' \
+		-DVERSION='"2.7"' \
+		-DVPATH='""' \
+		-o Modules/getpath.o ./Modules/getpath.c
+./Modules/getpath.c:353:8: warning: comparison of unsigned expression >= 0 is always true [-Wtautological-compare]
+        if (n >= 0) {
+            ~ ^  ~
+1 warning generated.
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Modules/main.o Modules/main.c
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE -o Modules/gcmodule.o Modules/gcmodule.c
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/threadmodule.c -o Modules/threadmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/signalmodule.c -o Modules/signalmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/posixmodule.c -o Modules/posixmodule.o
+./Modules/posixmodule.c:358:13: warning: comparison of constant 9223372036854775807 with expression of type 'uid_t' (aka 'unsigned int') is always true [-Wtautological-constant-out-of-range-compare]
+    if (uid <= LONG_MAX)
+        ~~~ ^  ~~~~~~~~
+./Modules/posixmodule.c:366:13: warning: comparison of constant 9223372036854775807 with expression of type 'gid_t' (aka 'unsigned int') is always true [-Wtautological-constant-out-of-range-compare]
+    if (gid <= LONG_MAX)
+        ~~~ ^  ~~~~~~~~
+./Modules/posixmodule.c:7522:12: warning: 'tempnam' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of tempnam(3), it is highly recommended that you use mkstemp(3) instead. [-Wdeprecated-declarations]
+    name = tempnam(dir, pfx);
+           ^
+/usr/include/stdio.h:389:7: note: 'tempnam' declared here
+char    *tempnam(const char *, const char *) __DARWIN_ALIAS(tempnam);
+         ^
+./Modules/posixmodule.c:7577:12: warning: 'tmpnam' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of tmpnam(3), it is highly recommended that you use mkstemp(3) instead. [-Wdeprecated-declarations]
+    name = tmpnam(buffer);
+           ^
+/usr/include/stdio.h:274:7: note: 'tmpnam' declared here
+char    *tmpnam(char *);
+         ^
+4 warnings generated.
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/errnomodule.c -o Modules/errnomodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/pwdmodule.c -o Modules/pwdmodule.o
+./Modules/pwdmodule.c:115:17: warning: comparison of unsigned expression < 0 is always false [-Wtautological-compare]
+        if (uid < 0)
+            ~~~ ^ ~
+1 warning generated.
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/_sre.c -o Modules/_sre.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/_codecsmodule.c -o Modules/_codecsmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/_weakref.c -o Modules/_weakref.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/zipimport.c -o Modules/zipimport.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/symtablemodule.c -o Modules/symtablemodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE  -c ./Modules/xxsubtype.c -o Modules/xxsubtype.o
+gcc -c -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes  -I. -IInclude -I./Include   -DPy_BUILD_CORE \
+	      -DSVNVERSION="\"`LC_ALL=C svnversion .`\"" \
+	      -DHGVERSION="\"`LC_ALL=C `\"" \
+	      -DHGTAG="\"`LC_ALL=C `\"" \
+	      -DHGBRANCH="\"`LC_ALL=C `\"" \
+	      -o Modules/getbuildinfo.o ./Modules/getbuildinfo.c
+rm -f libpython2.7.a
+ar rc libpython2.7.a Modules/getbuildinfo.o
+ar rc libpython2.7.a Parser/acceler.o Parser/grammar1.o Parser/listnode.o Parser/node.o Parser/parser.o Parser/parsetok.o Parser/bitset.o Parser/metagrammar.o Parser/firstsets.o Parser/grammar.o Parser/pgen.o Parser/myreadline.o Parser/tokenizer.o
+ar rc libpython2.7.a Objects/abstract.o Objects/boolobject.o Objects/bufferobject.o Objects/bytes_methods.o Objects/bytearrayobject.o Objects/capsule.o Objects/cellobject.o Objects/classobject.o Objects/cobject.o Objects/codeobject.o Objects/complexobject.o Objects/descrobject.o Objects/enumobject.o Objects/exceptions.o Objects/genobject.o Objects/fileobject.o Objects/floatobject.o Objects/frameobject.o Objects/funcobject.o Objects/intobject.o Objects/iterobject.o Objects/listobject.o Objects/longobject.o Objects/dictobject.o Objects/memoryobject.o Objects/methodobject.o Objects/moduleobject.o Objects/object.o Objects/obmalloc.o Objects/rangeobject.o Objects/setobject.o Objects/sliceobject.o Objects/stringobject.o Objects/structseq.o Objects/tupleobject.o Objects/typeobject.o Objects/weakrefobject.o Objects/unicodeobject.o Objects/unicodectype.o
+ar rc libpython2.7.a Python/_warnings.o Python/Python-ast.o Python/asdl.o Python/ast.o Python/bltinmodule.o Python/ceval.o Python/compile.o Python/codecs.o Python/errors.o Python/frozen.o Python/frozenmain.o Python/future.o Python/getargs.o Python/getcompiler.o Python/getcopyright.o Python/getplatform.o Python/getversion.o Python/graminit.o Python/import.o Python/importdl.o Python/marshal.o Python/modsupport.o Python/mystrtoul.o Python/mysnprintf.o Python/peephole.o Python/pyarena.o Python/pyctype.o Python/pyfpe.o Python/pymath.o Python/pystate.o Python/pythonrun.o Python/random.o Python/structmember.o Python/symtable.o Python/sysmodule.o Python/traceback.o Python/getopt.o Python/pystrcmp.o Python/pystrtod.o Python/dtoa.o Python/formatter_unicode.o Python/formatter_string.o Python/dynload_shlib.o  Python/mactoolboxglue.o Python/thread.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib: file: libpython2.7.a(pymath.o) has no symbols
+ar rc libpython2.7.a Modules/config.o Modules/getpath.o Modules/main.o Modules/gcmodule.o 
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib: file: libpython2.7.a(pymath.o) has no symbols
+ar rc libpython2.7.a Modules/threadmodule.o  Modules/signalmodule.o  Modules/posixmodule.o  Modules/errnomodule.o  Modules/pwdmodule.o  Modules/_sre.o  Modules/_codecsmodule.o  Modules/_weakref.o  Modules/zipimport.o  Modules/symtablemodule.o  Modules/xxsubtype.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib: file: libpython2.7.a(pymath.o) has no symbols
+ranlib libpython2.7.a
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib: file: libpython2.7.a(pymath.o) has no symbols
+gcc  -u _PyMac_Error -o python.exe \
+			Modules/python.o \
+			libpython2.7.a -ldl  -framework CoreFoundation     
+./python.exe -E -S -m sysconfig --generate-posix-vars
+running build
+running build_ext
+building dbm using ndbm
+building '_struct' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_struct.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_struct.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_struct.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_struct.so
+building '_ctypes_test' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes_test.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes_test.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes_test.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_ctypes_test.so
+building 'array' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/arraymodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/arraymodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/arraymodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/array.so
+building 'cmath' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cmathmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cmathmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.c:25:21: warning: unused variable 'zero' [-Wunused-const-variable]
+static const double zero = 0.0;
+                    ^
+1 warning generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cmathmodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/cmath.so
+building 'math' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/mathmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/mathmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.c:25:21: warning: unused variable 'zero' [-Wunused-const-variable]
+static const double zero = 0.0;
+                    ^
+1 warning generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/mathmodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_math.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/math.so
+building 'strop' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/stropmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/stropmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/stropmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/strop.so
+building 'time' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/time.so
+building 'datetime' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/datetimemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/datetimemodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/datetimemodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/datetime.so
+building 'itertools' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/itertoolsmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/itertoolsmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/itertoolsmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/itertools.so
+building 'future_builtins' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/future_builtins.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/future_builtins.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/future_builtins.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/future_builtins.so
+building '_random' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_randommodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_randommodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_randommodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_random.so
+building '_collections' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_collectionsmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_collectionsmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_collectionsmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_collections.so
+building '_bisect' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_bisectmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_bisectmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_bisectmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_bisect.so
+building '_heapq' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_heapqmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_heapqmodule.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/_heapqmodule.c:624:21: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
+[explanation by Fran<E7>ois Pinard]\n\
+                    ^~~~
+Include/Python.h:171:60: note: expanded from macro 'PyDoc_STRVAR'
+#define PyDoc_STRVAR(name,str) PyDoc_VAR(name) = PyDoc_STR(str)
+                                                           ^
+Include/Python.h:173:24: note: expanded from macro 'PyDoc_STR'
+#define PyDoc_STR(str) str
+                       ^
+1 warning generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_heapqmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_heapq.so
+building 'operator' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/operator.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/operator.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/operator.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/operator.so
+building '_io' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bufferedio.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bufferedio.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bytesio.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bytesio.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/fileio.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/fileio.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/iobase.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/iobase.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/_iomodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/_iomodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/stringio.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/stringio.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_io -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/textio.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/textio.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bufferedio.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/bytesio.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/fileio.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/iobase.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/_iomodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/stringio.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_io/textio.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_io.so
+building '_functools' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_functoolsmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_functoolsmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_functoolsmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_functools.so
+building '_json' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_json.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_json.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_json.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_json.so
+building '_testcapi' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_testcapimodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_testcapimodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_testcapimodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_testcapi.so
+building '_hotshot' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_hotshot.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_hotshot.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_hotshot.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_hotshot.so
+building '_lsprof' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_lsprof.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_lsprof.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/rotatingtree.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/rotatingtree.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_lsprof.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/rotatingtree.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_lsprof.so
+building 'unicodedata' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/unicodedata.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/unicodedata.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/unicodedata.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/unicodedata.so
+building '_locale' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_localemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_localemodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_localemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_locale.so -framework CoreFoundation
+building 'fcntl' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/fcntlmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/fcntlmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/fcntlmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/fcntl.so
+building 'grp' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/grpmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/grpmodule.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/grpmodule.c:102:17: warning: comparison of unsigned expression < 0 is always false [-Wtautological-compare]
+        if (gid < 0)
+            ~~~ ^ ~
+1 warning generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/grpmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/grp.so
+building 'select' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/selectmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/selectmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/selectmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/select.so
+building 'parser' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/parsermodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/parsermodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/parsermodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/parser.so
+building 'cStringIO' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cStringIO.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cStringIO.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cStringIO.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/cStringIO.so
+building 'cPickle' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cPickle.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cPickle.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cPickle.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/cPickle.so
+building 'mmap' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.c:639:17: warning: comparison of unsigned expression < 0 is always false [-Wtautological-compare]
+        if (cnt < 0 || (cnt + dest) < cnt || (cnt + src) < cnt ||
+            ~~~ ^ ~
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.c:640:16: warning: comparison of unsigned expression < 0 is always false [-Wtautological-compare]
+           src < 0 || src > self->size || (src + cnt) > self->size ||
+           ~~~ ^ ~
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.c:641:17: warning: comparison of unsigned expression < 0 is always false [-Wtautological-compare]
+           dest < 0 || dest > self->size || (dest + cnt) > self->size) {
+           ~~~~ ^ ~
+3 warnings generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/mmapmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/mmap.so
+building 'syslog' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/syslogmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/syslogmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/syslogmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/syslog.so
+building 'audioop' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/audioop.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/audioop.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/audioop.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/audioop.so
+building 'crypt' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cryptmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cryptmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cryptmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/crypt.so
+building '_csv' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_csv.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_csv.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_csv.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_csv.so
+building '_socket' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/socketmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/socketmodule.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/socketmodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/timemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_socket.so
+building '_ssl' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ssl.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ssl.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ssl.o -L/usr/local/lib -lssl -lcrypto -o build/lib.macosx-10.4-x86_64-2.7/_ssl.so
+building '_hashlib' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_hashopenssl.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_hashopenssl.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_hashopenssl.o -L/usr/local/lib -lssl -lcrypto -o build/lib.macosx-10.4-x86_64-2.7/_hashlib.so
+building '_bsddb' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/opt/local/include/db46 -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_bsddb.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_bsddb.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_bsddb.o -L/opt/local/lib/db46 -L/usr/local/lib -L/opt/local/lib/db46 -ldb-4.6 -o build/lib.macosx-10.4-x86_64-2.7/_bsddb.so
+building '_sqlite3' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cache.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cache.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/connection.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/connection.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cursor.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cursor.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/microprotocols.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/microprotocols.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/module.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/module.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/prepare_protocol.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/prepare_protocol.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/row.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/row.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/statement.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/statement.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DMODULE_NAME="sqlite3" -DSQLITE_OMIT_LOAD_EXTENSION=1 -IModules/_sqlite -I/usr/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/util.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/util.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cache.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/connection.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/cursor.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/microprotocols.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/module.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/prepare_protocol.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/row.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/statement.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_sqlite/util.o -L/usr/lib -L/usr/local/lib -lsqlite3 -o build/lib.macosx-10.4-x86_64-2.7/_sqlite3.so -Wl,-search_paths_first
+building 'dbm' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_NDBM_H -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/dbmmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/dbmmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/dbmmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/dbm.so
+building 'termios' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/termios.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/termios.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/termios.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/termios.so
+building 'resource' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/resource.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/resource.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/resource.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/resource.so
+building 'nis' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/nismodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/nismodule.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/nismodule.c:404:15: warning: explicitly assigning a variable of type 'nismaplist *' (aka 'struct nismaplist *') to itself [-Wself-assign]
+    for (maps = maps; maps; maps = maps->next) {
+         ~~~~ ^ ~~~~
+1 warning generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/nismodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/nis.so
+building '_curses' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_cursesmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_cursesmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_cursesmodule.o -L/usr/local/lib -lncurses -o build/lib.macosx-10.4-x86_64-2.7/_curses.so
+building '_curses_panel' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_curses_panel.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_curses_panel.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_curses_panel.o -L/usr/local/lib -lpanel -lncurses -o build/lib.macosx-10.4-x86_64-2.7/_curses_panel.so
+building 'zlib' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/zlibmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/zlibmodule.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/zlibmodule.o -L/usr/local/lib -lz -o build/lib.macosx-10.4-x86_64-2.7/zlib.so -Wl,-search_paths_first
+building 'binascii' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/binascii.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/binascii.o -DUSE_ZLIB_CRC32
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/binascii.o -L/usr/local/lib -lz -o build/lib.macosx-10.4-x86_64-2.7/binascii.so -Wl,-search_paths_first
+building 'bz2' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/bz2module.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/bz2module.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/bz2module.o -L/usr/local/lib -lbz2 -o build/lib.macosx-10.4-x86_64-2.7/bz2.so -Wl,-search_paths_first
+building 'pyexpat' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_EXPAT_CONFIG_H=1 -DUSE_PYEXPAT_CAPI -I/usr/local/Python/2.7.8/Python-2.7.8/./Modules/expat -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/pyexpat.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/pyexpat.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_EXPAT_CONFIG_H=1 -DUSE_PYEXPAT_CAPI -I/usr/local/Python/2.7.8/Python-2.7.8/./Modules/expat -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlparse.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlparse.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_EXPAT_CONFIG_H=1 -DUSE_PYEXPAT_CAPI -I/usr/local/Python/2.7.8/Python-2.7.8/./Modules/expat -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlrole.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlrole.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_EXPAT_CONFIG_H=1 -DUSE_PYEXPAT_CAPI -I/usr/local/Python/2.7.8/Python-2.7.8/./Modules/expat -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmltok.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmltok.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/pyexpat.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlparse.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmlrole.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/expat/xmltok.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/pyexpat.so
+building '_elementtree' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DHAVE_EXPAT_CONFIG_H=1 -DUSE_PYEXPAT_CAPI -I/usr/local/Python/2.7.8/Python-2.7.8/./Modules/expat -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_elementtree.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_elementtree.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_elementtree.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_elementtree.so
+building '_multibytecodec' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/multibytecodec.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/multibytecodec.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/multibytecodec.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_multibytecodec.so
+building '_codecs_kr' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:45:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:45:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:178:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:178:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:262:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.c:262:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+3 warnings generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_kr.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_kr.so
+building '_codecs_jp' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.c:48:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.c:48:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.c:328:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.c:328:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+2 warnings generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_jp.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_jp.so
+building '_codecs_cn' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:54:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:54:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:110:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:110:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:348:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.c:348:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+3 warnings generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_cn.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_cn.so
+building '_codecs_tw' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.o
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.c:26:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.c:26:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.c:80:9: warning: if statement has empty body [-Wempty-body]
+        UCS4INVALID(c)
+        ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.c:80:9: note: put the semicolon on a separate line to silence this warning
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/cjkcodecs.h:100:12: note: expanded from macro 'UCS4INVALID'
+    if (0) ;
+           ^
+2 warnings generated.
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_tw.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_tw.so
+building '_codecs_hk' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_hk.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_hk.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_hk.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_hk.so
+building '_codecs_iso2022' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_iso2022.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_iso2022.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/cjkcodecs/_codecs_iso2022.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_codecs_iso2022.so
+building '_multiprocessing' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_multiprocessing -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/multiprocessing.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/multiprocessing.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_multiprocessing -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/socket_connection.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/socket_connection.o
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -IModules/_multiprocessing -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/semaphore.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/semaphore.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/multiprocessing.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/socket_connection.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_multiprocessing/semaphore.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_multiprocessing.so
+building '_scproxy' extension
+creating build/temp.macosx-10.4-x86_64-2.7/Mac
+creating build/temp.macosx-10.4-x86_64-2.7/Mac/Modules
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c ./Mac/Modules/_scproxy.c -o build/temp.macosx-10.4-x86_64-2.7/./Mac/Modules/_scproxy.o
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/./Mac/Modules/_scproxy.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_scproxy.so -framework SystemConfiguration -framework CoreFoundation
+building '_CF' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/_CFmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/_CFmodule.o -Wno-deprecated-declarations
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/pycfbridge.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/pycfbridge.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/_CFmodule.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cf/pycfbridge.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_CF.so -framework CoreFoundation
+building 'autoGIL' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/autoGIL.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/autoGIL.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/autoGIL.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/autoGIL.so -framework CoreFoundation
+building 'ColorPicker' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ColorPickermodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ColorPickermodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ColorPickermodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/ColorPicker.so -framework Carbon
+building 'gestalt' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/gestaltmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/gestaltmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/gestaltmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/gestalt.so -framework Carbon
+building 'MacOS' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/MacOS.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/MacOS.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/MacOS.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/MacOS.so -framework Carbon
+building 'Nav' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/Nav.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/Nav.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/Nav.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/Nav.so -framework Carbon
+building 'OSATerminology' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/OSATerminology.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/OSATerminology.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/OSATerminology.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/OSATerminology.so -framework Carbon
+building 'icglue' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icgluemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icgluemodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icgluemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/icglue.so -framework Carbon
+building '_AE' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ae
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ae/_AEmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ae/_AEmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ae/_AEmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_AE.so -framework Carbon
+building '_AH' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ah
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ah/_AHmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ah/_AHmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ah/_AHmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_AH.so -framework Carbon
+building '_App' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/app
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/app/_Appmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/app/_Appmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/app/_Appmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_App.so -framework Carbon
+building '_CarbonEvt' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/carbonevt
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/carbonevt/_CarbonEvtmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/carbonevt/_CarbonEvtmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/carbonevt/_CarbonEvtmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_CarbonEvt.so -framework Carbon
+building '_Cm' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cm
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cm/_Cmmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cm/_Cmmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cm/_Cmmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Cm.so -framework Carbon
+building '_Ctl' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ctl
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ctl/_Ctlmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ctl/_Ctlmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ctl/_Ctlmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Ctl.so -framework Carbon
+building '_Dlg' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/dlg
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/dlg/_Dlgmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/dlg/_Dlgmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/dlg/_Dlgmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Dlg.so -framework Carbon
+building '_Drag' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/drag
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/drag/_Dragmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/drag/_Dragmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/drag/_Dragmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Drag.so -framework Carbon
+building '_Evt' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/evt
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/evt/_Evtmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/evt/_Evtmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/evt/_Evtmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Evt.so -framework Carbon
+building '_File' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/file
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/file/_Filemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/file/_Filemodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/file/_Filemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_File.so -framework Carbon
+building '_Folder' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/folder
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/folder/_Foldermodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/folder/_Foldermodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/folder/_Foldermodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Folder.so -framework Carbon
+building '_Fm' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/fm
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/fm/_Fmmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/fm/_Fmmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/fm/_Fmmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Fm.so -framework Carbon
+building '_Help' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/help
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/help/_Helpmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/help/_Helpmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/help/_Helpmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Help.so -framework Carbon
+building '_Icn' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icn
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icn/_Icnmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icn/_Icnmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/icn/_Icnmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Icn.so -framework Carbon
+building '_IBCarbon' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ibcarbon
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ibcarbon/_IBCarbon.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ibcarbon/_IBCarbon.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/ibcarbon/_IBCarbon.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_IBCarbon.so -framework Carbon
+building '_List' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/list
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/list/_Listmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/list/_Listmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/list/_Listmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_List.so -framework Carbon
+building '_Menu' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/menu
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/menu/_Menumodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/menu/_Menumodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/menu/_Menumodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Menu.so -framework Carbon
+building '_Mlte' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/mlte
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/mlte/_Mltemodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/mlte/_Mltemodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/mlte/_Mltemodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Mlte.so -framework Carbon
+building '_OSA' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/osa
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/osa/_OSAmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/osa/_OSAmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/osa/_OSAmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_OSA.so -framework Carbon
+building '_Res' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/res
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/res/_Resmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/res/_Resmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/res/_Resmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Res.so -framework Carbon
+building '_Qd' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qd
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qd/_Qdmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qd/_Qdmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qd/_Qdmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Qd.so -framework Carbon
+building '_Qdoffs' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qdoffs
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qdoffs/_Qdoffsmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qdoffs/_Qdoffsmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qdoffs/_Qdoffsmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Qdoffs.so -framework Carbon
+building '_Scrap' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/scrap
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/scrap/_Scrapmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/scrap/_Scrapmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/scrap/_Scrapmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Scrap.so -framework Carbon
+building '_Snd' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/snd
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/snd/_Sndmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/snd/_Sndmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/snd/_Sndmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Snd.so -framework Carbon
+building '_TE' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/te
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/te/_TEmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/te/_TEmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/te/_TEmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_TE.so -framework Carbon
+building '_Win' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/win
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/win/_Winmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/win/_Winmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/win/_Winmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Win.so -framework Carbon
+building '_Launch' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/launch
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/launch/_Launchmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/launch/_Launchmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/launch/_Launchmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Launch.so -framework ApplicationServices
+building '_CG' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cg
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cg/_CGmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cg/_CGmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/cg/_CGmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_CG.so -framework ApplicationServices
+building '_Qt' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qt
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qt/_Qtmodule.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qt/_Qtmodule.o -Wno-deprecated-declarations
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Mac/Modules/qt/_Qtmodule.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_Qt.so -framework QuickTime -framework Carbon
+ld: warning: ignoring file /System/Library/Frameworks//QuickTime.framework/QuickTime, file was built for i386 which is not the architecture being linked (x86_64): /System/Library/Frameworks//QuickTime.framework/QuickTime
+building '_tkinter' extension
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DWITH_APPINIT=1 -I/System/Library/Frameworks/Tcl.framework/Headers -I/System/Library/Frameworks/Tcl.framework/Versions/Current/PrivateHeaders -I/System/Library/Frameworks/Tk.framework/Headers -I/System/Library/Frameworks/Tk.framework/Versions/Current/PrivateHeaders -I/usr/X11R6/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_tkinter.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_tkinter.o -framework Tk
+clang: warning: -framework Tk: 'linker' input unused
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -DWITH_APPINIT=1 -I/System/Library/Frameworks/Tcl.framework/Headers -I/System/Library/Frameworks/Tcl.framework/Versions/Current/PrivateHeaders -I/System/Library/Frameworks/Tk.framework/Headers -I/System/Library/Frameworks/Tk.framework/Versions/Current/PrivateHeaders -I/usr/X11R6/include -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/tkappinit.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/tkappinit.o -framework Tk
+clang: warning: -framework Tk: 'linker' input unused
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_tkinter.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/tkappinit.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_tkinter.so -framework Tcl -framework Tk
+building '_ctypes' extension
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/darwin
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86
+creating build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callbacks.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callbacks.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callproc.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callproc.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/stgdict.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/stgdict.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/cfield.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/cfield.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/malloc_closure.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/malloc_closure.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/darwin/dlfcn_simple.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/darwin/dlfcn_simple.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/ffi.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/ffi.o -DMACOSX
+/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/ffi.c:107:1: warning: unused function 'struct_on_stack' [-Wunused-function]
+struct_on_stack(
+^
+1 warning generated.
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/darwin64.S -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/darwin64.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-darwin.S -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-darwin.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi_darwin.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi_darwin.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi64.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi64.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin.S -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin_closure.S -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin_closure.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-ffi_darwin.c -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-ffi_darwin.o -DMACOSX
+gcc -fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -I_ctypes/darwin -I/usr/local/Python/2.7.8/Python-2.7.8/Mac/Include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/include -I/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc -I. -IInclude -I./Include -I/usr/local/include -I/usr/local/Python/2.7.8/Python-2.7.8/Include -I/usr/local/Python/2.7.8/Python-2.7.8 -c /usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc64-darwin_closure.S -o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc64-darwin_closure.o -DMACOSX
+gcc -bundle -undefined dynamic_lookup build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/_ctypes.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callbacks.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/callproc.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/stgdict.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/cfield.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/malloc_closure.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/darwin/dlfcn_simple.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/ffi.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/darwin64.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-darwin.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi_darwin.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/x86/x86-ffi64.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-darwin_closure.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc-ffi_darwin.o build/temp.macosx-10.4-x86_64-2.7/usr/local/Python/2.7.8/Python-2.7.8/Modules/_ctypes/libffi_osx/powerpc/ppc64-darwin_closure.o -L/usr/local/lib -o build/lib.macosx-10.4-x86_64-2.7/_ctypes.so
+ld: warning: could not create compact unwind for _ffi_call_unix64: does not use RBP or RSP based frame
+
+Python build finished, but the necessary bits to build these modules were not found:
+bsddb185           dl                 gdbm            
+imageop            linuxaudiodev      ossaudiodev     
+readline           spwd               sunaudiodev     
+To find the necessary bits, look in setup.py in detect_modules() for the module's name.
+
+running build_scripts
+creating build/scripts-2.7
+copying and adjusting /usr/local/Python/2.7.8/Python-2.7.8/Tools/scripts/pydoc -> build/scripts-2.7
+copying and adjusting /usr/local/Python/2.7.8/Python-2.7.8/Tools/scripts/idle -> build/scripts-2.7
+copying and adjusting /usr/local/Python/2.7.8/Python-2.7.8/Tools/scripts/2to3 -> build/scripts-2.7
+copying and adjusting /usr/local/Python/2.7.8/Python-2.7.8/Lib/smtpd.py -> build/scripts-2.7
+changing mode of build/scripts-2.7/pydoc from 664 to 775
+changing mode of build/scripts-2.7/idle from 664 to 775
+changing mode of build/scripts-2.7/2to3 from 664 to 775
+changing mode of build/scripts-2.7/smtpd.py from 664 to 775
+/usr/bin/install -c -m 644 ./Tools/gdb/libpython.py python.exe-gdb.py

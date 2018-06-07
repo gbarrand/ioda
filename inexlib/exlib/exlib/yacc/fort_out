@@ -1,0 +1,275 @@
+#ifndef exlib_fort_out_h
+#define exlib_fort_out_h
+
+#include "fort_fmt.h"
+
+#include <inlib/sjust>
+#include <inlib/sprintf>
+#include <inlib/sout>
+
+/*
+   When there is too few data compared to what the format describe,
+  we stop (without error) at the end of data (like FORTRAN). For example :
+    FormatOut out(<someWriter>,"(2(F10.2,1X,I5))");   
+    out << 3.14 << 314 << exlib::endl;
+  will write the two numbers and stop here.
+
+   When the format is "exhausted" (too much data), 
+  we go to next line and start again the format.
+    FormatOut out(<someWriter>,"(F10.2,1X,I5)");   
+    out << 3.14 << << 314 << 3.14 << 314 << exlib::endl;
+  will write :
+    3.14 314
+    3.14 314
+*/
+
+namespace exlib {
+
+class fort_out {
+public:
+  static fort_out& endl(fort_out& aOut) {
+    if(!aOut.status()) return aOut;
+    aOut.out() << std::endl;
+    return aOut;
+  }
+public:
+  fort_out(std::ostream& a_out,std::ostream& a_msg,
+             const std::string& a_format,int a_verbose = 0)
+  :f_out(a_out)
+  ,f_msg(a_msg)
+  ,fVerboseLevel(a_verbose)
+  ,fParser(a_format,a_msg)
+  ,fIterator(0)
+  ,fNext(0)
+  ,fStatus(false)
+  {
+    if(!fParser.parse()) {
+      f_msg << "exlib::fort_out::fort_out : " 
+            << " parse of " << inlib::sout(a_format) << " failed." 
+            << std::endl;
+      return;
+    } 
+    if(fVerboseLevel) fParser.result().dump(f_msg);
+    fIterator = fParser.result().createIterator();
+    reset();
+  }
+
+  virtual ~fort_out() {delete fIterator;}
+private:
+  fort_out(const fort_out& aFrom)
+  :f_out(aFrom.f_out)
+  ,f_msg(aFrom.f_msg)
+  ,fParser("",f_msg)
+  {}
+  fort_out& operator =(const fort_out&) {return *this;}
+public:
+  fort_out& operator<<(long a_value){
+    if(!fStatus) return *this;
+    if(!fNext) fNext = next();
+    if(fIterator->finished()) {
+      f_out << std::endl;
+      fIterator->reset();
+      fNext = next();
+    }
+  
+    data_desc* desc = fNext;
+    if(!desc) return *this; //No data desc in format !
+  
+    if(desc->fType!=data_desc_I) {
+      f_msg << "exlib::fort_out::operator<<(long) :"
+            << " format mismatch." << std::endl;
+      desc->dump(f_msg);
+      fStatus = false;
+      return *this;
+    }
+    if(desc->fWidth<=0) {
+      f_msg << "exlib::fort_out::operator<<(long) :"
+            << " null width." << std::endl;
+      desc->dump(f_msg);
+      return *this;
+    }
+    //desc->dump(f_msg);
+    std::string s;
+    if(!inlib::sprintf(s,desc->fWidth,desc->cformat().c_str(),a_value)) {
+      f_msg << "exlib::fort_out::operator<<(long) :"
+            << " something wrong in sprintf." << std::endl;
+      fStatus = false;
+      return *this;
+    }
+    f_out << s;
+    fNext = next();
+    return *this;
+  }
+  fort_out& operator<<(double a_value) {
+    if(!fStatus) return *this;
+    if(!fNext) fNext = next();
+    if(fIterator->finished()) {
+      f_out << std::endl;
+      fIterator->reset();
+      fNext = next();
+    }
+    data_desc* desc = fNext;
+    if(!desc) return *this; //No data desc in format !
+  
+    if( (desc->fType!=data_desc_F) &&
+        (desc->fType!=data_desc_E) &&
+        (desc->fType!=data_desc_G) ){
+      f_msg << "exlib::fort_out::operator<<(double) :"
+            << " format mismatch." << std::endl;
+      desc->dump(f_msg);
+      fStatus = false;
+      return *this;
+    }
+    if(desc->fWidth<=0) {
+      f_msg << "exlib::fort_out::operator<<(double) :"
+            << " null width." << std::endl;
+      desc->dump(f_msg);
+      return *this;
+    }
+    //desc->dump(f_msg);
+    std::string s;
+    if(!inlib::sprintf(s,desc->fWidth,desc->cformat().c_str(),a_value)) {
+      f_msg << "exlib::fort_out::operator<<(double) :"
+            << " something wrong in sprintf." << std::endl;
+      fStatus = false;
+      return *this;
+    }
+    f_out << s;
+    fNext = next();
+    return *this;
+  }
+
+  fort_out& operator<<(bool a_value) {
+    if(!fStatus) return *this;
+    if(!fNext) fNext = next();
+    if(fIterator->finished()) {
+      f_out << std::endl;
+      fIterator->reset();
+      fNext = next();
+    }
+  
+    data_desc* desc = fNext;
+    if(!desc) return *this; //No data desc in format !
+  
+    if(desc->fType!=data_desc_L) {
+      f_msg << "exlib::fort_out::operator<<(bool) :"
+            << " format mismatch." << std::endl;
+      desc->dump(f_msg);
+      fStatus = false;
+      return *this;
+    }
+    if(desc->fWidth<=0) {
+      f_msg << "exlib::fort_out::operator<<(bool) :"
+            << " null width." << std::endl;
+      desc->dump(f_msg);
+      return *this;
+    }
+    //desc->dump(f_msg);
+    std::string s;
+    if(a_value) s = "T";
+    else       s = "F";
+    inlib::justify(s,desc->fWidth,inlib::side_right);
+    f_out << s;
+    fNext = next();
+    return *this;
+  }
+
+  fort_out& operator<<(const std::string& a_value) {
+    if(!fStatus) return *this;
+    if(!fNext) fNext = next();
+    if(fIterator->finished()) {
+      f_out << std::endl;
+      fIterator->reset();
+      fNext = next();
+    }
+  
+    data_desc* desc = fNext;
+    if(!desc) return *this; //No data desc in format !
+  
+    if(desc->fType!=data_desc_A) {
+      f_msg << "exlib::fort_out::operator<<(const std::string&) :"
+            << " format mismatch." << std::endl;
+      desc->dump(f_msg);
+      fStatus = false;
+      return *this;
+    }
+    //desc->dump(f_msg);
+    if(desc->fWidth>0) { 
+      std::string s(a_value);
+      inlib::justify(s,desc->fWidth,inlib::side_right);
+      f_out << s;
+    } else {
+      f_out << a_value;
+    }
+    fNext = next();
+    return *this;
+  }
+  
+public:
+  fort_out& operator<<(const char* a_value){
+    return (*this) << std::string(a_value);
+  }
+  fort_out& operator<<(int a_value){return (*this) << (long)a_value;}
+  fort_out& operator<<(float a_value){return (*this) << (double)a_value;}
+  fort_out& operator<<(unsigned int a_value){return (*this)<<(long)a_value;}
+  fort_out& operator<<(unsigned long a_value){return (*this)<<(long)a_value;}
+  fort_out& operator<<(const void* a_value){return (*this)<<(long)a_value;}
+
+  typedef fort_out& (*fort_outFunc)(fort_out&); //For exlib::endl.
+  fort_out& operator<<(fort_outFunc aFunc){return aFunc(*this);}
+
+  fort_out& operator<<(char a_value) {
+    std::string s;
+    s += a_value;
+    return (*this) << s;
+  }
+
+  fort_out& operator<<(const std::vector<double>& a_value) {
+    if(!fStatus) return *this;
+    std::vector<double>::const_iterator it;
+    for(it=a_value.begin();it!=a_value.end();++it) {
+      (*this) << *it;
+      if(!fStatus) break;
+    }
+    return *this;
+  }
+public:
+  std::ostream& out() const {return f_out;}
+  std::ostream& msg() const {return f_msg;}
+
+  void reset() {
+    if(!fIterator) return;
+    // If we have an iterator, the given format had been parsed and is ok.
+    fIterator->reset();
+    fNext = 0;
+    fStatus = true;
+  }
+  bool status() const {return fStatus;}
+private:
+  data_desc* next() {
+    while(true) {
+      exlib::data_desc* desc = fIterator->next();
+      if(!desc) return 0;
+      if(desc->fType==data_desc_X) {
+        f_out << " ";
+      } else if(desc->fType==data_desc_SLASH) {
+        f_out << std::endl;
+      } else {
+        return desc;
+      }
+    }
+  }
+private:
+  std::ostream& f_out;
+  std::ostream& f_msg;
+  int fVerboseLevel;
+  std::string fFormat;
+  fort_fmt fParser;
+  data_desc_iterator* fIterator;
+  data_desc* fNext;
+  bool fStatus;
+};
+
+}
+
+#endif

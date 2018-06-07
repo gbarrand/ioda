@@ -1,0 +1,191 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_web
+#define inlib_web
+
+#include "system"
+#include "net/ftp"
+#include "net/http"
+
+namespace inlib {
+namespace web {
+
+inline bool wget_file(std::ostream& a_out,const std::string& a_url,const std::string& a_local,bool a_verbose = false){
+#if TARGET_OS_IPHONE
+  a_out << "inlib::wget_file : ::system not available on iOS." << std::endl;
+  return false;
+#else
+  std::string cmd;
+  if(get_env("INLIB_WGET",cmd)) {
+  } else {
+#ifdef _WIN32
+    cmd = "C:\\cygwin\\bin\\curl.exe --silent --compressed --output";
+#else
+#ifdef __APPLE__
+    cmd = "curl --silent --compressed --output";
+#else  // Linux
+    cmd = "wget -O";
+#endif
+#endif
+  }
+  std::string local;
+  if(a_local.size()) {
+    local = a_local;
+  } else {
+    local = base_name(a_url);
+  }
+  cmd += " ";
+  cmd += local;
+  cmd += " ";
+  cmd += a_url;
+
+  ::remove(local.c_str());
+
+  if(a_verbose) {
+    a_out << "inlib::wget_file : call ::system(" << sout(cmd) << ") ..." << std::endl;
+  }
+
+  if(::system(cmd.c_str())==(-1)){
+    a_out << "inlib::wget_file : call to ::system(" << sout(cmd) << ") failed." << std::endl;
+    return false;
+  }
+
+  //WARNING : the call to system(cmd) may be ok, but the command
+  //          may have failed !
+
+  if(!file::exists(local)) {
+    a_out << "inlib::wget_file : can't get " << sout(a_url) << "." << std::endl;
+    return false;
+  }
+
+  std::vector<std::string> txt;
+  if(!file::read_num(local,3,txt)) {
+    a_out << "inlib::wget_file : can't read head of " << sout(local) << "." << std::endl;
+    ::remove(local.c_str());
+    return false;
+  }
+  if((txt.size()>=3)&&(txt[2]=="<title>404 Not Found</title>")) {
+    a_out << "inlib::wget_file : url " << sout(a_url) << " not found." << std::endl;
+    ::remove(local.c_str());
+    return false;
+  }
+
+  //::printf("debug : curl_file : \"%s\" end\n",a_url.c_str());
+
+  return true;
+#endif //TARGET_OS_IPHONE
+}
+
+inline bool ftp_file(std::ostream& a_out,const std::string& a_url,const std::string& a_local,bool a_verbose = false) {
+
+  ::remove(a_local.c_str());
+
+  std::string host;
+  std::string path;
+  if(!net::ftp::parse(a_url,host,path)) return false;
+
+  if(a_verbose) {
+    a_out << "inlib::ftp_file :"
+          << " host " << sout(host) 
+          << " path " << sout(path)
+          << std::endl;
+  }
+
+  net::ftp ftp(a_out,a_verbose);
+  if(!ftp.start(host,net::ftp::s_anonymous(),"")) return false;
+  if(!ftp.fetch_file(path,a_local)) return false;
+
+  if(a_verbose) {
+    a_out << "inlib::ftp_file :"
+          << " fetch " << sout(a_url) << " end."
+          << std::endl;
+  }
+
+  return true;
+}
+
+// our own http getter :
+inline bool http_file(std::ostream& a_out,const std::string& a_url,const std::string& a_local,bool a_verbose = false) {
+
+  ::remove(a_local.c_str());
+
+  std::string host;
+  unsigned int port;
+  std::string path;
+  if(!net::http::parse(a_url,host,port,path)) return false;
+
+  if(a_verbose) {
+    a_out << "inlib::http_file :"
+          << " host " << sout(host) 
+          << " path " << sout(path)
+          << std::endl;
+  }
+
+  net::http http(a_out,a_verbose);
+  if(!http.start(host,80)) return false;
+  if(!http.GET(path,a_local)) return false;
+
+  if(a_verbose) {
+    a_out << "inlib::http_file :"
+          << " fetch " << sout(a_url) << " end."
+          << std::endl;
+  }
+
+  return true;
+}
+
+}}
+
+#include "fcache"
+
+namespace inlib {
+namespace web {
+
+class cache : public file::base_cache {
+  typedef file::base_cache parent;
+public:
+  virtual bool fetch_file(const std::string& a_what,const std::string& a_file){
+    if(!m_func) return false;
+    return m_func(m_out,a_what,a_file,m_verbose);
+  }
+public:
+  cache(std::ostream& a_out,bool a_verbose)
+  :parent(a_out,a_verbose)
+  ,m_func(def_func)
+  {}
+  virtual ~cache(){}
+protected:
+  cache(const cache& a_from)
+  :parent(a_from)
+  ,m_func(a_from.m_func)
+  {}
+  cache& operator=(const cache&){return *this;}
+public:
+  typedef bool(*get_file_func)(std::ostream&,const std::string&,const std::string&,bool a_verbose);
+  void set_get_file_func(get_file_func a_func) {m_func = a_func;}
+  void set_wget_func() {m_func = wget_file;}
+  void set_ftp_func() {m_func = ftp_file;}
+protected:
+  static bool def_func(std::ostream& a_out,const std::string& a_url,const std::string& a_local,bool a_verbose){
+    bool status = false;
+    if(a_url.substr(0,4)=="ftp:") {
+      status = ftp_file(a_out,a_url,a_local,a_verbose);
+    } 
+    if(!status) {
+      status = http_file(a_out,a_url,a_local,a_verbose);
+    }
+    if(!status) {
+      status = wget_file(a_out,a_url,a_local,a_verbose);
+    }
+    return status;
+  }
+protected:
+  get_file_func m_func;
+};
+
+}}
+
+//inlib_build_use socket
+
+#endif

@@ -1,0 +1,230 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_objwr
+#define inlib_objwr
+
+#include "iobj_const_visitor"
+
+#include <cstring>
+
+namespace inlib {
+
+class objwr : public virtual iobj_const_visitor {
+public:
+  virtual bool begin(const istorable&,const std::string&,local_func){
+    return true;
+  }
+  virtual bool end(const istorable&){return true;}
+
+  virtual bool visit(const std::string&,bool aData){
+    if((fPos+size_char())>fEnd) return false;
+    unsigned char data = (aData?1:0);
+    ::memcpy(fPos,&data,size_char());
+    fPos += size_char();
+    return true;
+  }
+  virtual bool visit(const std::string&,char aData){
+    if((fPos+size_char())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_char());
+    fPos += size_char();
+    return true;
+  }
+  virtual bool visit(const std::string&,short aData){
+    if((fPos+size_short())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_short());
+    fPos += size_short();
+    return true;
+  }
+  virtual bool visit(const std::string&,int aData){
+    if((fPos+size_int())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_int());
+    fPos += size_int();
+    return true;
+  }
+  virtual bool visit(const std::string&,unsigned int aData){
+    if((fPos+size_int())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_int());
+    fPos += size_int();
+    return true;
+  }
+  virtual bool visit(const std::string&,int64 aData){
+    if((fPos+size_int64())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_int64());
+    fPos += size_int64();
+    return true;
+  }
+  virtual bool visit(const std::string&,uint64 aData){
+    if((fPos+size_int64())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_int64());
+    fPos += size_int64();
+    return true;
+  }
+  virtual bool visit(const std::string&,float aData){
+    if((fPos+size_float())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_float());
+    fPos += size_float();
+    return true;
+  }
+  virtual bool visit(const std::string&,double aData){
+    if((fPos+size_double())>fEnd) return false;
+    ::memcpy(fPos,&aData,size_double());
+    fPos += size_double();
+    return true;
+  }
+  virtual bool visit(const std::string&,const std::vector<bool>& aData){
+    size_t number = aData.size();
+    std::vector<unsigned char> data(number);
+    for(size_t index=0;index<number;index++) data[index] = (aData[index]?1:0);
+    return write<unsigned char>(fPos,fEnd,data,size_char());
+  }
+  virtual bool visit(const std::string&,const std::vector<char>& aData){
+    return write<char>(fPos,fEnd,aData,size_char());
+  }
+  virtual bool visit(const std::string&,const std::vector<short>& aData){
+    return write<short>(fPos,fEnd,aData,size_short());
+  }
+  virtual bool visit(const std::string&,const std::vector<int>& aData){
+    return write<int>(fPos,fEnd,aData,size_int());
+  }
+  virtual bool visit(const std::string&,const std::vector<int64>& aData){
+    return write<int64>(fPos,fEnd,aData,size_int64());
+  }
+  virtual bool visit(const std::string&,const std::vector<float>& aData){
+    return write<float>(fPos,fEnd,aData,size_float());
+  }
+  virtual bool visit(const std::string&,const std::vector<double>& aData){
+    return write<double>(fPos,fEnd,aData,size_double());
+  }
+/*
+  virtual bool visit(const std::string&,const std::vector<unsigned char>& aData){
+    return write<unsigned char>(fPos,fEnd,aData,size_char());
+  }
+*/
+  virtual bool visit(const std::string&,const std::vector< std::vector<double> >& aData){
+    unsigned int n = uint32(aData.size());
+    unsigned int dim = n?uint32(aData[0].size()):0;
+    unsigned int number = n*dim;
+
+   {unsigned int array_sz = number*size_double();
+    if((fPos+2*size_int()+array_sz)>fEnd) return false;}
+  
+    ::memcpy(fPos,&n,size_int());
+    fPos += size_int();
+  
+    ::memcpy(fPos,&dim,size_int());
+    fPos += size_int();
+  
+    if(number) {
+      unsigned int array_sz = dim*size_double();
+      for(unsigned int index=0;index<n;index++) {
+        const std::vector<double>& v = aData[index];
+        ::memcpy(fPos,&(v[0]),array_sz);
+        fPos += array_sz;
+      }
+    }
+  
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<std::string>& aData){
+    size_t number = aData.size();
+  
+    unsigned int sz = 0;
+    for(size_t index=0;index<number;index++) sz += uint32(aData[index].size())+1;
+    sz++;
+  
+    if((fPos+size_int()+sz)>fEnd) return false;
+  
+    ::memcpy(fPos,&sz,size_int());
+    fPos += size_int();
+  
+    for(size_t index=0;index<number;index++) {
+      const std::string& s = aData[index];
+      size_t array_size = (s.size()+1)*size_char();
+      const char* data = s.c_str();
+      ::memcpy(fPos,data,array_size);
+      fPos += uint32(array_size);
+    }
+    *fPos = '\0';
+    fPos++;
+  
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::string& aData){
+    unsigned int number = uint32(aData.size());
+    unsigned int array_sz = (number+1)*size_char();
+  
+    if((fPos+size_int()+array_sz)>fEnd) return false;
+  
+    ::memcpy(fPos,&number,size_int());
+    fPos += size_int();
+  
+    ::memcpy(fPos,aData.c_str(),array_sz);
+    fPos += array_sz;
+  
+    return true;
+  }
+
+/*
+  virtual bool visit_double(const std::string&,
+                            const Slash::Store::IArray& aData){ 
+    if(!write<unsigned int>(fPos,fEnd,aData.orders(),size_int()))
+      return false;
+    if(!aData.write(fPos,fEnd)) return false;
+    return true;  
+  }
+*/
+
+  virtual bool visit(const std::string&,const istorable& aData){ 
+    // WARNING : can't be called in a object.visit()
+    //   over a aData being a "super" of "object" .
+    if(!aData.visit(*this)) return false;
+    return true;  
+  }
+
+  virtual bool visit(const std::string&,const char* aData){
+    unsigned int number = uint32(::strlen(aData));
+    unsigned int array_sz = (number+1)*size_char();
+  
+    if((fPos+size_int()+array_sz)>fEnd) return false;
+  
+    ::memcpy(fPos,&number,size_int());
+    fPos += size_int();
+  
+    ::memcpy(fPos,aData,array_sz);
+    fPos += array_sz;
+  
+    return true;
+  }
+public:
+  objwr(char*& aPos,char* aEnd):fPos(aPos),fEnd(aEnd){}
+  virtual ~objwr(){}
+private:
+  objwr(const objwr& a_from):iobj_const_visitor(a_from),fPos(a_from.fPos){}
+  objwr& operator=(const objwr&){return *this;}
+protected:
+  template <class T>
+  static bool write(char*& aPos,char* aEnd,const std::vector<T>& aData,unsigned int aSize){
+    unsigned int number = uint32(aData.size());
+    unsigned int array_sz = number*aSize;
+    if((aPos+size_int()+array_sz)>aEnd) return false;
+    ::memcpy(aPos,&number,size_int());
+    aPos += size_int();
+    if(number) {
+      const T* data = &(aData[0]);
+      ::memcpy(aPos,data,array_sz);
+      aPos += array_sz;
+    }
+    return true;
+  }
+
+protected:
+  char*& fPos;
+  char* fEnd;
+};
+
+}
+
+#endif

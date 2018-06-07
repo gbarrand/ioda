@@ -1,0 +1,165 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_app_offscreen_main_cpp
+#define exlib_app_offscreen_main_cpp
+
+#include "main"
+
+#include <iostream>
+
+#ifdef INLIB_MEM
+#include <inlib/mem>
+#ifdef INLIB_MEM_ATEXIT
+inline void at_exit() {std::cout << "exlib_main : at_exit..."<< std::endl;inlib::mem::balance(std::cout);}
+#endif
+#endif
+
+#include <inlib/sys/file>
+#include <inlib/sg/base_camera>
+#include <inlib/sg/list>
+
+#include <inlib/args>
+#include <inlib/sargs>
+#include <inlib/saui>
+#include <inlib/app>
+
+#include <cstdlib>
+
+template <class APP_CONTEXT,class APP_MAIN>
+int exlib_main(const std::string& a_app_name,int argc,char** argv,bool a_land = true) {
+  //NOTE : we enforce landscape by default for desktop oapps.
+  bool verbose = false;
+
+#ifdef INLIB_MEM
+  #ifdef INLIB_MEM_ATEXIT
+  ::atexit(at_exit);
+  #endif  
+  inlib::mem::set_check_by_class(true);{
+#endif
+
+  //////////////////////////////////////////////////////////////////
+  /// args /////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+  std::string exe_path; //for res_dir
+  if(!inlib::program_path(argv[0],exe_path)) {
+    std::cout << "exlib_main : can't get exe directory." << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  inlib::args args(argc,argv);
+  if(a_land) args.add("-land","");
+
+  verbose = args.is_arg("-verbose");
+
+  if(verbose) args.dump(std::cout,"main arguments :");
+
+  unsigned int ww,wh;
+  inlib::window_size_from_args(args,ww,wh);
+
+  std::string DOCUMENT;
+  args.files_at_end(); //take care of the upper -land.
+  if(!args.file(DOCUMENT)) args.find("-document",DOCUMENT);  
+  if(verbose) {
+    std::cout << "exlib_main :"
+              << " document is " << inlib::sout(DOCUMENT) << "."
+              << std::endl;
+  }
+
+  std::string orders;
+  args.find(inlib::s_arg_orders(),orders,"offscreen");
+
+  //////////////////////////////////////////////////////////////////
+  /// dirs : ///////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+
+  std::string home_dir;
+  inlib::dir::home(home_dir);
+  if(home_dir.empty()) {
+    std::cout << "exlib_main : can't get home directory." << std::endl;
+    return EXIT_FAILURE;
+  }  
+  std::string doc_app_dir = "Documents";
+  doc_app_dir += inlib::sep();
+  doc_app_dir += a_app_name;
+
+  std::string doc_dir = home_dir;
+  doc_dir += inlib::sep();
+  doc_dir += doc_app_dir;
+
+  std::string res_dir;
+  inlib::app_res_dir(exe_path,res_dir);
+
+  std::string data_dir = doc_dir;
+  std::string out_dir = doc_dir;
+
+/* Windows : does not work. But in fact out_dir is not yet used in offscreen apps.
+  if(!inlib::check_dir(std::cout,out_dir)) {
+    std::cout << "can't create out_dir " << inlib::sout(out_dir) << std::endl;
+    return EXIT_FAILURE;
+  }
+*/
+
+  std::string tmp_dir;
+  if(!inlib::tmpdir(tmp_dir)) {
+    std::cout << "exlib_main : inlib::tmpdir() failed." << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  if(verbose) {
+    std::cout << "exe_path : " << inlib::sout(exe_path) << std::endl;
+    std::cout << "home_dir : " << inlib::sout(home_dir) << std::endl;
+    std::cout << "data_dir : " << inlib::sout(data_dir) << std::endl;
+    std::cout << "res_dir : " << inlib::sout(res_dir) << std::endl;
+    std::cout << "out_dir : " << inlib::sout(out_dir) << std::endl;
+    std::cout << "tmp_dir : " << inlib::sout(tmp_dir) << std::endl;
+  }
+
+  //////////////////////////////////////////////////////////////////
+  /// app_context : ////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+
+  APP_CONTEXT app_context(res_dir);
+
+  //////////////////////////////////////////////////////////////////
+  /// create main and steer : //////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+
+ {app_offscreen::main<APP_MAIN> _main(std::cout,data_dir,res_dir,out_dir,tmp_dir,verbose);
+
+  if(DOCUMENT.size()) {
+    _main.create_gui();
+    bool done;
+    _main.opener().open(DOCUMENT,inlib::file::s_format_guessed(),inlib::args(),done);
+  }
+
+  if(verbose) {
+    std::cout << "out_file : " << inlib::sout(_main.out_file()) << std::endl;
+  }
+
+  _main.set_size(ww,wh);
+  _main.set_meta_zone_had_been_shown();
+
+  //_main.do_works();
+
+  _main.insh_exec(orders,verbose);
+
+  }
+
+#ifdef INLIB_MEM
+  }
+  #ifndef INLIB_MEM_ATEXIT
+  inlib::mem::balance(std::cout);
+  #endif
+  std::cout << a_app_name << "_offscreen : exit(mem) ..." << std::endl;
+#else
+  if(verbose) std::cout << a_app_name << "_offscreen : exit ..." << std::endl;
+#endif
+
+  return EXIT_SUCCESS;
+}
+
+//exlib_build_use inlib expat
+//exlib_build_use exlib png jpeg zlib inlib_glutess freetype kernel
+
+#endif

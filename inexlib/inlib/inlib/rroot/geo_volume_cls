@@ -1,0 +1,19 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_volume_cls
+#define inlib_rroot_geo_volume_cls
+
+#include <string>
+
+namespace inlib {
+namespace rroot {
+
+inline const std::string& geo_volume_cls(){
+  static const std::string s_v("inlib::rroot::geo_volume");
+  return s_v;  
+}
+
+}}
+
+#endif

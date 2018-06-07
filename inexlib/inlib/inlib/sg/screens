@@ -1,0 +1,199 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_screens
+#define inlib_sg_screens
+
+// a node to visualize a "wall of screens".
+
+#include "node"
+#include "render_action"
+#include "sf_vec"
+#include "../colorfs"
+
+namespace inlib {
+namespace sg {
+
+class screens : public node {
+  INLIB_NODE(screens,inlib::sg::screens,node)
+public:
+  sf<float> height;
+
+  // one screen :
+  sf<unsigned int> visible_width_pixels;
+  sf<unsigned int> visible_height_pixels;
+  sf<unsigned int> border_width_pixels;
+  sf<unsigned int> border_height_pixels;
+
+  // number of screens :
+  sf<unsigned int> cols;
+  sf<unsigned int> rows;
+
+  sf_vec<colorf,float> color;
+
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::screens)
+    static const desc_fields s_v(parent::node_desc_fields(),8, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(height),
+      INLIB_ARG_FIELD_DESC(visible_width_pixels),
+      INLIB_ARG_FIELD_DESC(visible_height_pixels),
+      INLIB_ARG_FIELD_DESC(border_width_pixels),
+      INLIB_ARG_FIELD_DESC(border_height_pixels),
+      INLIB_ARG_FIELD_DESC(cols),
+      INLIB_ARG_FIELD_DESC(rows),
+      INLIB_ARG_FIELD_DESC(color)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&height);
+
+    add_field(&visible_width_pixels);
+    add_field(&visible_height_pixels);
+    add_field(&border_width_pixels);
+    add_field(&border_height_pixels);
+
+    add_field(&cols);
+    add_field(&rows);
+
+    add_field(&color);
+  }
+public: //node
+  virtual void render(render_action& a_action) {
+    if(height.value()<=0) return;
+
+    if(!visible_width_pixels.value()) return;
+    if(!visible_height_pixels.value()) return;
+    if(!cols.value()) return;
+    if(!rows.value()) return;
+
+    float vw = float(visible_width_pixels);
+    float vh = float(visible_height_pixels);
+    float bw = float(border_width_pixels);
+    float bh = float(border_height_pixels);
+
+    float sw = vw+2*bw;
+    float sh = vh+2*bh;
+
+    float aw = sw*cols;
+    float ah = sh*rows;
+
+    // to center :
+    float tx = -aw*0.5f;
+    float ty = -ah*0.5f;
+
+    unsigned int floatn = cols*rows*6*3;
+    float* tris = new float[floatn];
+    float* nms  = new float[floatn];
+
+    float* ptris = tris;
+    float* pnms = nms;
+    for(unsigned int col=0;col<cols;col++) {
+      float x = col*sw+bw+tx;
+      for(unsigned int row=0;row<rows;row++) {
+        float y = row*sh+bh+ty;
+
+        *ptris++ =    x;*ptris++ =    y;*ptris++ = 0;
+        *ptris++ = x+vw;*ptris++ =    y;*ptris++ = 0;
+        *ptris++ = x+vw;*ptris++ = y+vh;*ptris++ = 0;
+
+        *ptris++ = x+vw;*ptris++ = y+vh;*ptris++ = 0;
+        *ptris++ =    x;*ptris++ = y+vh;*ptris++ = 0;
+        *ptris++ =    x;*ptris++ =    y;*ptris++ = 0;
+
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+        *pnms++ =    0;*pnms++ =    0;*pnms++ = 1;
+      }
+    }
+
+   {float sc = height.value()/ah;
+    float* xtris = tris+floatn;
+    for(ptris=tris;ptris<xtris;ptris+=3) *ptris *= sc;
+    for(ptris=tris+1;ptris<xtris;ptris+=3) *ptris *= sc;}
+
+    const state& state = a_action.state();
+
+    a_action.color4f(color.value());
+
+    a_action.draw_vertex_normal_array(gl::triangles(),floatn,tris,nms);
+
+    a_action.color4f(state.m_color);
+
+    delete [] tris;
+    delete [] nms;
+  }
+public:
+  screens()
+  :parent()
+  ,height(1)
+
+  ,visible_width_pixels(200)
+  ,visible_height_pixels(100)
+  ,border_width_pixels(0)
+  ,border_height_pixels(0)
+
+  ,cols(1)
+  ,rows(1)
+
+  ,color(colorf_white())
+  {
+    add_fields();
+  }
+  virtual ~screens(){}
+public:
+  screens(const screens& a_from)
+  :parent(a_from)
+  ,height(a_from.height)
+
+  ,visible_width_pixels(a_from.visible_width_pixels)
+  ,visible_height_pixels(a_from.visible_height_pixels)
+  ,border_width_pixels(a_from.border_width_pixels)
+  ,border_height_pixels(a_from.border_height_pixels)
+
+  ,cols(a_from.cols)
+  ,rows(a_from.rows)
+
+  ,color(a_from.color)
+  {
+    add_fields();
+  }
+  screens& operator=(const screens& a_from){
+    parent::operator=(a_from);
+    height = a_from.height;
+
+    visible_width_pixels = a_from.visible_width_pixels;
+    visible_height_pixels = a_from.visible_height_pixels;
+    border_width_pixels = a_from.border_width_pixels;
+    border_height_pixels = a_from.border_height_pixels;
+
+    cols = a_from.cols;
+    rows = a_from.rows;
+
+    color = a_from.color;
+
+    return *this;
+  }
+public:
+  float width() const {
+    float vw = float(visible_width_pixels);
+    float vh = float(visible_height_pixels);
+    float bw = float(border_width_pixels);
+    float bh = float(border_height_pixels);
+    float sw = vw+2*bw;
+    float sh = vh+2*bh;
+    float aw = sw*cols;
+    float ah = sh*rows;
+    return height.value()*aw/ah; //WARNING : no check on ah.
+  }
+};
+
+}}
+
+#endif

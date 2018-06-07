@@ -1,0 +1,107 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_bcub
+#define inlib_bcub
+
+// cubic Bezier curve.
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+namespace inlib {
+
+template <class T,class VEC>
+class bcub {
+#ifdef INLIB_MEM
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::bcub");
+    return s_v;
+  }
+#endif
+public:
+  bcub(const VEC& a_p0,const VEC& a_p1,const VEC& a_p2,const VEC& a_p3)
+  :m_p0(a_p0)
+  ,m_p1(a_p1)
+  ,m_p2(a_p2)
+  ,m_p3(a_p3)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~bcub() {
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  bcub(const bcub& a_from)
+  :m_p0(a_from.m_p0)
+  ,m_p1(a_from.m_p1)
+  ,m_p2(a_from.m_p2)
+  ,m_p3(a_from.m_p3)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  bcub& operator=(const bcub& a_from){
+    m_p0 = a_from.m_p0;
+    m_p1 = a_from.m_p1;
+    m_p2 = a_from.m_p2;
+    m_p3 = a_from.m_p3;
+    return *this;
+  }
+public:
+  void value(const T& a_t,VEC& a_v) const { 
+    //pos = P0.(1-t)^3+3.P1.t.(1-t)^2+3.P2.t^2.(1-t)+P3.t^3
+
+    T t3 = T(1);
+    T t2 = T(1)-a_t;
+    T t1 = t2*t2;
+    T t0 = t1*t2;
+    T a0 = T(1);
+    T a1 = a_t;
+    T a2 = a_t*a_t;
+    T a3 = a2*a_t;
+    a_v = m_p0*t0*a0+3*m_p1*t1*a1+3*m_p2*t2*a2+m_p3*t3*a3;
+
+  }
+
+  void tangent(const T& a_t,VEC& a_v) const { 
+    //pos = P0.(1-t)^3+3.P1.t.(1-t)^2+3.P2.t^2.(1-t)+P3.t^3
+    //tgt = -3.P0.(1-t)^2+3.P1[(1-t)^2-2.t.(1-t)]+3.P2.[2.t.(1-t)-t^2]+3.P3.t^2
+
+    //T t3 = T(1);
+    T t2 = T(1)-a_t;
+    T t1 = t2*t2;
+    //T t0 = t1*t2;
+    //T a0 = T(1);
+    T a1 = a_t;
+    T a2 = a_t*a_t;
+    //T a3 = a2*a_t;
+
+    a_v = -3*m_p0*t1
+          +3*m_p1*(t1-2*a1*t2)
+          +3*m_p2*(2*a1*t2-a2)
+          +3*m_p3*a2;
+  }
+
+  void set(const VEC& a_p0,const VEC& a_p1,const VEC& a_p2,const VEC& a_p3){
+    m_p0 = a_p0;
+    m_p1 = a_p1;
+    m_p2 = a_p2;
+    m_p3 = a_p3;
+  }
+protected:
+  VEC m_p0;
+  VEC m_p1;
+  VEC m_p2;
+  VEC m_p3;
+};
+
+}
+
+#endif

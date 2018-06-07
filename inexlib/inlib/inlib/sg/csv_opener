@@ -1,0 +1,233 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_csv_opener
+#define inlib_sg_csv_opener
+
+///////////////////////////////////////////////////////////   
+/// .csv, .tnt, .hiptxt file //////////////////////////////   
+/// hippodraw format : //////////////////////////////////// 
+/// - one header line for the ntuple title. ///////////////
+/// - one csv line for column names. //////////////////////
+/// - data at csv format. /////////////////////////////////
+///////////////////////////////////////////////////////////   
+
+#include "iopener"
+#include "../cbk/csv_ntu"
+
+#include "gui_viewer"
+
+namespace inlib {
+namespace sg {
+
+class csv_opener : public virtual iopener {
+  typedef iopener parent;
+  INLIB_SCLASS(inlib::sg::csv_opener)
+public:
+  virtual parent* copy() const {return new csv_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return file::is_csv(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,viewer& a_viewer,const args& a_args,bool& a_done) const {
+    a_done = false;
+
+    gui_viewer* _gv = cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    gui_viewer& a_gv = *_gv;
+
+    std::ostream& out = a_gv.out();
+
+    bool verbose = false;
+
+    rcsv::fntuple* ntu = new rcsv::fntuple(a_path);
+  
+    if(!ntu->open()) {
+      out << "inlib::sg::csv_opener::open :"
+          << " can't open file."
+          << std::endl;
+      delete ntu;
+      a_gv.map_warn("can't open");
+      return false;
+    }
+  
+    // give ownership of ntuple to a sg::holder deposited
+    // on gui_viewer tmp group :
+    a_gv.remove_in_tmp_group<rcsv::fntuple>(a_path);
+    a_gv.add_in_tmp_group<rcsv::fntuple>(a_path,ntu);
+  
+    //ntu->set_hippo(false);
+  
+    // Have to propose the separator....
+    char sep;
+    if(!rcsv::ntuple::find_sep(out,ntu->istrm(),false,verbose,sep)) {
+      out << "inlib::sg::csv_opener::open :"
+          << " can't find sep."
+          << std::endl;
+    }
+  
+    //popup :
+    bool popup;
+    if(!a_args.find(s_popup(),popup,false)) {}
+    int ex;
+    if(!a_args.find<int>(s_ex(),ex)) {}
+    int ey;
+    if(!a_args.find<int>(s_ey(),ey)) {}
+
+    sg::entries* entries = new sg::entries(a_gv.ttf());
+    a_gv.set_style(*entries);
+    entries->add_uint("sep",sep);
+
+    csv_opener& self = const_cast<csv_opener&>(*this);
+
+    cbk::csv_ntu* cbk = new cbk::csv_ntu(a_gv,self.m_proj,*ntu,cbk::csv_ntu::action_main(),pos_data(popup,ex,ey));
+    cbk->m_entries = entries;
+    entries->add_callback(cbk);
+
+    a_gv.show_widget(pos_data(popup,ex,ey),entries);
+
+    a_done = true;
+    return true;
+  }
+  virtual bool is(uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(uint64,const char*,viewer&,const args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string&,viewer&,const xml::scenario&,cmaps_t&,const args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  csv_opener(){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~csv_opener(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  csv_opener(const csv_opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  csv_opener& operator=(const csv_opener&){return *this;}  
+protected:
+  ntu_proj m_proj;
+};
+
+class hippo_opener : public virtual iopener {
+  typedef iopener parent;
+  INLIB_SCLASS(inlib::sg::hippo_opener)
+public:
+  virtual parent* copy() const {return new hippo_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return file::is_hippo(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,viewer& a_viewer,const args& a_args,bool& a_done) const {
+    a_done = false;
+
+    gui_viewer* _gv = cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    gui_viewer& a_gv = *_gv;
+
+    std::ostream& out = a_gv.out();
+
+    bool verbose = false;
+
+    rcsv::fntuple* ntu = new rcsv::fntuple(a_path);
+  
+    if(!ntu->open()) {
+      out << "inlib::sg::hippo_opener::open :"
+          << " can't open file."
+          << std::endl;
+      delete ntu;
+      a_gv.map_warn("can't open");
+      return false;
+    }
+  
+    // give ownership of ntuple to a sg::holder deposited
+    // on gui_viewer tmp group :
+    a_gv.remove_in_tmp_group<rcsv::fntuple>(a_path);
+    a_gv.add_in_tmp_group<rcsv::fntuple>(a_path,ntu);
+  
+    ntu->set_hippo(true);
+  
+    // Have to propose the separator....
+    char sep;
+    if(!rcsv::ntuple::find_sep(out,ntu->istrm(),true,verbose,sep)) {
+      out << "inlib::sg::hippo_opener::open :"
+          << " can't find sep."
+          << std::endl;
+    }
+  
+    //popup :
+    bool popup;
+    if(!a_args.find(s_popup(),popup,false)) {}
+    int ex;
+    if(!a_args.find<int>(s_ex(),ex)) {}
+    int ey;
+    if(!a_args.find<int>(s_ey(),ey)) {}
+
+    sg::entries* entries = new sg::entries(a_gv.ttf());
+    a_gv.set_style(*entries);
+    entries->add_uint("sep",sep);
+
+    hippo_opener& self = const_cast<hippo_opener&>(*this);
+
+    cbk::csv_ntu* cbk = new cbk::csv_ntu(a_gv,self.m_proj,*ntu,cbk::csv_ntu::action_main(),pos_data(popup,ex,ey));
+    cbk->m_entries = entries;
+    entries->add_callback(cbk);
+
+    a_gv.show_widget(pos_data(popup,ex,ey),entries);
+  
+    a_done = true;
+    return true;
+  }
+  virtual bool is(uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(uint64,const char*,viewer&,const args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string&,viewer&,const xml::scenario&,cmaps_t&,const args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  hippo_opener(){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~hippo_opener(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  hippo_opener(const hippo_opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  hippo_opener& operator=(const hippo_opener&){return *this;}  
+protected:
+  ntu_proj m_proj;
+};
+
+}}
+
+//inlib_build_use kernel
+
+#endif

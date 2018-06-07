@@ -1,0 +1,68 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_ntu_proj
+#define inlib_ntu_proj
+
+#include <string>
+
+namespace inlib {
+
+class ntu_proj {
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::ntu_proj");
+    return s_v;
+  }
+public:
+  ntu_proj()
+  :m_xn(0),m_xmn(0),m_xmx(0),m_h_xmn(0),m_h_xmx(0)
+  ,m_yn(0),m_ymn(0),m_ymx(0),m_h_ymn(0),m_h_ymx(0)
+  {}
+  virtual ~ntu_proj() {}
+public:
+  ntu_proj(const ntu_proj& a_from)
+  :m_tit(a_from.m_tit)
+
+  ,m_xn(a_from.m_xn),m_xmn(a_from.m_xmn),m_xmx(a_from.m_xmx)
+  ,m_h_xmn(a_from.m_h_xmn),m_h_xmx(a_from.m_h_xmx)
+
+  ,m_yn(a_from.m_yn),m_ymn(a_from.m_ymn),m_ymx(a_from.m_ymx)
+  ,m_h_ymn(a_from.m_h_ymn),m_h_ymx(a_from.m_h_ymx)
+  {}
+  ntu_proj& operator=(const ntu_proj& a_from){
+    m_tit = a_from.m_tit;
+
+    m_xn  = a_from.m_xn;
+    m_xmn  = a_from.m_xmn;
+    m_xmx  = a_from.m_xmx;
+    m_h_xmn  = a_from.m_h_xmn;
+    m_h_xmx  = a_from.m_h_xmx;
+
+    m_yn  = a_from.m_yn;
+    m_ymn  = a_from.m_ymn;
+    m_ymx  = a_from.m_ymx;
+    m_h_ymn  = a_from.m_h_ymn;
+    m_h_ymx  = a_from.m_h_ymx;
+
+    return *this;
+  }
+public:
+  std::string m_tit;
+
+  unsigned int m_xn;
+  double m_xmn;
+  double m_xmx;
+  double m_h_xmn;
+  double m_h_xmx;
+
+  unsigned int m_yn;
+  double m_ymn;
+  double m_ymx;
+  double m_h_ymn;
+  double m_h_ymx;
+};
+
+}
+
+#endif

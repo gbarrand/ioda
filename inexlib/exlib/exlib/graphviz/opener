@@ -1,0 +1,143 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_graphviz_opener
+#define exlib_graphviz_opener
+
+#include <inlib/sg/iopener>
+#include <inlib/sg/view_evd>
+
+#include "scene"
+
+namespace exlib {
+namespace graphviz {
+
+class opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::graphviz::opener)
+public:
+  virtual parent* copy() const {return new opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return inlib::file::is_dot(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_viewer);
+    if(!_evd) return false;
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    //bool solid = a_gv.m_params.m_solid;
+    //bool edges = a_gv.m_params.m_edges;
+
+    if(!_evd->is_evd()) {
+      _evd->create_sg_evd();
+      _evd->replace_camera(a_gv.create_2D_camera(1.01f));    
+    }
+    a_gv.set_plane_viewer(true);
+
+    inlib::sg::separator& dsep = _evd->detector_sg();
+
+    //if(a_args.is_arg(inlib::sg::s_clear_scene())) dsep.clear();
+
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    dsep.add(sep);
+
+    inlib::sg::matrix* tsf = new inlib::sg::matrix();
+    sep->add(tsf);
+
+    scene* gv = new scene;
+    gv->set_dot(a_gv.out(),1,a_path);
+    gv->tmp_dir = a_gv.tmp_dir();
+    if(a_gv.m_params.m_node_height>0) {
+      gv->scale = a_gv.m_params.m_node_height;
+    }
+    sep->add(gv);
+
+/*
+    scene::set_tsf(a_gv.out(),*gv,*tsf,
+                   a_gv.width()?a_gv.width():400,
+                   a_gv.height()?a_gv.height():400,2);
+*/
+
+    //if(!a_args.is_arg(inlib::sg::s_no_hide_menu())) a_gv.hide_main_menu();
+    a_gv.hide_main_menu();
+  
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_viewer);
+    if(!_evd) return false;
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    inlib::sg::separator& dsep = _evd->detector_sg();
+
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    dsep.add(sep);
+
+    sep->add(new inlib::sg::matrix()); //for manip.
+
+    scene* gv = new scene;
+    gv->set_dot(a_gv.out(),1,a_path);
+    gv->tmp_dir = a_gv.tmp_dir();
+    if(a_gv.m_params.m_node_height>0) {
+      gv->scale = a_gv.m_params.m_node_height;
+    }
+    sep->add(gv);
+
+    a_done = true;
+    return true;
+  }
+public:
+  opener(){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  opener(const opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  opener& operator=(const opener&){return *this;}  
+};
+
+}}
+
+#endif
+
+//exlib_build_use inlib graphviz zlib inlib_glutess freetype kernel

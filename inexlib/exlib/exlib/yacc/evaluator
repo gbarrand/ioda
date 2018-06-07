@@ -1,0 +1,207 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_evaluator_h
+#define exlib_evaluator_h
+
+#ifdef INLIB_MEM
+#include <inlib/mem>
+#endif
+
+#include "cexpr_eval.h"
+
+#include <inlib/sout>
+ 
+namespace exlib {
+
+template <class TUPLE,class COLUMN>
+class evaluator {
+  static const std::string& s_class() {
+    static const std::string s_v("exlib::evaluator");
+    return s_v;
+  }
+public:
+  //virtual const std::string& label() const;
+  evaluator(std::ostream& a_out,TUPLE& a_tuple,const std::string& a_script,bool a_case_sensitive = true)
+  :m_out(a_out)
+  ,m_tuple(a_tuple)
+  ,m_processor(a_out,"")
+  ,m_script(a_script)
+  ,m_is_valid(false)
+  ,m_case_sensitive(a_case_sensitive)
+  {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+    m_is_valid = initialize();
+  }
+  virtual ~evaluator(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  evaluator(const evaluator& a_from)
+  :m_out(a_from.m_out)
+  ,m_tuple(a_from.m_tuple)
+  ,m_processor(a_from.m_out,"")
+  ,m_script(a_from.m_script)
+  ,m_is_valid(false)
+  ,m_case_sensitive(a_from.m_case_sensitive)
+  {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+    m_is_valid = initialize();
+  }
+  evaluator& operator=(const evaluator&) {return *this;}
+public:
+  bool evaluate_double(double& a_value) {
+    if(!get_variables()) {a_value = 0;return false;}
+    std::string serror;
+    if(!m_processor.execute(m_vals,m_result,serror)) {
+      m_out << "exlib::evaluator::evaluate_double :"
+            << " processor execution failed for " << inlib::sout(m_script) << "."
+            << std::endl;
+      m_out << serror << std::endl;
+      a_value = 0;
+      return false;
+    }
+    if(!m_result.to_double(a_value)) {
+      m_out << "exlib::evaluator::evaluate_double :"
+            << " can't convert the result inlib::value to a double"
+            << " (" << m_result.stype() << ")"
+            << " for script " << inlib::sout(m_script)
+            << std::endl;
+      a_value = 0;
+      return false;
+    }
+    return true;
+  }
+
+  bool accept(bool& a_ok) {
+    if(m_script.empty()) {a_ok = true;return true;}
+    if(!get_variables()) {a_ok = true;return false;}
+    std::string serror;
+    if(!m_processor.execute(m_vals,m_result,serror)) { //FIXME : throw
+      m_out << "exlib::evaluator::accept : processor execution failed for script " << inlib::sout(m_script) << "." << std::endl;
+      m_out << serror << std::endl;
+      a_ok = true;
+      return false;
+    }
+    if(m_result.type()!=inlib::value::BOOL) {
+      m_out << "exlib::evaluator::accept : result inlib::value not a BOOLEAN" 
+            << " (" << m_result.stype() << ")"
+            << " for script " << inlib::sout(m_script)
+            << std::endl;
+      a_ok = true;
+      return false;
+    }
+    a_ok = m_result.get_bool();
+    return true;
+  }
+
+  bool is_valid() const {return m_is_valid;}
+protected:
+  bool initialize() {
+    m_names.clear();
+    m_cols.clear();
+    m_vals.clear();
+  
+    m_processor.set_script(m_script);
+  
+    // Get cut variables :
+    if(!m_processor.find_variables(m_names)) {
+      m_out << "exlib::evaluator::initialize : find_variables() failed for script " << inlib::sout(m_script) << "." << std::endl;
+      m_names.clear();
+      return false;    
+    }
+  
+    // Get functions names :
+   {std::vector<std::string> funcs;
+    if(!m_processor.find_functions(funcs)) {
+      m_out << "exlib::evaluator::initialize : find_function() failed for script " << inlib::sout(m_script) << "." << std::endl;
+      m_names.clear();
+      return false;    
+    }
+    std::vector<std::string>::const_iterator it;
+    for(it=funcs.begin();it!=funcs.end();++it) {
+      if(m_processor.find_function(*it,false)) continue;
+      m_out << "exlib::evaluator::initialize : function " << inlib::sout(*it) << " not found"
+            << " in script " << inlib::sout(m_script) << "." << std::endl;
+      m_names.clear();
+      return false;    
+      //m_processor.add_function(new ExpFunc_AIDA_FUNC(*it,*func));
+    }}
+  
+    if(!m_processor.compile(m_names)) {
+      m_out << "exlib::evaluator::initialize : compilation failed for script " << inlib::sout(m_script) << "." << std::endl;
+      m_names.clear();
+      return false;    
+    }
+  
+  //const int NotFound = -1;
+  
+    unsigned int number = m_names.size(); //Could be zero.
+    m_cols.resize(number);
+    for(unsigned int count=0;count<number;count++) {
+      //printf("debug : variable \"%s\" %lu\n",m_names[count].c_str(),&a_tuple);
+      COLUMN* column;
+      if(!m_tuple.find_column(m_names[count],column,m_case_sensitive)) {
+        m_out << "exlib::evaluator::initialize : "
+              << inlib::sout(m_names[count]) 
+              << " not a column of tuple with title " 
+              << inlib::sout(m_tuple.title()) 
+              << ". Script is " << inlib::sout(m_script) << "." << std::endl;
+        m_names.clear();
+        m_cols.clear();
+        // dump column names :
+     //{m_out << "exlib::evaluator::initialize : columns are :" << std::endl;
+      //for(unsigned int count=0;count<number;count++) {
+      //  m_out << inlib::sout(m_tuple.columnName(count)) << std::endl;
+      //}}
+        return false;
+      } 
+      m_cols[count] = column;
+    }
+
+    m_vals.resize(number);  
+    return true;
+  }
+
+protected:
+  bool get_variables(){
+    unsigned int number = m_names.size(); //Could be zero.  
+  //inlib::uint64 irow = m_tuple.row_index();  
+    for(inlib::uint64 count=0;count<number;count++) {
+      COLUMN* column = m_cols[count];
+      typedef typename COLUMN::entry_t entry_t;
+      entry_t v;
+      if(!column->get_entry(v)) {
+        m_out << "exlib::evaluator::get_variable : can't get value for column "
+              << inlib::sout(column->name())
+              << ". Script is " << inlib::sout(m_script) << "." << std::endl;
+        return false;
+      }   
+      m_vals[count] = inlib::value(v);
+    }  
+    return true;
+  }
+
+protected:
+  std::ostream& m_out;
+  TUPLE& m_tuple;
+  yacc::cexpr_eval m_processor;
+  std::string m_script;
+  bool m_is_valid;
+  bool m_case_sensitive;
+  //
+  std::vector<std::string> m_names;
+  std::vector<COLUMN*> m_cols;
+  std::vector<inlib::value> m_vals;
+  inlib::value m_result;
+};
+
+}
+
+#endif

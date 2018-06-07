@@ -1,0 +1,199 @@
+#!/bin/sh -f
+
+save_dir=`pwd`
+
+bush_home=../../../bush
+${bush_home}/check_app _incs '_incs program not found.'
+build_status=$?;if [ ${build_status} != 0 ] ; then exit ${build_status};fi
+
+#inlib_incs=${save_dir}/../../inlib/mgr/inlib_incs
+#if [ ! -e ${inlib_incs} ] ; then
+#  echo "inlib_incs not found."
+#  cd ${save_dir}
+#  exit
+#fi
+
+pack_home=/Users/barrand/private/dev/externals/dcmtk-3.6.0
+
+#verbose=-verbose
+
+#/bin/rm -R -f ./lib
+find ./config -name '*.h' -exec /bin/rm -f {} \;
+find ./oflog -name '*.h' -exec /bin/rm -f {} \;
+find ./ofstd -name '*.h' -exec /bin/rm -f {} \;
+
+find ./dcmdata -name '*.h' -exec /bin/rm -f {} \;
+find ./dcmdata -name '*.c' -exec /bin/rm -f {} \;
+find ./dcmdata -name '*.cc' -exec /bin/rm -f {} \;
+
+#exit
+#set -x
+
+#/////////////////////////////////////////////////////////////////////
+#/// cfunix.h ////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+#cp cfunix.h ./config/include/dcmtk/config/.
+cp cfunix_short.h ./config/include/dcmtk/config/cfunix.h
+
+mkdir -p ./oflog/include/dcmtk/oflog/config
+cp ${pack_home}/oflog/include/dcmtk/oflog/config/defines.h ./oflog/include/dcmtk/oflog/config/.
+
+#/////////////////////////////////////////////////////////////////////
+#/// for Windows /////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+cp ${pack_home}/oflog/include/dcmtk/oflog/config/win32.h ./oflog/include/dcmtk/oflog/config/.
+
+#cp ${pack_home}/oflog/include/dcmtk/oflog/winconap.h ./oflog/include/dcmtk/oflog/.
+#cp ${pack_home}/oflog/include/dcmtk/oflog/windebap.h ./oflog/include/dcmtk/oflog/.
+
+mkdir -p ./oflog/include/dcmtk/oflog/helpers
+cp ${pack_home}/oflog/include/dcmtk/oflog/helpers/syncpwin.h ./oflog/include/dcmtk/oflog/helpers/.
+
+#/////////////////////////////////////////////////////////////////////
+#/// ofstd ///////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+echo "/////////////////////"
+echo "/// ofstd ///////////"
+echo "/////////////////////"
+
+to=${save_dir}/ofstd/libsrc
+cd ${pack_home}/ofstd/libsrc
+
+/bin/rm -R -f ./dcmtk
+
+dirs=".:../include"
+dirs="${dirs}:../../config/include"
+dirs="${dirs}:../../ofstd/include"
+
+find . -name '*.cc' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// oflog ///////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+echo "/////////////////////"
+echo "/// oflog ///////////"
+echo "/////////////////////"
+
+to=${save_dir}/oflog/libsrc
+cd ${pack_home}/oflog/libsrc
+
+/bin/rm -R -f ./dcmtk
+
+dirs=".:../include"
+dirs="${dirs}:../../config/include"
+dirs="${dirs}:../../ofstd/include"
+dirs="${dirs}:../../oflog/include"
+
+find . -name '*.cc' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+#exit
+
+#/////////////////////////////////////////////////////////////////////
+#/// dcmdata /////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+to=${save_dir}/dcmdata/libsrc
+cd ${pack_home}/dcmdata/libsrc
+
+/bin/rm -R -f ./dcmtk
+
+dirs=".:../include"
+dirs="${dirs}:../../config/include"
+dirs="${dirs}:../../ofstd/include"
+dirs="${dirs}:../../oflog/include"
+
+find . -name '*.c' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+find . -name '*.cc' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+
+#/////////////////////////////////////////////////////////////////////
+#/// dcmimgle ////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+echo "/////////////////////"
+echo "/// dcmimgle ////////"
+echo "/////////////////////"
+
+to=${save_dir}/dcmimgle/libsrc
+cd ${pack_home}/dcmimgle/libsrc
+
+/bin/rm -R -f ./dcmtk
+
+dirs=".:../include"
+dirs="${dirs}:../../config/include"
+dirs="${dirs}:../../ofstd/include"
+dirs="${dirs}:../../oflog/include"
+dirs="${dirs}:../../dcmdata/include"
+
+find . -name '*.cc' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+
+#/////////////////////////////////////////////////////////////////////
+#/// dcmimage ////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+echo "/////////////////////"
+echo "/// dcmimage ////////"
+echo "/////////////////////"
+
+to=${save_dir}/dcmimage/libsrc
+cd ${pack_home}/dcmimage/libsrc
+
+/bin/rm -R -f ./dcmtk
+
+dirs=".:../include"
+dirs="${dirs}:../../config/include"
+dirs="${dirs}:../../ofstd/include"
+dirs="${dirs}:../../oflog/include"
+dirs="${dirs}:../../dcmdata/include"
+dirs="${dirs}:../../dcmimgle/include"
+
+find . -name '*.cc' -exec _incs ${verbose} -pack -dirs=${dirs} -to=${to} {} \;
+
+cd ${save_dir}
+dirs=
+
+#/////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+#/////////////////////////////////////////////////////////////////////
+
+/bin/cp ./modified/diflipt.h  ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/dimoflt.h  ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/dimoipxt.h ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/dimorot.h  ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/dimosct.h  ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/dirotat.h  ./dcmimgle/include/dcmtk/dcmimgle/.
+/bin/cp ./modified/discalet.h ./dcmimgle/include/dcmtk/dcmimgle/.
+
+/bin/cp ./modified/diargpxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dicmypxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dicocpt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dicoflt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dicorot.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dicosct.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dihsvpxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dipalpxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/dirgbpxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/diybrpxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/diyf2pxt.h ./dcmimage/include/dcmtk/dcmimage/.
+/bin/cp ./modified/diyp2pxt.h ./dcmimage/include/dcmtk/dcmimage/.
+
+/bin/cp ./modified/osconfig.h  ./config/include/dcmtk/config/.
+/bin/cp ./modified/ofstd.cc    ./ofstd/libsrc/.
+/bin/cp ./modified/dcvrobow.cc ./dcmdata/libsrc/.
+
+/bin/cp ./modified/sockbuff.cc ./dcmtk/oflog/libsrc/sockbuff.cc
+
+exit
+

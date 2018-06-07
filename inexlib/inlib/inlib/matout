@@ -1,0 +1,156 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_matout
+#define inlib_matout
+
+#include "forit"
+#include "mnmx"
+#include "sjust"
+
+#include <vector>
+#include <sstream>
+
+namespace inlib {
+
+template <class MAT> //MAT = mat,nmat,array2.
+inline void mat_dump(std::ostream& a_out,const std::string& aCMT,const MAT& a_matrix) {
+  unsigned int DR = a_matrix.rows();
+  unsigned int DC = a_matrix.cols();
+  std::vector<std::string> vs;
+ {std::ostringstream strm;
+  for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      strm.str("");
+      strm << a_matrix.value(r,c);
+      vs.push_back(strm.str());
+    }
+  }}
+  std::string::size_type smx = 0;
+ {inlib_vforcit(std::string,vs,it) {
+    smx = mx(smx,(*it).size());
+  }}
+ {inlib_vforit(std::string,vs,it) {
+    justify(*it,smx,side_right);
+  }}
+  if(aCMT.size()) a_out << aCMT << std::endl;
+  unsigned int index = 0;
+ {for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      if(c) a_out << " ";
+      a_out << vs[index];index++;
+    }
+    a_out << std::endl;
+  }}
+}
+
+template <class MAT> //MAT = mat,nmat,array2.
+inline void maple_mat_dump(std::ostream& a_out,const std::string& a_name,const MAT& a_matrix) {
+  unsigned int DR = a_matrix.rows();
+  unsigned int DC = a_matrix.cols();
+  std::vector<std::string> vs;
+ {std::ostringstream strm;
+  for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      strm.str("");
+      strm << a_matrix.value(r,c);
+      vs.push_back(strm.str());
+    }
+  }}
+  std::string::size_type smx = 0;
+ {inlib_vforcit(std::string,vs,it) {
+    smx = mx(smx,(*it).size());
+  }}
+ {inlib_vforit(std::string,vs,it) {
+    justify(*it,smx,side_right);
+  }}
+  unsigned int index = 0;
+  a_out << a_name << " := Matrix(["<< std::endl;
+ {for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      if(!c) a_out << "[";
+      if(c) a_out << ", ";
+      a_out << vs[index];index++;
+    }
+    if(r!=(DR-1)) a_out << "]," << std::endl;
+    else          a_out << "]" << std::endl;
+  }}
+  a_out << "]);"<< std::endl;
+}
+
+template <class MAT>
+inline void maple_mats_dump(std::ostream& a_out,const std::string& a_prefix,const std::vector<MAT>& a_reps) {
+  size_t nrep = a_reps.size();
+  std::ostringstream strm;
+  for(size_t irep=0;irep<nrep;irep++) {
+    strm.str("");
+    strm << a_prefix << irep;
+    maple_mat_dump(a_out,strm.str(),a_reps[irep]);
+  }    
+}
+
+template <class MAT> //MAT = mat,nmat,array2.
+inline void cpp_mat_dump(std::ostream& a_out,const std::string& a_name,const MAT& a_matrix) {
+  unsigned int DR = a_matrix.rows();
+  unsigned int DC = a_matrix.cols();
+  std::vector<std::string> vs;
+ {std::ostringstream strm;
+  for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      strm.str("");
+      strm << a_matrix.value(r,c);
+      vs.push_back(strm.str());
+    }
+  }}
+  std::string::size_type smx = 0;
+ {inlib_vforcit(std::string,vs,it) {
+    smx = mx(smx,(*it).size());
+  }}
+ {inlib_vforit(std::string,vs,it) {
+    justify(*it,smx,side_right);
+  }}
+  unsigned int index = 0;
+  a_out << a_name << " = inlib::mat<double," << a_matrix.dimension() << ">("<< std::endl;
+ {for(unsigned int r=0;r<DR;r++) {
+    for(unsigned int c=0;c<DC;c++) {
+      if(c) a_out << ", ";
+      a_out << vs[index];index++;
+    }
+    if(r!=(DR-1)) a_out << "," << std::endl;
+  }}
+  a_out << ");"<< std::endl;
+}
+
+}
+
+#include "snpf"
+
+namespace inlib {
+
+template <class MAT>
+inline void mat_dump(std::ostream& a_out,const MAT& a_matrix,unsigned int a_length,const char* a_format,...){
+  std::string _s;
+  if(a_length && a_format) {
+    char* cs = new char[a_length+1];
+    if(cs) {
+      cs[a_length] = '\0';
+      va_list args;
+      va_start(args,a_format);
+      int n = vsnpf(cs,a_length+1,a_format,args);
+      va_end(args);
+      if((n<=int(a_length))&&(cs[a_length]=='\0')) _s = cs;
+      delete [] cs;
+    }
+  }
+  mat_dump(a_out,_s,a_matrix);
+}
+
+template <class MAT>
+inline void mats_dump(std::ostream& a_out,const std::string& a_fmt,const std::vector<MAT>& a_reps) {
+  size_t nrep = a_reps.size();
+  for(size_t irep=0;irep<nrep;irep++) mat_dump(a_out,a_reps[irep],128,a_fmt.c_str(),irep);
+}
+
+}
+
+#endif

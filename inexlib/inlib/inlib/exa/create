@@ -1,0 +1,302 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_exa_create
+#define inlib_exa_create
+
+#include "../sg/cube"
+#include "../sg/sphere"
+#include "../sg/icosahedron_sphere"
+#include "../sg/circle"
+#include "../sg/quadrilateral"
+#include "../sg/text"
+#include "../sg/tex_rect"
+#include "../sg/tex_sphere"
+#include "../sg/plots"
+#include "../sg/h1d"
+#include "../sg/xmas_tree"
+#include "../sg/polyhedron"
+#include "../sg/tube"
+#include "../sg/cone_hat"
+
+#include "../sg/view_evd"
+
+namespace inlib {
+namespace exa {
+
+inline sg::return_action action_create(sg::gui_viewer& a_gv,sg::entries& a_widget/*,const sg::pos_data& a_data*/) {
+  const std::vector<std::string>& vals = a_widget.values.values();
+
+  const std::string& scls = vals[0];         
+
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_3D_camera(2));
+  }
+
+/*
+  int ex = a_data.m_ex;
+  int ey = a_data.m_ey;
+
+  //m_state is the state at the moment of the pick of the object.
+
+  float x,y,z;
+  if(!a_data.m_state.screen2pwc(ex,ey,x,y,z)) {
+    a_gv.out() << "inlib::cbk::popup::action :"
+               << " screen2pwc failed."
+               << std::endl;
+    return sg::return_to_render;     
+  }
+  //now (x,y,z) is in the camera viewing plane in wc.
+
+  sg::base_camera* cam = a_gv.scene_camera();
+  if(!cam) {
+    a_gv.out() << "inlib::cbk::popup::action :"
+               << " no camera found."
+               << std::endl;
+    a_gv.popup_warn(a_data.m_ex,a_data.m_ey,"no camera found");
+    return sg::return_to_render;     
+  }
+
+  // set focal :
+ {//mat4f mtx = a_data.m_state.m_proj;
+  //mtx.mul_mtx(a_data.m_state.m_model);
+  mat4f mtx;
+  a_data.m_state.camera_proj_only(mtx);
+  //mtx not taking into acccount cam orientation,pos.
+  mat4f inv;
+  if(!mtx.invert(inv)) {
+    a_gv.out() << "inlib::cbk::popup::action :"
+               << " can't convert screen to world coordinates."
+               << std::endl;
+    return sg::return_to_render;     
+  }
+  float xpick = 0;
+  float ypick = 0;
+  float zpick = a_data.m_z;
+  float wpick = a_data.m_w;
+  xpick *= wpick;
+  ypick *= wpick;
+  zpick *= wpick;
+  inv.mul_4f(xpick,ypick,zpick,wpick);
+  cam->focal = -zpick;}
+
+  if(a_data.m_state.m_camera_ortho) {
+    cam->pane_to(x,y,z); //it panes in the viewing plane only.
+
+  } else {
+    // NOTE : how to get cam pos in object wc from final proj ?
+
+    // NOTE : the below is ok as long as camera is not under a matrix node.
+    vec3f pos = a_data.m_state.m_camera_position;
+
+    line<vec3f> line;
+    line.set_value(pos.x(),pos.y(),pos.z(),x,y,z);
+
+    if(a_gv.plane_viewer()){ //pane in viewing plane.
+      vec3f dir;
+      a_data.m_state.m_camera_orientation.mul_vec(vec3f(0,0,-1),dir);
+      vec3f up;
+      a_data.m_state.m_camera_orientation.mul_vec(vec3f(0,1,0),up);
+      vec3f side = dir.cross(up);
+
+      vec3f p1 = pos + dir*cam->focal;
+      vec3f p2 = p1 + up;
+      vec3f p3 = p1 + side;
+      plane<vec3f> pl(p1,p2,p3);
+      vec3f p;
+      if(!pl.intersect(line,p)) {
+        a_gv.out() << "inlib::cbk::popup::action :"
+                   << " plane/line intersection failed."
+                   << std::endl;      
+        return sg::return_to_render;     
+      }
+
+      cam->pane_to(p.x(),p.y(),p.z());
+
+    } else {
+      cam->rotate_to_dir(line.direction());
+    }
+  }
+
+*/
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+  sg::separator* sep = new sg::separator;
+
+  sg::matrix* tsf = new sg::matrix;
+  sep->add(tsf);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_red();
+  sep->add(mat);
+    
+  if(scls==sg::cube::s_class()) {
+    sg::cube* node = new sg::cube;
+    node->width  = a_gv.wanted_size();
+    node->height = a_gv.wanted_size();
+    node->depth  = a_gv.wanted_size();
+    sep->add(node);
+
+  } else if(scls==sg::sphere::s_class()) {
+    sg::sphere* node = new sg::sphere;
+    node->radius  = a_gv.wanted_size();
+    sep->add(node);
+
+  } else if(scls==sg::icosahedron_sphere::s_class()) {
+;    sg::icosahedron_sphere* node = new sg::icosahedron_sphere;
+    //if(a_gv.m_params.m_node_height>0) {
+    //  node->radius  = a_gv.m_params.m_node_height;
+    //}
+    sep->add(node);
+
+  } else if(scls==sg::circle::s_class()) {
+    sg::draw_style* ds = new sg::draw_style;
+    ds->style = sg::draw_style::lines;
+    ds->line_width = a_gv.is_wall_screen_app()?5.0f:1.0f;
+    sep->add(ds);
+
+    sg::circle* node = new sg::circle;
+    node->radius = a_gv.wanted_size();
+    sep->add(node);
+
+  } else if(scls==sg::quadrilateral::s_class()) {
+    sg::quadrilateral* node = new sg::quadrilateral;
+    node->corners.clear();
+    float w2 = 0.5f;
+    node->corners.add(vec3f(-2.0f*w2,-w2,0));
+    node->corners.add(vec3f( 2.0f*w2,-w2,0));
+    node->corners.add(vec3f(      w2, w2,0));
+    node->corners.add(vec3f(     -w2, w2,0));
+    sep->add(node);
+
+  } else if(scls==sg::text::s_class()) {
+    //mat->color = colorf_white();
+    sg::text* node = new sg::text(a_gv.ttf());
+    node->confine = true;
+    sep->add(node);
+
+  } else if(scls==sg::tex_rect::s_class()) {
+    mat->color = colorf_white();
+
+    img_byte img;
+    if(!a_gv.set_img_from_res_file(sg::s_white_jpg(),img)) {
+      //a_gv.popup_warn(a_data.m_ex,a_data.m_ey,"read failed");
+      delete sep;
+      return sg::return_to_render;     
+    }
+
+    sg::tex_rect* node = new sg::tex_rect();
+    node->img.value().transfer(img);
+    node->show_border = true;
+    node->expand = a_gv.m_params.m_image_expand;
+    sep->add(node);
+
+  } else if(scls==sg::tex_sphere::s_class()) {
+    mat->color = colorf_white();
+
+    img_byte img;
+    if(!a_gv.set_img_from_res_file(sg::s_white_jpg(),img)) {
+      //a_gv.popup_warn(a_data.m_ex,a_data.m_ey,"read failed");
+      delete sep;
+      return sg::return_to_render;     
+    }
+
+    sg::tex_sphere* node = new sg::tex_sphere();
+    node->img.value().transfer(img);
+    node->expand = a_gv.m_params.m_image_expand;
+    sep->add(node);
+
+  } else if(scls==sg::plots::s_class()) {
+    sg::plots* node = new sg::plots(a_gv.ttf());
+    node->view_border = false;
+    node->border_visible = true;
+    node->border_width = 0.05f; //outside width,height square.
+    node->border_height = 0.05f;
+    sep->add(node);
+
+  } else if(scls==sg::h1d::s_class()) {
+    sg::h1d* node = new sg::h1d(a_gv.ttf());
+    a_gv.set_arconf(node->node(),"h1d");
+    node->border_visible = true;
+    node->border_width = 0.05f; //outside width,height square.
+    node->border_height = 0.05f;
+    sep->add(node);
+
+  } else if(scls==sg::xmas_tree::s_class()) {
+    sg::xmas_tree* node = new sg::xmas_tree();   
+    node->branch_generations = 5;
+    node->lights_point_size = 10;
+    node->ornaments_point_size = 10;
+    node->num_lights = 100;
+    node->height = a_gv.wanted_size();
+    node->radius = node->height.value()/3.0f;
+    sep->add(node);
+
+  } else if(scls==sg::polyhedron::s_class()) {
+    // A Tube with a transverse hole :
+    hep::polyhedron_tubs tubs_1(0.4,0.5,1,0,two_pi());
+    hep::polyhedron_tubs tubs_2(  0,0.2,4,0,two_pi());
+    tubs_2.Transform(rotd(vec3d(0,1,0),half_pi()),vec3d(0,0,0));
+    hep::polyhedron op = tubs_1.subtract(tubs_2);
+
+    sg::polyhedron* node = new sg::polyhedron();
+    node->ph = op;
+    sep->add(node);
+
+  } else if(scls==sg::tube::s_class()) {
+    sg::tube* node = new sg::tube();
+    sep->add(node);
+
+  } else if(scls==sg::cone_hat::s_class()) {
+    sg::cone_hat* node = new sg::cone_hat();
+    sep->add(node);
+
+  }
+
+  dsep.add(sep);
+
+  a_gv.hide_main_menu();
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action create_node(sg::gui_viewer& a_gv,const sg::pos_data& a_data) {
+
+  sg::entries* node = new sg::entries(a_gv.ttf());
+  a_gv.set_style(*node);
+
+ {std::vector<std::string> opts;
+  opts.push_back(sg::cube::s_class());
+  opts.push_back(sg::sphere::s_class());
+  opts.push_back(sg::icosahedron_sphere::s_class());
+  opts.push_back(sg::circle::s_class());
+  opts.push_back(sg::quadrilateral::s_class());
+  opts.push_back(sg::tex_rect::s_class());
+  opts.push_back(sg::tex_sphere::s_class());
+  opts.push_back(sg::text::s_class());
+  opts.push_back(sg::plots::s_class());
+  opts.push_back(sg::h1d::s_class());
+  opts.push_back(sg::xmas_tree::s_class());
+  opts.push_back(sg::polyhedron::s_class());
+  opts.push_back(sg::tube::s_class());
+  opts.push_back(sg::cone_hat::s_class());
+  node->add_opts("class",sg::cube::s_class(),opts);}
+
+  sg::add_callback(a_gv,*node,action_create);
+
+  a_gv.show_widget(a_data,node);
+
+  return sg::return_to_render;
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

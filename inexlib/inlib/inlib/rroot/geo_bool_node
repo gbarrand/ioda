@@ -1,0 +1,396 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_bool_node
+#define inlib_rroot_geo_bool_node
+
+#include "geo_shape"
+#include "geo_matrix"
+
+namespace inlib {
+namespace rroot {
+
+class geo_bool_node : public virtual iro {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoBoolNode");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_bool_node");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_bool_node>(this,a_class)) return p;
+    return 0;
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_bool_node(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+   {uint32 id,bits;
+    if(!Object_stream(a_buffer,id,bits)) return false;}
+
+    ifac::args args;
+
+    //TGeoShape* fLeft;           // shape on the left branch
+    if(!pointer_stream(a_buffer,m_fac,args,m_left)) {
+      a_buffer.out() << "inlib::rroot::geo_bool_node::stream : "
+                     << "can't read fLeft."
+                     << std::endl;
+      return false;
+    }
+
+    //TGeoShape* fRight;          // shape on the right branch
+    if(!pointer_stream(a_buffer,m_fac,args,m_right)) {
+      a_buffer.out() << "inlib::rroot::geo_bool_node::stream : "
+                     << "can't read fRight."
+                     << std::endl;
+      return false;
+    }
+
+    //TGeoMatrix* fLeftMat; // transformation that applies to the left branch
+    if(!pointer_stream(a_buffer,m_fac,args,m_left_mat)) {
+      a_buffer.out() << "inlib::rroot::geo_bool_node::stream : "
+                     << "can't read fLeftMat."
+                     << std::endl;
+      return false;
+    }
+
+    //TGeoMatrix* fRightMat; // transformation that applies to the right branch
+    if(!pointer_stream(a_buffer,m_fac,args,m_right_mat)) {
+      a_buffer.out() << "inlib::rroot::geo_bool_node::stream : "
+                     << "can't read fRightMat."
+                     << std::endl;
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_bool_node_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_bool_node>(this,a_class)) {return p;}
+    else return 0;
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_bool_node(ifac& a_fac)
+  :m_fac(a_fac)
+  ,m_left(0)
+  ,m_right(0)
+  ,m_left_mat(0)
+  ,m_right_mat(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_bool_node(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_bool_node(const geo_bool_node& a_from)
+  :iro(a_from)
+  ,m_fac(a_from.m_fac)
+  ,m_left(a_from.m_left)
+  ,m_right(a_from.m_right)
+  ,m_left_mat(a_from.m_left_mat)
+  ,m_right_mat(a_from.m_right_mat)
+  {}
+  geo_bool_node& operator=(const geo_bool_node& a_from){
+    m_fac = a_from.m_fac;
+    m_left = a_from.m_left;
+    m_right = a_from.m_right;
+    m_left_mat = a_from.m_left_mat;
+    m_right_mat = a_from.m_right_mat;
+    return *this;
+  }
+public:
+  const geo_shape* left() const {return m_left;}
+  geo_shape* left() {return m_left;}
+  const geo_shape* right() const {return m_right;}
+  geo_shape* right() {return m_right;}
+
+  const geo_matrix* left_matrix() const {return m_left_mat;}
+  geo_matrix* left_matrix() {return m_left_mat;}
+  const geo_matrix* right_matrix() const {return m_right_mat;}
+  geo_matrix* right_matrix() {return m_right_mat;}
+protected:
+  ifac& m_fac;
+  geo_shape* m_left;       // shape on the left branch
+  geo_shape*  m_right;      // shape on the right branch
+  geo_matrix* m_left_mat;  // transformation that applies to the left branch
+  geo_matrix* m_right_mat; // transformation that applies to the right branch
+};
+
+class geo_union : public geo_bool_node {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoUnion");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_union");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_union>(this,a_class)) return p;
+    return geo_bool_node::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_union(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    if(!geo_bool_node::stream(a_buffer)) return false;
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_union_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_union>(this,a_class)) {return p;}
+    else return geo_bool_node::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_union(ifac& a_fac):geo_bool_node(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_union(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_union(const geo_union& a_from):iro(a_from),geo_bool_node(a_from){}
+  geo_union& operator=(const geo_union& a_from){
+    geo_bool_node::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_intersection : public geo_bool_node {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoIntersection");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_intersection");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_intersection>(this,a_class)) return p;
+    return geo_bool_node::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_intersection(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    if(!geo_bool_node::stream(a_buffer)) return false;
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_intersection_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_intersection>(this,a_class)) {return p;}
+    else return geo_bool_node::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_intersection(ifac& a_fac):geo_bool_node(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_intersection(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_intersection(const geo_intersection& a_from)
+  :iro(a_from),geo_bool_node(a_from){}
+  geo_intersection& operator=(const geo_intersection& a_from){
+    geo_bool_node::operator=(a_from);
+    return *this;
+  }
+};
+
+class geo_subtraction : public geo_bool_node {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoSubtraction");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_subtraction");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_subtraction>(this,a_class)) return p;
+    return geo_bool_node::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_subtraction(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    if(!geo_bool_node::stream(a_buffer)) return false;
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_subtraction_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_subtraction>(this,a_class)) {return p;}
+    else return geo_bool_node::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_subtraction(ifac& a_fac):geo_bool_node(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_subtraction(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_subtraction(const geo_subtraction& a_from)
+  :iro(a_from),geo_bool_node(a_from){}
+  geo_subtraction& operator=(const geo_subtraction& a_from){
+    geo_bool_node::operator=(a_from);
+    return *this;
+  }
+};
+
+}}
+
+#include "geo_bbox"
+
+namespace inlib {
+namespace rroot {
+
+class geo_composite_shape : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoCompositeShape");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_composite_shape");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_composite_shape>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_composite_shape(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    m_node = 0;
+
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    //TGeoBoolNode* fNode;             // top boolean node
+    ifac::args args;
+    if(!pointer_stream(a_buffer,m_fac,args,m_node)) {
+      a_buffer.out() << "inlib::rroot::geo_composite_shape::stream : "
+                     << "can't read fNode."
+                     << std::endl;
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_composite_shape_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_composite_shape>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_composite_shape(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_node(0) //not owner
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_composite_shape(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_composite_shape(const geo_composite_shape& a_from)
+  :iro(a_from) 
+  ,geo_bbox(a_from)
+  ,m_node(a_from.m_node)
+  {}
+  geo_composite_shape& operator=(const geo_composite_shape& a_from){
+    geo_bbox::operator=(a_from);
+    m_node = a_from.m_node;
+    return *this;
+  }
+public:
+  const geo_bool_node* node() const {return m_node;}
+  geo_bool_node* node() {return m_node;}
+protected:
+  geo_bool_node* m_node;
+};
+
+template <class T>
+inline const T* cast_bool_node(const geo_bool_node& a_bool_node){
+  return id_cast<geo_bool_node,T>(a_bool_node);
+}
+
+template <class T>
+inline T* cast_bool_node(geo_bool_node& a_bool_node) {
+  return id_cast<geo_bool_node,T>(a_bool_node);
+}
+  
+}}
+
+#endif

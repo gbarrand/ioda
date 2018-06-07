@@ -1,0 +1,378 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_tex_sphere
+#define inlib_sg_tex_sphere
+
+#include "node"
+#include "render_action"
+#include "pick_action"
+#include "bbox_action"
+#include "event_action"
+#include "render_manager"
+#include "../mathf"
+#include "gstos"
+#include "base_tex"
+
+namespace inlib {
+namespace sg {
+
+class tex_sphere : public node, public gstos, public base_tex {
+  INLIB_NODE_NO_CAST(tex_sphere,inlib::sg::tex_sphere,node)
+public:
+  virtual void* cast(const std::string& a_class) const {
+    {if(void* p = cmp_cast<tex_sphere>(this,a_class)) return p;}
+    {if(void* p = base_tex::cast(a_class)) return p;}
+    return parent::cast(a_class);
+  }
+public:
+  sf<float> radius;
+  sf<unsigned int> slices;
+  sf<unsigned int> stacks;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::tex_sphere)
+    static const desc_fields s_v(parent::node_desc_fields(),7, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(img),
+      INLIB_ARG_FIELD_DESC(back_color),
+      INLIB_ARG_FIELD_DESC(expand),
+      INLIB_ARG_FIELD_DESC(limit),
+      INLIB_ARG_FIELD_DESC(radius),
+      INLIB_ARG_FIELD_DESC(slices),
+      INLIB_ARG_FIELD_DESC(stacks)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&img);
+    add_field(&back_color);
+    add_field(&expand);
+    add_field(&limit);
+
+    add_field(&radius);
+    add_field(&slices);
+    add_field(&stacks);
+  }
+public:
+  virtual void render(render_action& a_action) {
+    //a_action.out() << "inlib::tex_sphere::render : " << std::endl;
+
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    if(m_img.is_empty()) return;
+
+    unsigned int _id = get_tex_id(a_action.out(),a_action.render_manager(),m_img,nearest.value());
+  
+    //const state& state = a_action.state();
+
+    //image must be 2^n,2^m in size !
+    // exa : 128x64
+
+    if(_id) {
+      visit(a_action,_id);
+    }
+  }
+
+  virtual void pick(pick_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    if(m_img.is_empty()) return;
+
+    if(a_action.stop_at_first()){
+      visit(a_action,0);
+      if(a_action.done()) a_action.set_node(this);
+    } else {
+      a_action.set_done(false);
+      a_action.zs().clear();
+      a_action.ws().clear();
+      visit(a_action,0);
+      if(a_action.done()) {
+        a_action.add_pick(*this,a_action.zs(),a_action.ws(),a_action.state());
+        a_action.set_done(false);
+      }
+    }
+  }
+  virtual void bbox(bbox_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    if(m_img.is_empty()) return;
+
+    visit(a_action,0);
+  }
+
+public:
+  virtual bool intersect_value(std::ostream&,intersect_type,const line<vec3f>&,std::string&) const {
+    return false;
+  }
+public:
+  tex_sphere()
+  :parent()
+  ,base_tex()
+  ,radius(1.0f)
+  ,slices(30)
+  ,stacks(30)
+  {
+    add_fields();
+  }
+  virtual ~tex_sphere(){}
+public:
+  tex_sphere(const tex_sphere& a_from)
+  :parent(a_from)
+  ,gstos(a_from)
+  ,base_tex(a_from)
+  ,radius(a_from.radius)
+  ,slices(a_from.slices)
+  ,stacks(a_from.stacks)
+  {
+    add_fields();
+  }
+  tex_sphere& operator=(const tex_sphere& a_from){
+    parent::operator=(a_from);
+    gstos::operator=(a_from);
+    base_tex::operator=(a_from);
+    if(&a_from==this) return *this;
+    radius = a_from.radius;
+    slices = a_from.slices;
+    stacks = a_from.stacks;
+    return *this;
+  }
+public:
+
+  //const img_byte& rendered_img() const {return m_img;}
+
+protected:
+  virtual void update_sg(std::ostream& a_out) {
+    //NOTE : virtual for diaporama node.
+    clean_gstos(); //must reset for all render_manager.
+    base_tex::_update_sg_(a_out);
+  }
+protected:
+  static void _new(unsigned int a_number,
+                   float*& a_nms,unsigned int& a_inm,
+                   float*& a_vts,unsigned int& a_ivt){
+    a_nms = new float[a_number];
+    a_inm = 0;
+    a_vts = new float[a_number];
+    a_ivt = 0;
+  }
+  static void _new(unsigned int a_number,
+                   float*& a_vts,unsigned int& a_ivt){
+    a_vts = new float[a_number];
+    a_ivt = 0;
+  }
+  static void _set(float* a_v,unsigned int& a_i,
+                   float a_x,float a_y,float a_z){
+    a_v[a_i] = a_x;a_i++;
+    a_v[a_i] = a_y;a_i++;
+    a_v[a_i] = a_z;a_i++;
+  }
+  static void _set(float* a_v,unsigned int& a_i,
+                   float a_x,float a_y){
+    a_v[a_i] = a_x;a_i++;
+    a_v[a_i] = a_y;a_i++;
+  }
+  static void _delete(float*& a_nms,float*& a_vts){
+    delete [] a_nms;a_nms = 0;
+    delete [] a_vts;a_vts = 0;
+  }
+  static void _delete(float*& a_vts){
+    delete [] a_vts;a_vts = 0;
+  }
+
+protected:
+
+  void tabulate_stacks(){
+    //::printf("debug : tabulate_stacks\n");
+    unsigned int num = stacks.value()+1;
+    m_srho.clear();
+    m_crho.clear();
+    m_srho.resize(num,0);
+    m_crho.resize(num,0);
+    if(stacks.value()) {
+      float drho = fpi() / float(stacks.value());
+      float rho = 0;
+      for(unsigned int i=0;i<num;i++,rho+=drho) {
+        m_srho[i] = fsin(rho);
+        m_crho[i] = fcos(rho);
+      }
+    }
+  }
+
+  void tabulate_slices(){
+    unsigned int num = slices.value()+1;
+    m_stheta.clear();
+    m_ctheta.clear();
+    m_stheta.resize(num,0);
+    m_ctheta.resize(num,0);
+    if(slices.value()) {
+      float dtheta = ftwo_pi()/float(slices.value());
+      float theta = 0;
+      for(unsigned int i=0;i<num;i++,theta+=dtheta) {
+        m_stheta[i] = fsin(theta);
+        m_ctheta[i] = fcos(theta);
+      }
+    }
+  }
+
+  template <class T>
+  void visit(T& a_visitor,unsigned int a_tex) {
+    float a_radius = radius.value();
+    unsigned int a_slices = slices.value();
+    unsigned int a_stacks = stacks.value();
+
+    if(!a_slices||!a_stacks) return;
+
+    if((a_slices+1)!=m_stheta.size()) tabulate_slices();
+    if((a_stacks+1)!=m_srho.size()) tabulate_stacks();
+
+    float rho,theta,ctheta,stheta,srho,crho,srho_drho,crho_drho;
+    float x,y,z;
+    float nsign = 1; //OUTSIDE. -1 = INSIDE
+
+    float drho = fpi() / float(a_stacks);
+    float dtheta = ftwo_pi() / float(a_slices);
+ 
+    float* vts = 0;
+    unsigned int ivt = 0;       
+    float* txs = 0;
+    unsigned int itx = 0;       
+
+    float* nms = 0;
+    unsigned int inm = 0;       
+
+    float ax = 1,bx = 0,ay = 1,by = 0;
+    if(a_tex) tsf_tex_coords(ax,bx,ay,by);
+
+       // draw +Z end as a triangle fan :
+      {_new((1+a_slices+1)*3,nms,inm,vts,ivt);
+       _new((1+a_slices+1)*2,txs,itx);       
+       _set(nms,inm, 0, 0, 1);
+       _set(vts,ivt, 0, 0, nsign * a_radius );
+       _set(txs,itx, 0, 0);
+       rho = drho;
+       srho = m_srho[1];
+       crho = m_crho[1];
+       for (unsigned int j=0;j<=a_slices;j++) {
+ 	 theta = j * dtheta;
+         ctheta = m_ctheta[j];
+         stheta = m_stheta[j];
+ 	 x = ctheta * srho;
+ 	 y = stheta * srho;
+ 	 z = nsign * crho;
+ 	 _set(nms,inm, x*nsign, y*nsign, z*nsign );
+ 	 _set(vts,ivt, x*a_radius, y*a_radius, z*a_radius );
+         _set(txs,itx, theta/ftwo_pi(), rho/fpi());
+       }
+
+       if(a_tex) scale_tex_coords(ax,bx,ay,by,ivt,txs);
+       a_visitor.add_triangle_fan_texture(ivt,vts,nms,a_tex,txs);
+       _delete(txs);
+       _delete(nms,vts);}
+ 
+       // draw intermediate stacks as triangle strips :
+       for (int i=1;i<int(a_stacks)-1;i++) {
+ 	 rho = i * drho;
+         _new((a_slices+1)*2*3,nms,inm,vts,ivt);
+         _new((a_slices+1)*2*2,txs,itx);       
+         srho = m_srho[i];
+         crho = m_crho[i];
+ 	 srho_drho = m_srho[i+1];
+ 	 crho_drho = m_crho[i+1];
+ 	 for (unsigned int j=0;j<=a_slices;j++) {
+ 	    theta = j * dtheta;
+            ctheta = m_ctheta[j];
+            stheta = m_stheta[j];
+ 	    x = ctheta * srho;
+ 	    y = stheta * srho;
+ 	    z = nsign * crho;
+ 	    _set(nms,inm, x*nsign, y*nsign, z*nsign );
+ 	    _set(vts,ivt, x*a_radius, y*a_radius, z*a_radius );
+            _set(txs,itx, 1-theta/ftwo_pi(), rho/fpi());
+ 	    x = ctheta * srho_drho;
+ 	    y = stheta * srho_drho;
+ 	    z = nsign * crho_drho;
+ 	    _set(nms,inm, x*nsign, y*nsign, z*nsign );
+ 	    _set(vts,ivt, x*a_radius, y*a_radius, z*a_radius );
+            _set(txs,itx, 1-theta/ftwo_pi(), (rho+drho)/fpi());
+ 	 }
+         if(a_tex) scale_tex_coords(ax,bx,ay,by,ivt,txs);
+         a_visitor.add_triangle_strip_texture(ivt,vts,nms,a_tex,txs);
+         _delete(txs);
+         _delete(nms,vts);
+       }
+ 
+       // draw -Z end as a triangle fan :
+      {_new((1+a_slices+1)*3,nms,inm,vts,ivt);
+       _new((1+a_slices+1)*2,txs,itx);       
+       _set(nms,inm, 0, 0, -1 );
+       _set(vts,ivt, 0, 0, -a_radius*nsign );
+       _set(txs,itx, 0, 1);
+       rho = fpi() - drho;
+       srho = m_srho[a_stacks-1];
+       crho = m_crho[a_stacks-1];
+       for (int j=a_slices;j>=0;j--) {
+ 	 theta = j * dtheta;
+         ctheta = m_ctheta[j];
+         stheta = m_stheta[j];
+ 	 x = ctheta * srho;
+ 	 y = stheta * srho;
+ 	 z = nsign * crho;
+ 	 _set(nms,inm, x*nsign, y*nsign, z*nsign );
+ 	 _set(vts,ivt, x*a_radius, y*a_radius, z*a_radius );
+         _set(txs,itx, theta/ftwo_pi(), rho/fpi());
+       }
+       if(a_tex) scale_tex_coords(ax,bx,ay,by,ivt,txs);
+       a_visitor.add_triangle_fan_texture(ivt,vts,nms,a_tex,txs);
+       _delete(txs);
+       _delete(nms,vts);}
+
+  }
+
+  void tsf_tex_coords(float& a_ax,float& a_bx,float& a_ay,float& a_by) {
+    a_ax = 1;
+    a_bx = 0;
+    a_ay = 1;
+    a_by = 0;
+
+   {unsigned int iw = img.value().width();
+    unsigned int ih = img.value().height();
+    unsigned int rw = m_img.width();
+    unsigned int rh = m_img.height();
+    if(rw>iw) {
+      float part = float(iw)/float(rw);
+      a_ax = part;
+      a_bx = 0.5f*(1-part);
+    }
+    if(rh>ih) {
+      float part = float(ih)/float(rh);
+      a_ay = part;
+      a_by = 0.5f*(1-part);
+    }}
+  }
+
+  void scale_tex_coords(float a_ax,float a_bx,float a_ay,float a_by,
+                        unsigned int a_floatn,float* a_tcs){
+    unsigned int num = a_floatn/3;
+    for(unsigned int index=0;index<num;index++) {
+      a_tcs[2*index]   = a_ax*a_tcs[2*index]  +a_bx;
+      a_tcs[2*index+1] = a_ay*a_tcs[2*index+1]+a_by;
+    }
+  }
+
+protected:
+  std::vector<float> m_srho;
+  std::vector<float> m_crho;
+  std::vector<float> m_stheta;
+  std::vector<float> m_ctheta;
+};
+
+}}
+
+#endif

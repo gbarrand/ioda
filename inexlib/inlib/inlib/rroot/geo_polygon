@@ -1,0 +1,128 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_polygon
+#define inlib_rroot_geo_polygon
+
+#include "iros"
+#include "../carray"
+
+#include "geo_cids"
+
+namespace inlib {
+namespace rroot {
+
+class geo_polygon : public virtual iro {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPolygon");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_polygon");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_polygon>(this,a_class)) return p;
+    return 0;
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+public:
+  static cid id_class() {return geo_polygon_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_polygon>(this,a_class)) {return p;}
+    else return 0;
+  }
+public:
+  virtual iro* copy() const {return new geo_polygon(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+   {uint32 id,bits;
+    if(!Object_stream(a_buffer,id,bits)) return false;}
+
+    if(!a_buffer.read(m_nvert)) return false;
+    if(!a_buffer.read(m_nconvex)) return false;
+
+    if(!fixed_array_stream<int>(a_buffer,m_nvert,m_inds)) return false;
+    if(!fixed_array_stream<int>(a_buffer,m_nconvex,m_indcs)) return false;
+
+    //TObjArray* fDaughters;        // list of concave daughters
+    ifac::args args;
+    if(!pointer_stream(a_buffer,m_fac,args,m_daughters)){
+      a_buffer.out() << "inlib::rroot::geo_polygon::stream : "
+                     << "can't read fDaughters."
+                     << std::endl;	
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  geo_polygon(ifac& a_fac)
+  :m_fac(a_fac)
+  ,m_nvert(0)
+  ,m_nconvex(0)
+  ,m_inds(0)
+  ,m_indcs(0)
+  ,m_daughters(0) //not owner
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_polygon(){
+    destroy(m_inds);
+    destroy(m_indcs);
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_polygon(const geo_polygon& a_from)
+  :iro(a_from)
+  ,m_fac(a_from.m_fac)
+  ,m_nvert(a_from.m_nvert)
+  ,m_nconvex(a_from.m_nconvex)
+  ,m_inds(0)
+  ,m_indcs(0)
+  ,m_daughters(a_from.m_daughters)
+  { 
+    carray_copy(m_inds,m_nvert,a_from.m_inds);
+    carray_copy(m_indcs,m_nconvex,a_from.m_indcs);
+  }
+  geo_polygon& operator=(const geo_polygon& a_from){
+    if(&a_from==this) return *this;
+    m_nvert = a_from.m_nvert;
+    m_nconvex = a_from.m_nconvex;
+    m_daughters = a_from.m_daughters;
+    carray_copy(m_inds,m_nvert,a_from.m_inds);
+    carray_copy(m_indcs,m_nconvex,a_from.m_indcs);
+    return *this;
+  }
+public:
+  int nvert() const {return m_nvert;}
+  int nconvex() const {return m_nconvex;}
+  int* inds() const {return m_inds;}
+  int* indcs() const {return m_indcs;}
+
+  const iros* daughters() const {return m_daughters;}
+  iros* daughters() {return m_daughters;}
+protected:
+  ifac& m_fac;
+
+  int m_nvert;   // number of vertices (must bezined clockwise in XY plane)
+  int m_nconvex; // number of points of the outscribed convex polygon
+  int* m_inds;   //[fNvert] list of vertex indices
+  int* m_indcs;  //[fNconvex] indices of vertices of the outscribed convex polygon
+  iros* m_daughters; // list of concave daughters
+};
+
+}}
+
+#endif

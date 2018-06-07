@@ -1,0 +1,31 @@
+#ifndef wrap_exas_help
+#define wrap_exas_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    exas.help
+//
+
+inline const char** exas_help(unsigned int& a_linen){
+  static const char _0[] = "  The examples submenu is for some demos of the";
+  static const char _1[] = "  various capabilites of ioda.";
+  static const char _2[] = "  - h/rand : plot a @@double_quote@@basic@@double_quote@@ 1D histogram.";
+  static const char _3[] = "  - fit : fit an histo by viewing the fitter in operation !";
+  static const char _4[] = "  - icon : the scene used to create the ioda icon.";
+  static const char _5[] = "  - ATLAS : view some of LHC/ATLAS sub detectors from";
+  static const char _6[] = "    the CEA/Saclay .fog files.";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+};
+ a_linen = 7;
+ return _lines;
+}
+
+#endif

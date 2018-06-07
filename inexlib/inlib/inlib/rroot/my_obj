@@ -1,0 +1,71 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef my_space_my_obj
+#define my_space_my_obj
+
+// prototype for a user class.
+
+#include "iro"
+#include "buffer"
+#include "../scast"
+
+namespace my_space {
+
+class my_obj : public virtual inlib::rroot::iro {
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("my_space::my_obj");
+    return s_v;
+  }
+  static const std::string& s_store_class() {
+    //not needed to be the same than the upper.
+    static const std::string s_v("TMyObj");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = inlib::cmp_cast<my_obj>(this,a_class)) return p;
+    return 0;
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+public:
+  static inlib::cid id_class() {return 0;} //WARNING : have a relevant cid !
+  virtual void* cast(inlib::cid a_class) const {
+    if(void* p = inlib::cmp_cast<my_obj>(this,a_class)) {return p;}
+    else return 0;
+  }
+public:
+  virtual bool stream(inlib::rroot::buffer& a_buffer) {
+    //the below code skips correctly the data in the file.
+    inlib::uint32 startpos = a_buffer.length();
+    short v;
+    unsigned int s,c;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    a_buffer.set_offset(startpos+c+sizeof(unsigned int));
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+public:
+  my_obj() {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~my_obj(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  my_obj(const my_obj& a_from): inlib::rroot::iro(a_from){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  my_obj& operator=(const my_obj&){return *this;}
+};
+
+}
+
+#endif

@@ -1,0 +1,201 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_bsg_opener
+#define exlib_bsg_opener
+
+#include <inlib/sg/iopener>
+#include <inlib/sg/load_node>
+#include <inlib/sg/view_astro>
+#include <inlib/astro>
+
+#include "read_bsg_file"
+
+namespace exlib {
+
+class fac_args : public virtual inlib::sg::fac_args {
+  typedef inlib::sg::fac_args parent;
+public:
+  virtual inlib::sg::ui& ui() {return m_gv;}
+  virtual std::ostream& out() const {return m_gv.out();}
+
+  virtual bool get_time_now(inlib::atime& a_time) const {return m_gv.get_time_now(a_time);}
+  virtual const inlib::sg::base_freetype& ttf() const {return m_gv.ttf();}
+  virtual const inlib::sg::base_freetype& ttf_marker() const {return m_ttf_marker;}
+
+  virtual const inlib::wget* get_simbad_wget() const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) return 0;
+    return &_vastro->wget();
+  }
+
+  virtual const inlib::wget* get_stars_wget() const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) return 0;
+    return &_vastro->wget();
+  }
+  virtual bool get_stars_local() const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) return true;
+    const std::string& stars_host = _vastro->host();
+    //unsigned int stars_port = _vastro->port();
+    return (stars_host.empty()||(stars_host==inlib::s_local())?true:false);
+  }
+  virtual void get_stars_host(std::string& a_host) const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) {a_host.clear();return;}
+    a_host = _vastro->host();
+  }
+  virtual unsigned int get_stars_port() const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) return 0;
+    return _vastro->port();
+  }
+  virtual void get_stars_dir(std::string& a_dir) const {
+    m_gv.first_data_dir(a_dir);
+  }
+
+  virtual inlib::SDSS::catalog* get_stars_catalog() const {
+    inlib::sg::view_astro* _vastro = inlib::sg::cast_view_astro(m_gv);
+    if(!_vastro) return 0;
+    return &_vastro->SDSS_catalog();
+  }
+public:
+  fac_args(inlib::sg::gui_viewer& a_gv,const inlib::sg::base_freetype& a_ttf_marker):m_gv(a_gv),m_ttf_marker(a_ttf_marker){}
+  virtual ~fac_args(){}
+public:
+  fac_args(const fac_args& a_from):parent(a_from),m_gv(a_from.m_gv),m_ttf_marker(a_from.m_ttf_marker){}
+  fac_args& operator=(const fac_args&) {return *this;}
+protected:
+  inlib::sg::gui_viewer& m_gv;
+  const inlib::sg::base_freetype& m_ttf_marker;
+};
+
+
+}
+
+#include "sg/text_freetype_marker"
+
+namespace exlib {
+
+class bsg_opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::bsg_opener)
+public:
+  virtual parent* copy() const {return new bsg_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return gzip_is_bsg(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,inlib::sg::viewer& a_viewer,const inlib::args& a_args,bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    bool verbose = false;
+  //verbose = true;
+
+    inlib::sg::separator* node = new inlib::sg::separator;
+
+    sg::text_freetype_marker* tft = new sg::text_freetype_marker;
+
+    fac_args _args(a_gv,*tft);
+
+    if(!read_bsg_file(a_gv.out(),m_fac,_args,a_path,*node,verbose)) {
+      delete node;
+      delete tft;
+      a_gv.map_warn_failed();
+      return false;
+    }
+
+    load_node(a_gv,node,a_args); //give ownership of node.
+
+    node->add(new inlib::sg::holder<sg::text_freetype_marker>(tft));
+    
+    a_done = true;
+    return true;
+  }
+
+  // buffer :
+  virtual bool is(inlib::uint64 a_sz,const char* a_buffer,bool& a_is) const {
+    //NOTE : for the moment we do not expect a buffer containing a gzipped bsg.
+    a_is = inlib::file::is_bsg((unsigned int)a_sz,a_buffer);
+    return true;
+  }
+  virtual bool open(inlib::uint64 a_sz,const char* a_buffer,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    bool verbose = false;
+  //verbose = true;
+
+    inlib::sg::separator* node = new inlib::sg::separator;
+
+    sg::text_freetype_marker* tft = new sg::text_freetype_marker;
+
+    inlib::sg::field_factory ffac;
+    fac_args _args(a_gv,*tft);
+    inlib::sg::read_bsg ml(a_gv.out(),m_fac,_args,*node,ffac,verbose);
+    if(!ml.load_buffer((unsigned int)a_sz,a_buffer)) {
+      delete node;
+      delete tft;
+      a_gv.map_warn_failed();
+      return false;
+    }
+  
+    load_node(a_gv,node,a_args); //give ownership of node.
+
+    node->add(new inlib::sg::holder<sg::text_freetype_marker>(tft));
+
+    //m_gv.out() << "loaded exsg from buffer." << std::endl;
+  
+    a_done = true;
+    return true;
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    return open(a_path,a_viewer,a_args,a_done);
+  }
+public:
+  bsg_opener(const inlib::sg::bsg_factories& a_fac):m_fac(a_fac){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~bsg_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  bsg_opener(const bsg_opener& a_from):parent(a_from),m_fac(a_from.m_fac){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  bsg_opener& operator=(const bsg_opener& a_from){
+    m_fac = a_from.m_fac;
+    return *this;
+  }  
+protected:
+  inlib::sg::bsg_factories m_fac;
+};
+
+}
+
+//exlib_build_use inlib inlib_glutess freetype zlib kernel
+
+#endif

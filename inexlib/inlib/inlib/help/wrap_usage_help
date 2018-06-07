@@ -1,0 +1,57 @@
+#ifndef wrap_usage_help
+#define wrap_usage_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    usage.help
+//
+
+inline const char** usage_help(unsigned int& a_linen){
+  static const char _0[] = "  At startup a simple graphical interface (GUI in";
+  static const char _1[] = "  the following) appears. It is composed for the";
+  static const char _2[] = "  moment of the home, back, camera buttons along";
+  static const char _3[] = "  with a central list of buttons. Simply touch";
+  static const char _4[] = "  (click on a desktop) a button to navigate in";
+  static const char _5[] = "  the GUI. In general a button leads to sub lists";
+  static const char _6[] = "  that finishes with @@double_quote@@leaves buttons@@double_quote@@ that permit";
+  static const char _7[] = "  to visualize something. For example :";
+  static const char _8[] = "     exas -> h/rand";
+  static const char _9[] = "  leads to the plot of the normal distribution.";
+  static const char _10[] = "  The home button permits to return to the top";
+  static const char _11[] = "  list of buttons whilst the back button returns";
+  static const char _12[] = "  to the previous list.";
+  static const char _13[] = "   When visualizing something, the GUI disappears";
+  static const char _14[] = "  to let the place, full screen, to the @@double_quote@@scene@@double_quote@@.";
+  static const char _15[] = "  A non visible @@double_quote@@meta zone@@double_quote@@ exists at the bottom";
+  static const char _16[] = "  that permits, when touched/clicked, to map again";
+  static const char _17[] = "  the GUI. When having a scene, the camera button";
+  static const char _18[] = "  permits to map a panel that let you move around";
+  static const char _19[] = "  the camera.                                    ";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+,_7
+,_8
+,_9
+,_10
+,_11
+,_12
+,_13
+,_14
+,_15
+,_16
+,_17
+,_18
+,_19
+};
+ a_linen = 20;
+ return _lines;
+}
+
+#endif

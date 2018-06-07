@@ -1,0 +1,206 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_valop2mathml
+#define inlib_valop2mathml
+
+#include "valop"
+#include "smath"
+#include "rcmp"
+
+namespace inlib {
+
+class valop2mathml : public virtual valop_visitor {
+public:
+  virtual bool binary(unsigned int a_type,const valop& a_a,const valop& a_b) {
+
+    //valop2mathml v(m_writer);
+
+    if(a_type==valop::DIV) {
+      m_writer << "<mfrac>" << std::endl;
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "</mrow>" << std::endl;
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+      m_writer << "</mfrac>" << std::endl;
+
+    } else if(a_type==valop::ADD) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "<mo>+</mo>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else if(a_type==valop::ASIDE) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      //??? m_writer << ???<< std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else if(a_type==valop::NVMUL) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "<mo>&InvisibleTimes;</mo>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else if(a_type==valop::EQUAL) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "<mo>=</mo>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else if(a_type==valop::SUPS) {
+      m_writer << "<msup>" << std::endl;
+      if(!visit(a_a)) return false;
+      if(!visit(a_b)) return false;
+      m_writer << "</msup>" << std::endl;
+
+    } else if(a_type==valop::SUBS) {
+      m_writer << "<msub>" << std::endl;
+      if(!visit(a_a)) return false;
+      if(!visit(a_b)) return false;
+      m_writer << "</msub>" << std::endl;
+
+    } else if(a_type==valop::SUB) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "<mo>-</mo>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else if(a_type==valop::MUL) {
+      m_writer << "<mrow>" << std::endl;
+      if(!visit(a_a)) return false;
+      m_writer << "<mo>&InvisibleTimes;</mo>" << std::endl;
+      if(!visit(a_b)) return false;
+      m_writer << "</mrow>" << std::endl;
+
+    } else {
+      return false;
+    }
+
+    return true;
+  }
+
+  virtual bool unary(unsigned int a_type,const valop& a_1) {
+    if(a_type==valop::MINUS) {
+      m_writer << "<mo>-</mo>" << std::endl;
+      if(!visit(a_1)) return false;          
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  virtual bool variable(unsigned int a_type,const value& a_var) {
+    switch(a_var.type()) {
+    case value::SHORT:
+    case value::UNSIGNED_SHORT:
+    case value::INT:
+    case value::UNSIGNED_INT:
+    case value::INT64:
+    case value::UNSIGNED_INT64:
+    case value::FLOAT:
+    case value::DOUBLE:
+      m_writer << "<mn>" << value::to_string(a_var) << "</mn>" << std::endl;
+      return true;
+    case value::BOOL:
+      m_writer << "<mn>" << (a_var.get_bool()?1:0) << "</mn>" << std::endl;
+      return true;
+    case value::STRING:{
+      if(a_type==valop::SYMBOL) {
+        if(rcmp(a_var.get_string(),s_psi())) {
+          m_writer << "<mo>&psi;</mo>" << std::endl;
+          return true;
+        } else if(rcmp(a_var.get_string(),s_upper_delta())) {
+          m_writer << "<mo>&Delta;</mo>" << std::endl;
+          return true;
+        } else if(rcmp(a_var.get_string(),s_partial_derivative())) {
+          m_writer << "<mo>&PartialD;</mo>" << std::endl;
+        //m_writer << "<mo>&DifferentialD;</mo>" << std::endl;
+          return true;
+        } else if(rcmp(a_var.get_string(),s_h_bar())) {
+          m_writer << "<mo>&planck;</mo>" << std::endl;
+          return true;
+        }
+      } else if(a_type==valop::STRING) {
+        m_writer << "<mi>" << a_var.get_string() << "</mi>" << std::endl;
+        return true;
+      }
+      }return false;
+    default:
+      return false;
+    }
+    return true;
+  }
+
+  virtual bool option(const valop& a_v) {
+    m_writer << "<mi>" << a_v.m_name << "</mi>" << std::endl;
+    return true;
+  }
+
+  virtual bool func_1(const valop& a_f,const valop& a_1) {
+    if(rcmp(a_f.m_function->name(),s_sqrt())) {
+      m_writer << "<msqrt>" << std::endl;
+      if(!visit(a_1)) return false;
+      m_writer << "</msqrt>" << std::endl;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  virtual bool func_2(const valop& a_f,const valop& a_1,const valop& a_2) {
+    if(rcmp(a_f.m_function->name(),s_pow())) {
+      m_writer << "<msup>" << std::endl;
+      if(!visit(a_1)) return false;
+      if(!visit(a_2)) return false;
+      m_writer << "</msup>" << std::endl;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  virtual bool func_3(const valop&,const valop&,const valop&,const valop&) {
+    return false;
+  }
+  virtual bool func_4(const valop&,const valop&,const valop&,const valop&,const valop&) {
+    return false;
+  }
+  virtual bool func_5(const valop&,const valop&,const valop&,const valop&,const valop&,const valop&) {
+    return false;
+  }
+  virtual bool func_6(const valop&,const valop&,const valop&,const valop&,const valop&,const valop&,const valop&) {
+    return false;
+  }
+public:
+  valop2mathml(std::ostream& a_writer):m_writer(a_writer){}
+  virtual ~valop2mathml() {}
+public:
+  valop2mathml(const valop2mathml& a_from)
+  :valop_visitor(a_from)
+  ,m_writer(a_from.m_writer)
+  {}
+  valop2mathml& operator=(const valop2mathml&){return *this;}
+public:
+  void header() {
+    m_writer << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    m_writer << "<!DOCTYPE math PUBLIC \"-//W3C//DTD MathML 2.0//EN\"" << std::endl;
+    m_writer << "  \"http://www.w3.org/Math/DTD/mathml2/mathml2.dtd\">" << std::endl;
+
+    m_writer << "<math>" << std::endl;
+  }
+  void footer() {
+    m_writer << "</math>" << std::endl;
+  }
+public:
+  std::ostream& m_writer;
+};
+
+}
+
+#endif

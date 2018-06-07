@@ -1,0 +1,37 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+if [ `uname` = "Linux" ] ; then
+  ccflags="${ccflags} -Wno-unused-result"
+fi
+
+if [ `uname` = "Darwin" -o `uname` = "Linux" ] ; then
+  # for exlib/apps/cfitsio_pyrfits_merge :
+  ccflags="${ccflags} -D_REENTRANT"
+  use_thread=yes
+fi
+
+. ${bush_home}/ourex_generic
+
+. ${bush_home}/use/thread
+
+if [ ${build_app} = "yes" ] ; then
+
+  ccflags="${ccflags} -I./include"
+
+  if [ ${build_visual} = "yes" ] ; then
+    ccflags="${ccflags} -wd4305 -wd4244"
+  fi
+
+  . ${bush_home}/preplib
+
+  objs=
+  app_src=./testprog.c
+  app_exe=testprog
+  . ${bush_home}/application
+
+fi

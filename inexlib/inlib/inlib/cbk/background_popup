@@ -1,0 +1,97 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_background_popup
+#define inlib_cbk_background_popup
+
+#include "popup"
+#include "popup_data"
+#include "../sg/background"
+#include "../sg/gui_viewer"
+#include "../exa/create"
+#include "../cbk/files"
+//#include "../ftp/cbk"
+
+namespace inlib {
+namespace cbk {
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+inline sg::return_action background_popup_action_cancel(sg::gui_viewer& a_gv) {
+  a_gv.hide_popup();
+  return sg::return_to_render;     
+}
+
+inline sg::return_action background_popup_action_set_color(sg::gui_viewer& a_gv,sg::colors& a_colors) {
+  float r,g,b,a;
+  a_colors.get_color(r,g,b,a);
+  a_gv.set_scene_clear_color(colorf(r,g,b,a));
+  return sg::return_to_render;     
+}
+
+inline sg::return_action background_popup_action_color(sg::gui_viewer& a_gv,const sg::pos_data& a_data) {
+  sg::colors* colors = new sg::colors(a_gv.ttf());
+  a_gv.set_style(*colors);
+  //colors->value = svalue;
+  colors->show_cancel = true;
+  sg::add_callback(a_gv,*colors,background_popup_action_set_color);
+  sg::add_cancel_callback(a_gv,*colors,background_popup_action_cancel);
+
+  a_gv.show_widget(a_data,colors);
+  return sg::return_to_render;     
+}
+
+}}
+
+#include "../sg/view_evd"
+
+namespace inlib {
+namespace cbk {
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+class background_popup : public popup {
+public:
+  virtual void add_items(sg::ilist& a_list,int a_x,int a_y) const {
+    sg::add_item(m_gv,a_list,"set color",background_popup_action_color,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"camera menu",sg::action_toggle_camera_menu_at_pos,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"create node",exa::create_node,sg::pos_data(true,a_x,a_y));
+  //sg::add_image_item(m_gv,a_list,"export","document_export.jpg",exlib::out::action_main,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"files",action_files,sg::pos_data(true,a_x,a_y));
+    if(m_gv.has_open_panel()) {
+      sg::add_item(m_gv,a_list,"open...",sg::action_open_open_panel,sg::pos_data(true,a_x,a_y));
+    }
+    sg::add_item(m_gv,a_list,"disable anim",sg::action_disable_anim);
+    sg::add_item(m_gv,a_list,"enable anim",sg::action_enable_anim);
+  //sg::add_item(m_gv,a_list,"show scene title",sg::action_show_scene_title,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"infos->console",sg::action_infos_in_console,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"console mag 2",sg::action_console_mag_two,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"clear static scene",sg::action_clear_static_sg,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"clear dynamic scene",sg::action_clear_dynamic_sg,sg::pos_data(true,a_x,a_y));
+//    sg::add_item(m_gv,a_list,"clear screen scene",sg::action_clear_screen_sg,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"view all",sg::action_adapt_camera_to_scene,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"light",sg::action_toggle_light,sg::pos_data(true,a_x,a_y));
+    sg::add_item(m_gv,a_list,"gsto",sg::action_toggle_gsto,sg::pos_data(true,a_x,a_y));
+  }
+public:
+  virtual sg::bcbk* copy() const {return new background_popup(*this);}
+public:
+  background_popup(sg::gui_viewer& a_gv):popup(sg::background::s_class(),0),m_gv(a_gv){}
+  virtual ~background_popup(){}
+protected:
+  background_popup(const background_popup& a_from):popup(a_from),m_gv(a_from.m_gv){}
+  background_popup& operator=(const background_popup& a_from){
+    popup::operator=(a_from);
+    return *this;
+  }
+protected:
+  sg::gui_viewer& m_gv;
+};
+
+}}
+
+//inlib_build_use kernel
+
+#endif

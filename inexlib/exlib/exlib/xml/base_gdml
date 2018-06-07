@@ -1,0 +1,192 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_xml_base_gdml
+#define exlib_xml_base_gdml
+
+#include <inlib/xml/gdml>
+
+#include "loader"
+
+#include "../yacc/cexpr_eval.h"
+
+namespace exlib {
+namespace xml {
+
+template
+<class _G4Element
+,class _G4Material
+,class _G4LogicalVolume
+,class _G4VPhysicalVolume
+,class _G4AssemblyVolume
+,class _G4OpticalSurface
+,class _G4SurfaceProperty
+,class _G4LogicalSurface
+,class _G4VSolid>
+
+
+
+class base_gdml
+:public inlib::xml::gdml<_G4Element,_G4Material,_G4LogicalVolume,_G4VPhysicalVolume,_G4AssemblyVolume,_G4OpticalSurface,_G4SurfaceProperty,_G4LogicalSurface,_G4VSolid>
+,public loader {
+  typedef inlib::xml::gdml<_G4Element,_G4Material,_G4LogicalVolume,_G4VPhysicalVolume,_G4AssemblyVolume,_G4OpticalSurface,_G4SurfaceProperty,_G4LogicalSurface,_G4VSolid> parent_gdml;
+  typedef loader parent;
+public:
+  virtual bool evaluate(const typename parent_gdml::map_dbls& a_map,const std::string& a_s,double& a_v){
+    if(inlib::to<double>(a_s,a_v)) return true;
+    // look for a constant :
+   {typename parent_gdml::map_dbls_const_iterator itm = a_map.find(a_s);
+    if(itm!=a_map.end()) {a_v = (*itm).second;return true;}}
+
+    // expression :
+    exlib::yacc::cexpr_eval proc(m_out,a_s);
+
+    std::vector<std::string> vars;
+    if(!proc.find_variables(vars)) {
+      m_out << "exlib::xml::base_gdml::evaluate :"
+            << " for formula " << inlib::sout(a_s)
+            << ", can't find variables."
+            << std::endl;
+      a_v = 0;
+      return false;
+    }
+    if(!proc.compile(vars)) {
+      m_out << "exlib::xml::base_gdml::evaluate :"
+            << " for formula " << inlib::sout(a_s)
+            << ", can't compile."
+            << std::endl;
+      a_v = 0;
+      return false;
+    }
+
+    std::vector<inlib::value> vals;
+    vals.resize(vars.size(),inlib::value(0.));
+
+   {std::vector<inlib::value>::iterator it2 = vals.begin();
+    inlib_vforcit(std::string,vars,it){
+      bool found = false;    
+      inlib_mforcit(std::string,double,a_map,itm){
+        if((*itm).first==(*it)) {
+          (*it2).set((*itm).second);
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+        m_out << "exlib::xml::base_gdml::evaluate :"
+              << " for formula " << inlib::sout(a_s)
+              << ", variable " << inlib::sout(*it)
+              << " not found in constants."
+              << std::endl;
+        a_v = 0;
+        return false;
+      }
+      it2++;
+    }}
+
+    inlib::value res;
+    std::string serror;
+    if(!proc.execute(vals,res,serror)) {
+      m_out << "exlib::xml::base_gdml::evaluate :"
+            << " for formula " << inlib::sout(a_s)
+            << ", execution failure."
+            << " Error message " << inlib::sout(serror)
+            << std::endl;
+      a_v = 0;
+      return false;
+    }
+
+    if(!inlib::value::to_double(res,a_v)) {
+      m_out << "exlib::xml::base_gdml::evaluate :"
+            << " for formula " << inlib::sout(a_s)
+            << ". Can't convert result inlib::value to double."
+            << std::endl;
+      a_v = 0;
+      return false;
+    }
+
+    return true;
+  }
+
+public:
+  base_gdml(inlib::xml::factory& a_fac,std::ostream& a_out,bool a_verbose)
+  :parent_gdml(a_out,a_verbose)
+  ,parent(a_fac,a_out,a_verbose)
+  {
+    //set_compressed_reader(new exlib::gzip_reader());
+    parent_gdml::set_default_tags(m_tags);
+  }
+  virtual ~base_gdml(){}
+public:
+  base_gdml(const base_gdml& a_from)
+  :parent_gdml(a_from)
+  ,parent(a_from)
+  {}
+  base_gdml& operator=(const base_gdml& a_from){
+    parent_gdml::operator=(a_from);
+    parent::operator=(a_from);
+    return *this;
+  }
+public:
+  bool load_file(const std::string& a_file,
+                 bool a_compressed,
+                 _G4VPhysicalVolume*& a_pv){
+    a_pv = 0;
+
+    parent_gdml::_clear();
+
+    parent_gdml::init_map_consts();
+    parent_gdml::init_map_units();
+
+    if(!parent::load_file(a_file,a_compressed)) return false;    
+    inlib::xml::tree* top = top_item();
+    if(!top) return false;
+    if(top->tag_name()!=parent_gdml::s_gdml()) return false;    
+
+   {inlib::xml::looper _for(*top);
+    while(inlib::xml::tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+    //m_out << "debug : " << tag_name << std::endl;
+      if(tag_name==parent_gdml::s_define()) {
+        if(!parent_gdml::read_define(*_tree)) return false;
+      } else if(tag_name==parent_gdml::s_materials()) {
+        if(!parent_gdml::read_materials(*_tree)) return false;
+      } else if(tag_name==parent_gdml::s_solids()) {
+        if(!parent_gdml::read_solids(*_tree)) return false;
+      } else if(tag_name==parent_gdml::s_structure()) {
+        if(!parent_gdml::read_structure(*_tree)) return false;
+      } else if(tag_name==parent_gdml::s_setup()) {
+        if(!parent_gdml::read_setup(*_tree,a_pv)) return false;
+        if(a_pv) break;
+      } else {
+        m_out << "exlib::xml::base_gdml::load_file :"
+              << " unknown tag " << inlib::sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+    return true;
+  }
+
+/*
+  bool load_buffer(unsigned int a_sz,const char* a_buffer){
+    if(!parent::load_buffer(a_sz,a_buffer)) return false;    
+    inlib::xml::tree* top = top_item();
+    if(!top) return false;
+    if(top->tag_name()!=s_gdml()) return false;    
+
+   {const std::list<inlib::xml::tree*>& list = top->children();
+    inlib_lforcit(inlib::xml::tree,list,it) {
+    }}
+    return true;
+  }
+*/
+};
+
+}}
+
+//exlib_build_use inlib expat
+
+#endif

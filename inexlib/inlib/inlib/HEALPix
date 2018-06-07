@@ -1,0 +1,486 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_HEALPix
+#define inlib_HEALPix
+
+//from HEALPix/2.15a.
+// Copyright (C) 1997-2010 Krzysztof M. Gorski, Eric Hivon, 
+//                         Benjamin D. Wandelt, Anthony J. Banday, 
+//                         Matthias Bartelmann, 
+//                         Reza Ansari & Kenneth M. Ganga 
+
+#include <cmath>
+#include <ostream>
+
+#include "mathd"
+
+namespace inlib {
+namespace HEALPix {
+
+inline int fmodi(int a_x,int a_y) {
+  return (int)::fmod((double)a_x,(double)a_y); 
+}
+
+inline void mk_xy2pix(int x2pix[128],int y2pix[128]) {
+   // sets the array giving the number of the pixel lying in (x,y)
+   // x and y are in {1,128}
+   // the pixel number is in {0,128**2-1}
+   //   
+   // if  i-1 = sum_p=0  b_p * 2^p
+   // then ix = sum_p=0  b_p * 4^p
+   // iy = 2*ix
+   // ix + iy in {0, 128**2 -1}
+
+  int i, K,IP,I,J,ID;
+  
+  for(i = 0; i < 127; i++) x2pix[i] = 0;
+  for( I=1;I<=128;I++ ) {
+    J  = I-1;//            !pixel numbers
+    K  = 0;//
+    IP = 1;//
+    while(true) {
+      if(J==0) {
+        x2pix[I-1] = K;
+        y2pix[I-1] = 2*K;
+	break;
+      }
+      ID = fmodi(J,2);
+      J  = J/2;
+      K  = IP*ID+K;
+      IP = IP*4;
+    }    
+  }     
+  
+}
+
+inline bool ang2pix_nest(std::ostream& a_out,unsigned int a_nside,double a_theta,double a_phi,int& a_ipix) {
+
+  // gives the pixel number ipix (NESTED) corresponding to angles theta and phi
+  //
+  // the computation is made to the highest resolution available (nside=8192)
+  // and then degraded to that required (by integer division)
+  // this doesn't cost more, and it makes sure that the treatement of
+  // round-off will be consistent for every resolution
+  
+  unsigned int ns_max = 8192;
+
+  if( (a_nside==0) || (a_nside>ns_max) ) {
+    a_out << "inlib::HEALPix::ang2pix_nest :"
+          << " nside out of range " << a_nside
+          << std::endl;
+    return false;
+  }
+  if( a_theta<0. || a_theta>pi() ) {
+    a_out << "inlib::HEALPix::ang2pix_nest :"
+          << " theta out of range " << a_theta
+          << std::endl;
+    return false;
+  }
+
+  static int x2pix[128], y2pix[128];
+  static bool setup_done = false;
+  if(!setup_done ) {
+    mk_xy2pix(x2pix,y2pix);
+    setup_done = true;
+  }
+  
+  if( a_phi>=two_pi() ) a_phi = a_phi - two_pi();
+  else if( a_phi<0. )   a_phi = a_phi + two_pi();
+
+  double tt = a_phi / half_pi(); // in [0,4[
+  
+  double z  = ::cos(a_theta);
+  double za = ::fabs(z);
+  double z0 = 2./3.;
+
+  int    face_num,jp,jm;
+  int    ifp, ifm;
+  int    ix, iy, ipf, ntt;
+
+  if( za<=z0 ) { // equatorial region
+    
+    // (the index of edge lines increase when the longitude=phi goes up)
+    jp = (int)::floor(ns_max*(0.5 + tt - z*0.75));// ascending edge line index
+    jm = (int)::floor(ns_max*(0.5 + tt + z*0.75));// descending edge line index
+    
+    // finds the face
+    ifp = jp / ns_max; // in {0,4}
+    ifm = jm / ns_max;
+    
+    if( ifp==ifm ) face_num = fmodi(ifp,4) + 4; // faces 4 to 7
+    else if( ifp<ifm ) face_num = fmodi(ifp,4); // (half-)faces 0 to 3
+    else face_num = fmodi(ifm,4) + 8;           // (half-)faces 8 to 11
+    
+    ix = fmodi(jm, ns_max);
+    iy = ns_max - fmodi(jp, ns_max) - 1;
+
+  } else { // polar region, za > 2/3
+    
+    ntt = (int)::floor(tt);
+    if( ntt>=4 ) ntt = 3;
+    double tp = tt - ntt;
+    double tmp = ::sqrt( 3.*(1. - za) ); // in ]0,1]
+    
+    // (the index of edge lines increase when distance from the closest pole
+    // goes up)
+    // line going toward the pole as phi increases
+
+    jp = (int)::floor( ns_max * tp          * tmp ); 
+
+    // that one goes away of the closest pole
+    jm = (int)::floor( ns_max * (1. - tp) * tmp );
+    jp = (int)(jp < int(ns_max)-1 ? jp : int(ns_max)-1);
+    jm = (int)(jm < int(ns_max)-1 ? jm : int(ns_max)-1);
+    
+    // finds the face and pixel's (x,y)
+    if( z>=0 ) {
+      face_num = ntt; // in {0,3}
+      ix = ns_max - jm - 1;
+      iy = ns_max - jp - 1;
+    }
+    else {
+      face_num = ntt + 8; // in {8,11}
+      ix =  jp;
+      iy =  jm;
+    }
+  }
+  
+  int ix_low = fmodi(ix,128);
+  int ix_hi  =     ix/128;
+  int iy_low = fmodi(iy,128);
+  int iy_hi  =     iy/128;
+
+  ipf = (x2pix[ix_hi]+y2pix[iy_hi]) * (128 * 128)+
+        (x2pix[ix_low]+y2pix[iy_low]);
+
+  //G.Barrand : optimize : avoid pow(,2) :
+  //ipf = (long)(ipf / ::pow(double(ns_max/a_nside),2.0));     // in {0, a_nside**2 - 1}
+  //a_ipix =(long)( ipf + face_num*::pow(double(a_nside),2.0));// in {0, 12*a_nside**2-1}
+
+  double ns_max_over_nside = double(ns_max/a_nside);
+  ipf = (int)(ipf/(ns_max_over_nside*ns_max_over_nside));     // in {0, a_nside**2 - 1}
+  a_ipix =(int)( ipf + face_num*a_nside*a_nside);// in {0, 12*a_nside**2-1}
+
+  return true;
+}
+
+inline bool ang2pix_ring(std::ostream& a_out,unsigned int a_nside,double a_theta,double a_phi,int& a_ipix) {
+  // gives the pixel number ipix (RING) 
+  // corresponding to angles theta and phi
+  
+  unsigned int ns_max=8192;
+
+  if( (a_nside==0) || (a_nside>ns_max) ) {
+    a_out << "inlib::HEALPix::ang2pix_ring :"
+          << " nside out of range " << a_nside
+          << std::endl;
+    return false;
+  }
+  if( a_theta<0. || a_theta>pi() ) {
+    a_out << "inlib::HEALPix::ang2pix_ring :"
+          << " theta out of range " << a_theta
+          << std::endl;
+    return false;
+  }
+  
+  if( a_phi>=two_pi() ) a_phi = a_phi - two_pi();
+  else if( a_phi<0. )   a_phi = a_phi + two_pi();
+
+  double z = ::cos(a_theta);
+  double za = ::fabs(z);
+
+  double tt = a_phi / half_pi();//  ! in [0,4)
+  
+  double z0=2.0/3.0;
+  
+  int nl2 = 2*a_nside;
+  int nl4 = 4*a_nside;
+  int ncap  = nl2*(a_nside-1);// ! number of pixels in the north polar cap
+  int npix  = 12*a_nside*a_nside;
+  
+  int jp, jm, ipix1;
+  int ir, ip, kshift;
+  
+  if( za <= z0 ) {
+    
+    jp = (int)::floor(a_nside*(0.5+tt-z*0.75)); //index of ascending edge line
+    jm = (int)::floor(a_nside*(0.5+tt+z*0.75)); //index of descending edge line
+    
+    ir = a_nside + 1 + jp - jm; //in {1,2n+1} (ring number counted from z=2/3)
+    kshift = 0;
+    if (fmodi(ir,2)==0) kshift = 1;// ! kshift=1 if ir even, 0 otherwise
+    
+    ip = (int)::floor( double(jp+jm-a_nside+kshift+1)/2) + 1; //in {1,4n}
+    if( ip>nl4 ) ip = ip - nl4;
+    
+    ipix1 = ncap + nl4*(ir-1) + ip ;
+
+  } else {
+    
+    double tp = tt - ::floor(tt); //!MOD(tt,1.d0)
+    double tmp = ::sqrt( 3.*(1. - za) );
+    
+    jp = (int)::floor( a_nside * tp * tmp ); //increasing edge line index
+    jm = (int)::floor( a_nside * (1. - tp) * tmp );//decreasing edge line index
+    
+    ir = jp + jm + 1; //ring number counted from the closest pole
+    ip = (int)::floor( tt * ir ) + 1;// ! in {1,4*ir}
+    if( ip>4*ir ) ip = ip - 4*ir;
+    
+    ipix1 = 2*ir*(ir-1) + ip;
+    if( z<=0. ) {
+      ipix1 = npix - 2*ir*(ir+1) + ip;
+    }
+  }
+  a_ipix = ipix1 - 1;// ! in {0, npix-1}
+  
+  return true;
+}
+
+template <typename INT> 
+inline unsigned int ilog2(INT a_arg) {
+  unsigned int res=0;
+  while (a_arg > 0x0000FFFF) { res+=16; a_arg>>=16; }
+  if (a_arg > 0x000000FF) { res|=8; a_arg>>=8; }
+  if (a_arg > 0x0000000F) { res|=4; a_arg>>=4; }
+  if (a_arg > 0x00000003) { res|=2; a_arg>>=2; }
+  if (a_arg > 0x00000001) { res|=1; }
+  return res;
+}
+
+inline bool nside2order(int a_nside,int& a_order) {
+  if(a_nside<=0) {a_order = 0;return false;}
+  if((a_nside)&(a_nside-1)) {a_order = -1;return true;} //return true?
+  a_order = ilog2(a_nside);
+  return true;
+}
+
+/*
+      order_  = nside2order(nside);
+      planck_assert ((scheme!=NEST) || (order_>=0),
+        "SetNside: nside must be power of 2 for nested maps");
+      nside_  = nside;
+      npface_ = nside_*nside_;
+      ncap_   = (npface_-nside_)<<1;
+      npix_   = 12*npface_;
+      fact2_  = 4./npix_;
+      fact1_  = (nside_<<1)*fact2_;
+      scheme_ = scheme;
+*/
+
+inline bool nest2xyf(unsigned int a_nside,int a_ipix,int& a_ix,int& a_iy,int& a_face_num) {
+  int order_;
+  if(!nside2order(a_nside,order_)) return false;
+  if(order_<0) return false;
+  //if(scheme!=NEST) return false;
+  int npface_ = a_nside*a_nside;
+
+  static short ctab[0x100], utab[0x100];
+  static bool setup_done = false;
+  if(!setup_done ) {
+    for (int m=0; m<0x100; ++m) {
+      ctab[m] =
+           (m&0x1 )       | ((m&0x2 ) << 7) | ((m&0x4 ) >> 1) | ((m&0x8 ) << 6)
+      |   ((m&0x10) >> 2) | ((m&0x20) << 5) | ((m&0x40) >> 3) | ((m&0x80) << 4);
+      utab[m] =
+           (m&0x1 )       | ((m&0x2 ) << 1) | ((m&0x4 ) << 2) | ((m&0x8 ) << 3)
+        | ((m&0x10) << 4) | ((m&0x20) << 5) | ((m&0x40) << 6) | ((m&0x80) << 7);
+    }
+    setup_done = true;
+  }
+
+  a_face_num = a_ipix>>(2*order_);
+  a_ipix &= (npface_-1);
+  int raw = (a_ipix&0x5555) | ((a_ipix&0x55550000)>>15);
+  a_ix = ctab[raw&0xff] | (ctab[raw>>8]<<4);
+  a_ipix >>= 1;
+  raw = (a_ipix&0x5555) | ((a_ipix&0x55550000)>>15);
+  a_iy = ctab[raw&0xff] | (ctab[raw>>8]<<4);
+  return true;
+}
+
+template <typename INT>
+inline unsigned int isqrt (INT a_arg) {
+  if(sizeof(INT)<=4) return (unsigned int)(::sqrt(a_arg+0.5));
+  return (unsigned int)(::sqrt(double(a_arg)+0.5));
+}
+
+inline bool ring2xyf(unsigned int a_nside,int a_ipix, int &ix, int &iy, int &face_num) {
+  int order_;
+  if(!nside2order(a_nside,order_)) return false;
+  if(order_<0) return false;
+  int npface_ = a_nside*a_nside;
+  int ncap_ = (npface_-a_nside)<<1;
+  int npix_ = 12*npface_;
+
+  static const int jrll[] = { 2,2,2,2,3,3,3,3,4,4,4,4 };
+  static const int jpll[] = { 1,3,5,7,0,2,4,6,1,3,5,7 };
+
+  int iring, iphi, kshift, nr;
+
+  int nl2 = 2*a_nside;
+
+  if (a_ipix<ncap_) { // North Polar cap
+    iring = int(0.5*(1+isqrt(1+2*a_ipix))); //counted from North pole
+    iphi  = (a_ipix+1) - 2*iring*(iring-1);
+    kshift = 0;
+    nr = iring;
+    face_num=0;
+    int tmp = iphi-1;
+    if (tmp>=(2*iring)) {
+      face_num=2;
+      tmp-=2*iring;
+    }
+    if (tmp>=iring) ++face_num;
+
+  } else if (a_ipix<(npix_-ncap_)) { // Equatorial region
+    int ip = a_ipix - ncap_;
+    if (order_>=0) {
+      iring = (ip>>(order_+2)) + a_nside; // counted from North pole
+      iphi  = (ip&(4*a_nside-1)) + 1;
+    } else {
+      iring = (ip/(4*a_nside)) + a_nside; // counted from North pole
+      iphi  = (ip%(4*a_nside)) + 1;
+    }
+    kshift = (iring+a_nside)&1;
+    nr = a_nside;
+    unsigned int ire = iring-a_nside+1;
+    unsigned int irm = nl2+2-ire;
+    int ifm, ifp;
+    if (order_>=0) {
+      ifm = (iphi - ire/2 + a_nside -1) >> order_;
+      ifp = (iphi - irm/2 + a_nside -1) >> order_;
+    } else {
+      ifm = (iphi - ire/2 + a_nside -1) / a_nside;
+      ifp = (iphi - irm/2 + a_nside -1) / a_nside;
+    }
+    if (ifp == ifm) // faces 4 to 7
+      face_num = (ifp==4) ? 4 : ifp+4;
+    else if (ifp<ifm) // (half-)faces 0 to 3
+      face_num = ifp;
+    else // (half-)faces 8 to 11
+      face_num = ifm + 8;
+
+  } else { // South Polar cap
+    int ip = npix_ - a_ipix;
+    iring = int(0.5*(1+isqrt(2*ip-1))); //counted from South pole
+    iphi  = 4*iring + 1 - (ip - 2*iring*(iring-1));
+    kshift = 0;
+    nr = iring;
+    iring = 2*nl2-iring;
+    face_num=8;
+    int tmp = iphi-1;
+    if (tmp>=(2*nr)) {
+      face_num=10;
+      tmp-=2*nr;
+    }
+    if (tmp>=nr) ++face_num;
+  }
+
+  int irt = iring - (jrll[face_num]*a_nside) + 1;
+  int ipt = 2*iphi- jpll[face_num]*nr - kshift -1;
+  if (ipt>=nl2) ipt-=8*a_nside;
+
+  ix =  (ipt-irt) >>1;
+  iy =(-(ipt+irt))>>1;
+
+  return true;
+}
+
+inline void xyf2loc(double a_x,double a_y,int a_face,double& a_z,double& a_phi,double& a_sth,bool& a_have_sth) {
+  a_have_sth = false;
+
+  static const int jrll[] = { 2,2,2,2,3,3,3,3,4,4,4,4 };
+  static const int jpll[] = { 1,3,5,7,0,2,4,6,1,3,5,7 };
+
+  double jr = jrll[a_face] - a_x - a_y;
+  double nr;
+  if (jr<1) {
+    nr = jr;
+    double tmp = nr*nr/3.;
+    a_z = 1 - tmp;
+    if (a_z > 0.99) {
+      a_sth = ::sqrt(tmp*(2.0-tmp));
+      a_have_sth = true;
+    }
+  } else if (jr>3) {
+    nr = 4-jr;
+    double tmp = nr*nr/3.;
+    a_z = tmp - 1;
+    if (a_z<-0.99) {
+      a_sth = std::sqrt(tmp*(2.-tmp));
+      a_have_sth = true;
+    }
+  } else {
+    nr = 1;
+    a_z = (2-jr)*2./3.;
+  }
+
+  const double halfpi=1.570796326794896619231321691639751442099;
+
+  double tmp=jpll[a_face]*nr+a_x-a_y;
+  if (tmp<0) tmp+=8;
+  if (tmp>=8) tmp-=8;
+  a_phi = (nr<1e-15) ? 0 : (0.5*halfpi*tmp)/nr;
+}
+
+}}
+
+#include "vec3d"
+
+namespace inlib {
+namespace HEALPix { //warning : with this casing to avoid a clash with sg::healpix.
+
+inline void set_z_phi(vec3d& a_vec,double a_z,double a_phi) {
+  double sintheta = ::sqrt((1.-a_z)*(1.+a_z));
+  a_vec.set_value(sintheta*::cos(a_phi),sintheta*::sin(a_phi),a_z);
+}
+
+inline void loc2vec(double a_z,double a_phi,double a_sth,bool a_have_sth,vec3d& a_vec) {
+  if(a_have_sth) {
+    a_vec.set_value(a_sth*::cos(a_phi),a_sth*::sin(a_phi),a_z);
+  } else {
+    set_z_phi(a_vec,a_z,a_phi);
+  }
+}
+
+inline bool boundaries(bool a_is_ring,unsigned int a_nside,int a_ipix,std::size_t a_step,std::vector<vec3d>& a_vec) {
+  // Returns a set of points along the boundary of the given pixel.
+  // step=1 gives 4 points on the corners. The first point corresponds
+  // to the northernmost corner, the subsequent points follow the pixel
+  // boundary through west, south and east corners.
+  // a_ipix pixel index number
+  // a_step the number of returned points is 4*a_step.
+
+  a_vec.resize(4*a_step);
+  int ix, iy, face;
+  if(a_is_ring) {
+    if(!ring2xyf(a_nside,a_ipix,ix,iy,face)) return false;
+  } else {
+    if(!nest2xyf(a_nside,a_ipix,ix,iy,face)) return false;
+  }
+
+  double dc = 0.5 / a_nside;
+  double xc = (ix + 0.5)/a_nside, yc = (iy + 0.5)/a_nside;
+  double d = 1.0/(a_step*a_nside);
+  for (std::size_t i=0; i<a_step; ++i) {
+    double z, phi, sth;
+    bool have_sth;
+    xyf2loc(xc+dc-i*d, yc+dc, face, z, phi, sth, have_sth);
+    loc2vec(z, phi, sth, have_sth,a_vec[i]);
+    xyf2loc(xc-dc, yc+dc-i*d, face, z, phi, sth, have_sth);
+    loc2vec(z, phi, sth, have_sth,a_vec[i+a_step]);
+    xyf2loc(xc-dc+i*d, yc-dc, face, z, phi, sth, have_sth);
+    loc2vec(z, phi, sth, have_sth,a_vec[i+2*a_step]);
+    xyf2loc(xc+dc, yc-dc+i*d, face, z, phi, sth, have_sth);
+    loc2vec(z, phi, sth, have_sth,a_vec[i+3*a_step]);
+  }
+
+  return true;
+}
+
+}}
+
+#endif
+

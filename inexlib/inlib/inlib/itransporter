@@ -1,0 +1,29 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_itransporter
+#define inlib_itransporter
+
+#include "typedefs"
+
+namespace inlib {
+
+template <class REAL>
+class itransporter {
+//public:
+protected:
+  typedef REAL X[4];
+  typedef REAL U[4];
+public:
+  virtual bool initialize(const X& a_x,const U& a_u) = 0;
+  virtual void get_step(X& a_x,U& a_u,
+                        REAL& a_s,REAL& a_step,REAL& a_mx_du2,
+                        uint64& a_count) = 0;
+  virtual bool do_step() = 0;
+public:
+  virtual ~itransporter(){}
+};
+
+}
+
+#endif

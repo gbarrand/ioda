@@ -1,0 +1,111 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_osc_visitor
+#define exlib_hdf5_osc_visitor
+
+#include "ivisitor"
+#include "tools"
+
+#include <inlib/sout>
+
+#include <vector>
+
+namespace exlib {
+namespace hdf5 {
+
+class osc_visitor : public virtual ivisitor {
+public:
+  virtual std::ostream& out() const {return m_out;}
+
+  virtual bool begin_group(hid_t a_GID,const std::string& a_name) {
+    //osc_batch hdf5 files logic :
+    //  some group are "directories" and other are "data group".
+
+    if(a_name=="header") return false; //skip header.
+
+    hid_t _id = exlib_H5Gopen(a_GID,a_name.c_str());
+    if(_id<0) {
+      m_out << "exlib::hdf5::osc_visitor::begin_group :" 
+            << " can't open group " << inlib::sout(a_name)
+            << std::endl;
+      return false;
+    }
+    std::string stype;
+    if(!read_atb(_id,"type",stype)) {
+      m_out << "exlib::hdf5::osc_visitor::begin_group :" 
+            << " can't read group " << inlib::sout(a_name) << " type."
+            << std::endl;
+      ::H5Gclose(_id);
+      return false;
+    }
+    std::string title;
+    if(H5LT_find_attribute(_id,"title")==1) {
+      if(!read_atb(_id,"title",title)) {
+        m_out << "exlib::hdf5::osc_visitor::begin_group :" 
+              << " can't read group " << inlib::sout(a_name) << " title."
+              << std::endl;
+        ::H5Gclose(_id);
+        return false;
+      }
+    }
+
+    //printf("debug : class \"%s\" name \"%s\"\n",
+    //  stype.c_str(),a_name.c_str());
+
+    //std::string path = m_parent;
+    //if(m_parent!="/") path += "/";
+    //path += a_name;
+
+    if(stype=="BatchLab::Directory") {
+      m_dirs.push_back(a_name);
+    } else {
+      m_objs.push_back(a_name);
+    }
+
+    ::H5Gclose(_id);
+
+    return false; //do not descent.
+  }
+
+  virtual void end_group(hid_t,const std::string&) {}
+
+  virtual void data_set(hid_t,const std::string& a_name) {m_objs.push_back(a_name);}
+  virtual void named_type(hid_t,const std::string&) {}
+  virtual void attribute(hid_t,const std::string&) {}
+public:
+  osc_visitor(std::ostream& a_out,std::vector<std::string>& a_objs,std::vector<std::string>& a_dirs)
+  :m_out(a_out),m_objs(a_objs),m_dirs(a_dirs)
+  {}
+  virtual ~osc_visitor() {}
+protected:
+  osc_visitor(const osc_visitor& a_from)
+  :ivisitor(a_from)
+  ,m_out(a_from.m_out)
+  ,m_objs(a_from.m_objs)
+  ,m_dirs(a_from.m_dirs)
+  {}
+  osc_visitor& operator=(const osc_visitor& a_from) {return *this;}
+protected:
+  std::ostream& m_out;
+public:
+  std::vector<std::string>& m_objs; //warning : ref.
+  std::vector<std::string>& m_dirs; //warning : ref.
+};
+
+inline void osc_keys(std::ostream& a_out,
+                     hid_t a_FID,
+                     const std::string& a_path,
+                     std::vector<std::string>& a_objs,
+                     std::vector<std::string>& a_dirs){
+  a_objs.clear();		      
+  a_dirs.clear();		      
+  osc_visitor visitor(a_out,a_objs,a_dirs);
+  ::H5Giterate(a_FID,a_path.c_str(),NULL,visit_file,(ivisitor*)&visitor);
+}
+
+}}
+
+//exlib_build_use inlib hdf5
+
+#endif

@@ -1,0 +1,57 @@
+#ifndef wrap_description_help
+#define wrap_description_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    description.help
+//
+
+inline const char** description_help(unsigned int& a_linen){
+  static const char _0[] = "  ioda should be read @@double_quote@@IO-DA@@double_quote@@, IO for Input/Output and";
+  static const char _1[] = "  DA for Data Analysis. It is a scientific application";
+  static const char _2[] = "  that permits to read files at various formats :";
+  static const char _3[] = "  .fits, .aida, .root, .fog, .jpg for the moment. ioda";
+  static const char _4[] = "  permits to browse these files and visualize some";
+  static const char _5[] = "  of their data.";
+  static const char _6[] = "   For .aida files, the histograms 1D, 2D, profiles 1D,";
+  static const char _7[] = "  2D can be plotted. For .root files at the CERN/ROOT";
+  static const char _8[] = "  file format, ioda can plot TH[1,2][D,F] objects along";
+  static const char _9[] = "  than TProfile ones. For jpeg files the image is";
+  static const char _10[] = "  visualized. For .fits files, the @@double_quote@@HDUs@@double_quote@@ can be listed";
+  static const char _11[] = "  and their keys can be seen. If the HDU is an IMAGE_HDU";
+  static const char _12[] = "  type, ioda attempts to visualize it as an image (which";
+  static const char _13[] = "  is one of the primary goal of the .fits format : store";
+  static const char _14[] = "  astronomical pictures). If the HDU is a BINARY_TBL,";
+  static const char _15[] = "  ioda shows a description of the columns (name, type)";
+  static const char _16[] = "  and proposes to histogram and plot a choosen column.";
+  static const char _17[] = "  Files at the .fog CEA/Saclay format permit to visualize";
+  static const char _18[] = "  LHC/ATLAS sub detectors.";
+  static const char _19[] = "  ";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+,_5
+,_6
+,_7
+,_8
+,_9
+,_10
+,_11
+,_12
+,_13
+,_14
+,_15
+,_16
+,_17
+,_18
+,_19
+};
+ a_linen = 20;
+ return _lines;
+}
+
+#endif

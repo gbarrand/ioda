@@ -1,0 +1,30 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_dummy
+#define inlib_sg_dummy
+
+// used in rbsg_factories.
+
+#include "node"
+
+namespace inlib {
+namespace sg {
+
+class dummy : public node {
+public:
+  INLIB_NODE(dummy,inlib::sg::dummy,node)
+public:
+  dummy():parent() {}
+  virtual ~dummy(){}
+public:
+  dummy(const dummy& a_from):parent(a_from) {}
+  dummy& operator=(const dummy& a_from){
+    parent::operator=(a_from);
+    return *this;
+  }
+};
+
+}}
+
+#endif

@@ -1,0 +1,72 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_load_img
+#define inlib_sg_load_img
+
+#include "separator"
+#include "rgba"
+#include "normal"
+#include "matrix"
+#include "event_dispatcher"
+#include "tex_rect"
+#include "style_colormap"
+#include "strings"
+
+#include "../img"
+
+#include "view_evd"
+
+namespace inlib {
+
+inline void load_img(sg::gui_viewer& a_gv,img_byte& a_img,const colorf& a_back) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));    
+  }
+  a_gv.set_plane_viewer(true);
+
+  sg::separator& dsep = _evd->detector_sg();
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+  
+  sg::matrix* tsf = new sg::matrix();
+  sep->add(tsf);
+
+  sg::rgba* mat = new sg::rgba();
+  mat->color = colorf_white();
+  sep->add(mat);
+  
+  sep->add(new sg::normal);
+  sep->add(new sg::event_dispatcher()); //for image_manip.
+
+  sg::tex_rect* img = new sg::tex_rect();
+  img->img.value().transfer(a_img);
+  img->back_color = a_back;
+  img->expand = a_gv.m_params.m_image_expand;
+  img->height = a_gv.wanted_size();
+
+/*
+ {unsigned int rw,rh;
+  img->rendered_size(a_gv.out(),rw,rh);
+  a_gv.out() << "debug : load_img :"
+             << " data_w " << img->img.value().width() << " data_h " << img->img.value().height()
+             << " rend_w " << rw << " rh " << rh
+             << std::endl;}
+*/
+
+  sep->add(img);
+  
+  //_evd->adapt_img(adapt_camera,*tsf,*img,a_args);
+
+}  
+
+}
+
+//inlib_build_use kernel
+
+#endif

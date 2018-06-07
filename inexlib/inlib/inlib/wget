@@ -1,0 +1,28 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_wget
+#define inlib_wget
+
+#include "S_STRING"
+#include "typedefs"
+
+namespace inlib {
+
+class wget {
+public:
+  INLIB_SCLASS(inlib::wget)
+public:
+  virtual ~wget() {}
+public:
+  virtual bool get(const std::string& a_host,unsigned int a_port,const std::string& a_req,
+                   char*& a_doc,uint64& a_ldoc,const std::string& a_icook,std::string& a_ocook) const = 0;
+  //NOTE : a_doc should be deleted with inlib::mdel(a_doc);
+
+  virtual bool post(const std::string& a_host,unsigned int a_port,const std::string& a_req,
+                    char*& a_doc,uint64& a_ldoc,const std::string& a_icook,std::string& a_ocook) const = 0;
+};
+
+}
+
+#endif

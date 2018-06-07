@@ -1,0 +1,103 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_app_WebGL_main
+#define exlib_app_WebGL_main
+
+#include "../../WebGL/session"
+
+#include <inlib/net/http_server>
+
+namespace app_WebGL {
+
+template <class APP_MAIN>
+class main : public inlib::net::http_server {
+  typedef inlib::net::http_server parent;
+private:
+  INLIB_CLASS_STRING(cmd)
+  INLIB_CLASS_STRING_VALUE(cmd_shutdown,shutdown)
+public:
+  virtual bool dispatch_GET(const std::string& a_url,const inlib::args& a_args) {
+    //if(m_verbose) {
+    //  ::printf("cmdserv : url : \"%s\"\n",a_url.c_str());
+    //}
+    std::ostringstream a_reply_sout;
+    std::ostringstream a_reply_out;
+
+   {std::string content_type;
+    if(m_session.dispatch_url(a_url,a_reply_out,a_reply_sout,content_type)) {
+      if(a_reply_out.str().size()) {
+        send_reply(a_reply_out.str(),content_type);
+      } else if(a_reply_sout.str().size()) {
+        send_reply(a_reply_sout.str(),content_type);
+      }
+      return true;
+    }}
+
+    if(a_url=="/") {
+
+      std::string cmd;
+      a_args.find(s_cmd(),cmd);
+      inlib::replace(cmd,"%20"," ");
+
+     {std::string content_type;
+      if(m_session.dispatch_cmd(cmd,a_reply_out,a_reply_sout,content_type)) {
+        if(a_reply_out.str().size()) {
+          send_reply(a_reply_out.str(),content_type);
+        } else if(a_reply_sout.str().size()) {
+          send_reply(a_reply_sout.str(),content_type);
+        }
+        return true;
+      }}
+
+      if(m_session.verbose()) m_out << "exlib::WebGL::main::dispatch_GET : cmd : " << cmd << std::endl;
+
+      std::string rest;
+      inlib::cmd::rest(cmd,rest);
+      if(cmd==s_cmd_shutdown()) {
+        if(m_session.can_shutdown()) {
+          a_reply_sout << s_done();
+          send_reply(a_reply_sout.str());
+          return false; //exit steer()
+        } else {
+          m_session.http_failed(a_reply_sout,"cmd=shutdown not enabled.");
+          send_reply(a_reply_sout.str());
+        }
+
+      } else {
+        m_session.http_failed(a_reply_sout,"unknown command.");
+        send_reply(a_reply_sout.str());
+      }
+
+    }
+
+    return true;
+  }
+  virtual bool dispatch_POST(const std::string& a_document) {
+    if(m_verbose) {
+      ::printf("dispatch_POST : document : \"%s\"\n",a_document.c_str());
+    }
+    send_reply("ok");
+    return true;
+  }
+  virtual bool dispatch_multipart(const std::string& /*a_url*/,const std::vector<inlib::net::http_part*>& /*a_parts*/) {
+    return true;
+  }
+public:
+  main(std::ostream& a_out,const inlib::args& a_args,bool a_verbose)
+  :parent(a_out,a_verbose)
+  ,m_session(a_out,a_args)
+  {}
+  virtual ~main() {}
+protected:
+  main(const main& a_from):parent(a_from),m_session(inlib::args()){}
+  main& operator=(const main&) {return *this;}
+protected:
+  exlib::WebGL::session<APP_MAIN> m_session;
+};
+
+}
+
+//exlib_build_use inlib inlib_glutess freetype png jpeg zlib expat kernel
+
+#endif

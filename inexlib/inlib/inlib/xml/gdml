@@ -1,0 +1,4051 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_xml_gdml
+#define inlib_xml_gdml
+
+#include "../edep/units"
+#include "../edep/physical_constants"
+
+#include "../S_STRING"
+#include "../vec3d"
+#include "../parse"
+#include "../array"
+#include "../mat4d"
+#include "../forit"
+#include "../mathd"
+//#include "../yacc/cexpr_eval.h"
+
+#include "tree"
+
+#include <map>
+
+#ifdef INLIB_MEM
+#include "../mem"
+#endif
+
+namespace inlib {
+namespace xml {
+
+  class PARAMETER {
+#ifdef INLIB_MEM
+    INLIB_SCLASS(inlib::xml::PARAMETER)
+#endif
+  public:
+    PARAMETER(){
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+      for(unsigned int i=0;i<16;i++) m_dim[i] = 0;
+    }
+    virtual ~PARAMETER(){
+#ifdef INLIB_MEM
+      mem::decrement(s_class().c_str());
+#endif
+    }
+  public:
+    PARAMETER(const PARAMETER& a_from)
+    :m_rot(a_from.m_rot)
+    ,m_pos(a_from.m_pos)
+    {
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+      for(unsigned int i=0;i<16;i++) m_dim[i] = a_from.m_dim[i];
+    }
+    PARAMETER& operator=(const PARAMETER& a_from){
+      m_rot = a_from.m_rot;
+      m_pos = a_from.m_pos;
+      for(unsigned int i=0;i<16;i++) m_dim[i] = a_from.m_dim[i];
+      return *this;
+    }
+  public:
+    vec3d m_rot;
+    vec3d m_pos;
+    double m_dim[16];
+  };
+
+  enum facet_vertex_type {facet_vertex_absolute,facet_vertex_relative};
+
+  class triangular_facet {
+#ifdef INLIB_MEM
+    INLIB_SCLASS(inlib::xml::triangular_facet)
+#endif
+  public:
+    triangular_facet(const vec3d& a_1,
+                     const vec3d& a_2,
+                     const vec3d& a_3,
+                     facet_vertex_type a_type)
+    :m_1(a_1),m_2(a_2),m_3(a_3),m_type(a_type)
+    {
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+    }
+    virtual ~triangular_facet(){
+#ifdef INLIB_MEM
+      mem::decrement(s_class().c_str());
+#endif
+    }
+  public:
+    triangular_facet(const triangular_facet& a_from)
+    :m_1(a_from.m_1),m_2(a_from.m_2),m_3(a_from.m_3),m_type(a_from.m_type)
+    {
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+    }
+    triangular_facet& operator=(const triangular_facet& a_from){
+      m_1 = a_from.m_1;
+      m_2 = a_from.m_2;
+      m_3 = a_from.m_3;
+      m_type = a_from.m_type;
+      return *this;
+    }
+  public:
+    vec3d m_1;
+    vec3d m_2;
+    vec3d m_3;
+    facet_vertex_type m_type;
+  };
+
+  class quadrangular_facet {
+#ifdef INLIB_MEM
+    INLIB_SCLASS(inlib::xml::quadrangular_facet)
+#endif
+  public:
+    quadrangular_facet(const vec3d& a_1,
+                       const vec3d& a_2,
+                       const vec3d& a_3,
+                       const vec3d& a_4,
+                       facet_vertex_type a_type)
+    :m_1(a_1),m_2(a_2),m_3(a_3),m_4(a_4),m_type(a_type)
+    {
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+    }
+    virtual ~quadrangular_facet(){
+#ifdef INLIB_MEM
+      mem::decrement(s_class().c_str());
+#endif
+    }
+  public:
+    quadrangular_facet(const quadrangular_facet& a_from)
+    :m_1(a_from.m_1),m_2(a_from.m_2),m_3(a_from.m_3),m_4(a_from.m_4)
+    ,m_type(a_from.m_type)
+    {
+#ifdef INLIB_MEM
+      mem::increment(s_class().c_str());
+#endif
+    }
+    quadrangular_facet& operator=(const quadrangular_facet& a_from){
+      m_1 = a_from.m_1;
+      m_2 = a_from.m_2;
+      m_3 = a_from.m_3;
+      m_4 = a_from.m_4;
+      m_type = a_from.m_type;
+      return *this;
+    }
+  public:
+    vec3d m_1;
+    vec3d m_2;
+    vec3d m_3;
+    vec3d m_4;
+    facet_vertex_type m_type;
+  };
+
+template
+<class _G4Element
+,class _G4Material
+,class _G4LogicalVolume
+,class _G4VPhysicalVolume
+,class _G4AssemblyVolume
+,class _G4OpticalSurface
+,class _G4SurfaceProperty
+,class _G4LogicalSurface
+,class _G4VSolid>
+class gdml {
+public:
+  enum mat_state {
+    mat_state_undefined = 0,
+    mat_state_solid,
+    mat_state_liquid,
+    mat_state_gas
+  };
+
+  class zsection {
+  public:
+    zsection(double a_Z,double a_offset_x,double a_offset_y,double a_scale)
+    :m_Z(a_Z)
+    ,m_offset_x(a_offset_x)
+    ,m_offset_y(a_offset_y)
+    ,m_scale(a_scale){}
+    virtual ~zsection(){}
+  public:
+    zsection(const zsection& a_from)
+    :m_Z(a_from.m_Z)
+    ,m_offset_x(a_from.m_offset_x)
+    ,m_offset_y(a_from.m_offset_y)
+    ,m_scale(a_from.m_scale){}
+    zsection& operator=(const zsection& a_from){
+      m_Z = a_from.m_Z;
+      m_offset_x = a_from.m_offset_x;
+      m_offset_y = a_from.m_offset_y;
+      m_scale = a_from.m_scale;
+      return *this;
+    }
+  public:
+    double m_Z;
+    double m_offset_x;
+    double m_offset_y;
+    double m_scale;
+  };
+
+  enum op_type {
+    op_union = 1,
+    op_intersection = 2,
+    op_subtraction = 3
+  };
+  
+  enum surface_type {
+    surface_dielectric_metal,
+    surface_dielectric_dielectric,
+    surface_dielectric_LUT,
+    surface_firsov,
+    surface_x_ray
+  };
+
+  enum optical_surface_finish {
+    optical_surface_polished,
+    optical_surface_polishedfrontpainted,
+    optical_surface_polishedbackpainted,
+
+    optical_surface_ground,
+    optical_surface_groundfrontpainted,
+    optical_surface_groundbackpainted,
+
+    optical_surface_polishedlumirrorair,
+    optical_surface_polishedlumirrorglue,
+    optical_surface_polishedair,
+    optical_surface_polishedteflonair,
+    optical_surface_polishedtioair,
+    optical_surface_polishedtyvekair,
+    optical_surface_polishedvm2000air,
+    optical_surface_polishedvm2000glue,
+
+    optical_surface_etchedlumirrorair,
+    optical_surface_etchedlumirrorglue,
+    optical_surface_etchedair,
+    optical_surface_etchedteflonair,
+    optical_surface_etchedtioair,
+    optical_surface_etchedtyvekair,
+    optical_surface_etchedvm2000air,
+    optical_surface_etchedvm2000glue,
+
+    optical_surface_groundlumirrorair,
+    optical_surface_groundlumirrorglue,
+    optical_surface_groundair,
+    optical_surface_groundteflonair,
+    optical_surface_groundtioair,
+    optical_surface_groundtyvekair,
+    optical_surface_groundvm2000air,
+    optical_surface_groundvm2000glue
+  };
+
+  enum optical_surface_model {
+    optical_surface_glisur,
+    optical_surface_unified,
+    optical_surface_LUT
+  };
+
+  enum axis_type {
+    axis_XAxis,
+    axis_YAxis,
+    axis_ZAxis,
+    axis_Rho,
+    axis_Radial3D,
+    axis_Phi,
+    axis_Undefined
+  };
+
+public:
+  typedef std::map<std::string,double> map_dbls;
+  virtual bool evaluate(const map_dbls&,const std::string&,double&) = 0;
+public:
+  virtual _G4Element* create_element(const std::string& a_name,
+                                    const std::string& a_symbol,
+                                    double  a_Zeff,
+                                    double  a_Aeff) = 0;
+  virtual _G4Material* find_material(const std::string& a_name) = 0;
+
+  virtual _G4Material* create_material(const std::string& a_name,
+                                      double  density,
+                                      mat_state a_state,
+                                      double  temp,
+                                      double  pressure,
+                                      double  z,
+                                      double  a) = 0;
+
+  virtual _G4Material* create_material(const std::string& a_name,
+                                      double a_density,
+                                      mat_state a_state,
+                                      double a_temp,
+                                      double a_pressure,
+     const std::vector< std::pair<_G4Material*,double> >& a_mat_fracs,
+     const std::vector< std::pair<_G4Element*,double> >& a_elem_fracs,
+     const std::vector< std::pair<_G4Element*,int> >& a_elem_ns) = 0;
+
+  virtual void material_set_MEE(_G4Material& a_material,double a_value) = 0;
+
+  virtual void material_add_property(_G4Material& a_material,
+                                     const std::string& a_name,
+                                     double a_value) = 0;
+  virtual void material_add_property(_G4Material& a_material,
+                                     const std::string& a_name,
+                 const std::vector< std::pair<double,double> >& a_vals) = 0;
+
+  virtual bool solid_name(const _G4VSolid&,std::string&) const = 0;
+  virtual bool volume_name(const _G4LogicalVolume& a_volume,std::string&) const = 0;
+
+  virtual _G4VSolid* create_box(const std::string& a_name,
+                               double a_dx,double a_dy,double a_dz) = 0;
+  virtual _G4VSolid* create_tube(const std::string& a_name,
+                                double a_rmin,double a_rmax,
+                                double a_z,
+                                double a_phi,double a_dphi) = 0;
+  virtual _G4VSolid* create_elliptical_tube(const std::string& a_name,
+                                  double a_dx,double a_dy,double a_dz) = 0;
+  virtual _G4VSolid* create_ellipsoid(const std::string& a_name,
+                                     double a_ax,double a_by,double a_cz,
+                                     double a_zcut1,double a_zcut2) = 0;
+  virtual _G4VSolid* create_sphere(const std::string& a_name,
+                                  double a_rmin,double a_rmax,
+                                  double a_phi,double a_dphi,
+                                  double a_theta,double a_dtheta) = 0;
+  virtual _G4VSolid* create_cone(const std::string& a_name,
+                                double a_rmin1,double a_rmax1,
+                                double a_rmin2,double a_rmax2,
+                                double a_z,
+                                double a_phi,double a_dphi) = 0;
+  virtual _G4VSolid* create_torus(const std::string& a_name,
+                                 double a_rmin,double a_rmax,
+                                 double a_rtor,
+                                 double a_phi,double a_dphi) = 0;
+  virtual _G4VSolid* create_elliptical_cone(const std::string& a_name,
+                                           double a_dx,double a_dy,
+                                           double a_zmax,double a_zcut) = 0;
+  virtual _G4VSolid* create_hype(const std::string& a_name,
+                                double a_rmin,double a_rmax,
+                                double a_inst,double a_outst,
+                                double a_z) = 0;
+  virtual _G4VSolid* create_orb(const std::string& a_name,
+                                double a_r) = 0;
+  virtual _G4VSolid* create_para(const std::string& a_name,
+                               double a_x,double a_y,double a_z,
+                               double a_alpha,double a_theta,double a_phi) = 0;
+  virtual _G4VSolid* create_paraboloid(const std::string& a_name,
+                               double a_dz,double a_rlo,double a_rhi) = 0;
+  virtual _G4VSolid* create_tet(const std::string& a_name,
+                               const vec3d& a_anchor,
+                               const vec3d& a_p2,
+                               const vec3d& a_p3,
+                               const vec3d& a_p4) = 0;
+  virtual _G4VSolid* create_generic_trap(const std::string& a_name,
+                                        double a_dz,
+                                        const double a_p[16]) = 0;
+  virtual _G4VSolid* create_trap(const std::string& a_name,
+                                double a_z,
+                                double a_theta,double a_phi,
+                                double a_y1,double a_x1,double a_x2,
+                                double a_alpha1,
+                                double a_y2,double a_x3,double a_x4,
+                                double a_alpha2) = 0;
+  virtual _G4VSolid* create_trd(const std::string& a_name,
+                               double a_x1,double a_x2,
+                               double a_y1,double a_y2,
+                               double a_z) = 0;
+  virtual _G4VSolid* create_twisted_box(const std::string& a_name,
+                                       double a_phi_twist,
+                                       double a_x,double a_y,double a_z) = 0;
+  virtual _G4VSolid* create_twisted_trap(const std::string& a_name,
+                                        double a_phi_twist,
+                                        double a_z,
+                                        double a_theta,double a_phi,
+                                        double a_y1,double a_x1,double a_x2,
+                                        double a_y2,double a_x3,double a_x4,
+                                        double a_alpha) = 0;
+  virtual _G4VSolid* create_twisted_trd(const std::string& a_name,
+                                       double a_x1,double a_x2,
+                                       double a_y1,double a_y2,
+                                       double a_z,
+                                       double a_phi_twist) = 0;
+  virtual _G4VSolid* create_twisted_tubs(const std::string& a_name,
+                                        double a_twisted_angle,
+                                        double a_end_inner_rad, 
+                                        double a_end_outer_rad, 
+                                        double a_zlen,
+                                        double a_phi) = 0;
+  virtual _G4VSolid* create_cut_tubs(const std::string& a_name,
+                                    double a_rmin,double a_rmax,
+                                    double a_z,
+                                    double a_phi,double a_dphi,
+                            double a_lowX,double a_lowY,double a_lowZ,
+                            double a_highX,double a_highY,double a_highZ) = 0;
+  virtual _G4VSolid* create_reflected_solid(const std::string& a_name,
+                                           _G4VSolid* a_solid,
+                                      double a_rx,double a_ry,double a_rz,
+                                      double a_dx,double a_dy,double a_dz,
+                                      double a_sx,double a_sy,double a_sz) = 0;
+  virtual _G4VSolid* create_polyhedra(const std::string& a_name,
+                                     double a_phi,double a_dphi,
+                            unsigned int a_numsides,unsigned int a_numZPlanes,
+                            const double a_zPlane[],
+                            const double a_rInner[],
+                            const double a_rOuter[]) = 0;
+  virtual _G4VSolid* create_polycone(const std::string& a_name,
+                                    double a_phi,double a_dphi,
+                            unsigned int a_numZPlanes,
+                            const double a_zPlane[],
+                            const double a_rInner[],
+                            const double a_rOuter[]) = 0;
+
+  virtual _G4VSolid* create_extruded_solid(const std::string& a_name,
+                const std::vector< std::pair<double,double> >& a_vertices,
+                const std::vector<zsection>& a_sections) = 0;
+
+  virtual _G4VSolid* create_boolean(const std::string& a_name,
+                                   op_type a_op,
+                                   _G4VSolid* a_first,
+                                   _G4VSolid* a_second,
+                                   const mat4d& a_transform) = 0;
+  virtual _G4VSolid* create_displaced(const std::string&,
+                                     _G4VSolid*,
+                                     const mat4d&) = 0;
+
+  virtual _G4SurfaceProperty* create_optical_surface(const std::string& a_name,
+                              optical_surface_model a_model,
+                              optical_surface_finish a_finish,
+                              surface_type a_type,
+                              double a_value) = 0;
+
+  virtual _G4LogicalVolume* pv_lv(const _G4VPhysicalVolume& a_pv) const = 0;
+  virtual void pv_set_name(_G4VPhysicalVolume&,const std::string&) = 0;
+
+  virtual _G4LogicalSurface*
+    create_logical_border_surface(const std::string& a_name,
+                                  _G4VPhysicalVolume* a_pv1,
+                                  _G4VPhysicalVolume* a_pv2,
+                                  _G4SurfaceProperty* a_prop) = 0;
+  virtual _G4LogicalSurface*
+    create_logical_skin_surface(const std::string& a_name,
+                                _G4LogicalVolume* a_volume,
+                                _G4SurfaceProperty* a_prop) = 0;
+  virtual _G4LogicalVolume* create_logical_volume(const std::string& a_name,
+                                               _G4VSolid* a_solid,
+                                               _G4Material* a_material) = 0;
+  virtual _G4VPhysicalVolume* create_pv_placement(const std::string& a_name,
+                                        _G4LogicalVolume* a_volume,
+                                        _G4LogicalVolume* a_mother,
+                                        const vec3d& a_rot,
+                                        const vec3d& a_trs) = 0;
+
+  virtual _G4AssemblyVolume* create_assembly() = 0;
+
+  virtual void place_assembly(_G4AssemblyVolume& a_assembly,
+                              _G4LogicalVolume* a_mother,
+                              const vec3d& a_rot,
+                              const vec3d& a_trs,
+                              const vec3d& a_sca) = 0;
+
+  virtual void assembly_add_volume(_G4AssemblyVolume& a_assembly,
+                                   _G4LogicalVolume* a_volume,
+                                   const vec3d& a_rot,
+                                   const vec3d& a_trs,
+                                   const vec3d& a_sca) = 0;
+
+  virtual _G4VPhysicalVolume* create_pv_parameterised(const std::string& a_name,
+                                   _G4LogicalVolume* a_volume,
+                                   _G4LogicalVolume* a_mother,
+                                   const std::vector<PARAMETER>& a_params) = 0;
+
+  virtual _G4VPhysicalVolume* create_pv_replica(const std::string& a_name,
+                                   _G4LogicalVolume* a_volume,
+                                   _G4LogicalVolume* a_mother,
+                                   axis_type a_axis,
+                                   unsigned int a_number,
+                                   double a_width,
+                                   double a_offset) = 0;
+
+  virtual _G4VSolid* create_tessellated(const std::string& a_name,
+                           const std::vector<triangular_facet>& a_tris,
+                           const std::vector<quadrangular_facet>& a_quads) = 0;
+
+  virtual std::pair<_G4VPhysicalVolume*,_G4VPhysicalVolume*>
+    divide_lv(const std::string& a_name,
+              _G4LogicalVolume* a_volume,
+              _G4LogicalVolume* a_mother,
+              axis_type a_axis, 
+              unsigned int a_number, 
+              double a_width,double a_offset) = 0;
+  virtual std::pair<_G4VPhysicalVolume*,_G4VPhysicalVolume*>
+    divide_lv(const std::string& a_name,
+              _G4LogicalVolume* a_volume,
+              _G4LogicalVolume* a_mother,
+              axis_type a_axis, 
+              unsigned int a_number, 
+              double a_offset) = 0;
+  virtual std::pair<_G4VPhysicalVolume*,_G4VPhysicalVolume*>
+    divide_lv(const std::string& a_name,
+              _G4LogicalVolume* a_volume,
+              _G4LogicalVolume* a_mother,
+              axis_type a_axis, 
+              double a_width,double a_offset) = 0;
+  //xxxxxxx
+public:
+  gdml(std::ostream& a_out,bool a_verbose = false)
+  :m_ref_out(a_out)
+  ,m_verbose(a_verbose)
+  {
+    //set_compressed_reader(new exlib::gzip_reader());
+    //set_default_tags();
+  }
+  virtual ~gdml(){}
+public:
+  gdml(const gdml& a_from)
+  :m_ref_out(a_from.m_ref_out) 
+  ,m_verbose(a_from.m_verbose)
+  {}
+  gdml& operator=(const gdml& a_from){
+    if(&a_from==this) return *this;
+    _clear();
+    return *this;
+  }
+public:
+protected:
+  ///////////////////////////////////////////////
+  /// tags //////////////////////////////////////
+  ///////////////////////////////////////////////
+  INLIB_CLASS_STRING(gdml)
+  INLIB_CLASS_STRING(define)
+  INLIB_CLASS_STRING(materials)
+  INLIB_CLASS_STRING(element)
+  INLIB_CLASS_STRING(material)
+  INLIB_CLASS_STRING(solids)
+  INLIB_CLASS_STRING(structure)
+  INLIB_CLASS_STRING(volume)
+  INLIB_CLASS_STRING(physvol)
+  INLIB_CLASS_STRING(setup)
+
+  INLIB_CLASS_STRING(union)
+  INLIB_CLASS_STRING(subtraction)
+  INLIB_CLASS_STRING(intersection)
+  INLIB_CLASS_STRING(replicavol)
+  INLIB_CLASS_STRING(replicate_along_axis)
+  INLIB_CLASS_STRING(skinsurface)
+  INLIB_CLASS_STRING(bordersurface)
+  INLIB_CLASS_STRING(polycone)
+  INLIB_CLASS_STRING(polyhedra)
+  INLIB_CLASS_STRING(xtru)
+
+  INLIB_CLASS_STRING(tessellated)
+  INLIB_CLASS_STRING(assembly)
+  INLIB_CLASS_STRING(divisionvol)
+  INLIB_CLASS_STRING(paramvol)
+  INLIB_CLASS_STRING(parameterised_position_size)
+  INLIB_CLASS_STRING(parameters)
+
+  void set_default_tags(std::vector<std::string>& a_tags) {
+    a_tags.clear();
+    a_tags.push_back(s_gdml());
+    a_tags.push_back(s_define());
+    a_tags.push_back(s_materials());
+    a_tags.push_back(s_element());
+    a_tags.push_back(s_material());
+    a_tags.push_back(s_solids());
+    a_tags.push_back(s_structure());
+    a_tags.push_back(s_volume());
+    a_tags.push_back(s_physvol());
+    a_tags.push_back(s_setup());
+
+    a_tags.push_back(s_union());
+    a_tags.push_back(s_subtraction());
+    a_tags.push_back(s_intersection());
+    a_tags.push_back(s_replicavol());
+    a_tags.push_back(s_replicate_along_axis());
+    a_tags.push_back(s_skinsurface());
+    a_tags.push_back(s_bordersurface());
+    a_tags.push_back(s_polycone());
+    a_tags.push_back(s_polyhedra());
+    a_tags.push_back(s_xtru());
+
+    a_tags.push_back(s_tessellated());
+    a_tags.push_back(s_assembly());
+    a_tags.push_back(s_divisionvol());
+
+    a_tags.push_back(s_paramvol());
+    a_tags.push_back(s_parameterised_position_size());
+    a_tags.push_back(s_parameters());
+  }
+
+  ///////////////////////////////////////////////
+  /// attributes ////////////////////////////////
+  ///////////////////////////////////////////////
+  INLIB_CLASS_STRING(name)
+  INLIB_CLASS_STRING(version)
+  INLIB_CLASS_STRING(Z)
+  INLIB_CLASS_STRING(formula)
+  INLIB_CLASS_STRING(state)
+  INLIB_CLASS_STRING(value)
+  INLIB_CLASS_STRING(values)
+  INLIB_CLASS_STRING(coldim)
+  INLIB_CLASS_STRING(lunit)
+  INLIB_CLASS_STRING(aunit)
+  INLIB_CLASS_STRING(unit)
+  INLIB_CLASS_STRING(x)
+  INLIB_CLASS_STRING(y)
+  INLIB_CLASS_STRING(z)
+  INLIB_CLASS_STRING(dx)
+  INLIB_CLASS_STRING(dy)
+  INLIB_CLASS_STRING(dz)
+  INLIB_CLASS_STRING(ax)
+  INLIB_CLASS_STRING(by)
+  INLIB_CLASS_STRING(cz)
+  INLIB_CLASS_STRING(r)
+  INLIB_CLASS_STRING(rmin)
+  INLIB_CLASS_STRING(rmax)
+  INLIB_CLASS_STRING(rmin1)
+  INLIB_CLASS_STRING(rmax1)
+  INLIB_CLASS_STRING(rmin2)
+  INLIB_CLASS_STRING(rmax2)
+  INLIB_CLASS_STRING(rlo)
+  INLIB_CLASS_STRING(rhi)
+  INLIB_CLASS_STRING(zmax)
+  INLIB_CLASS_STRING(zcut)
+  INLIB_CLASS_STRING(rtor)
+  INLIB_CLASS_STRING(inst)
+  INLIB_CLASS_STRING(outst)
+  INLIB_CLASS_STRING(startphi)
+  INLIB_CLASS_STRING(deltaphi)
+  INLIB_CLASS_STRING(alpha)
+  INLIB_CLASS_STRING(alpha1)
+  INLIB_CLASS_STRING(alpha2)
+  INLIB_CLASS_STRING(theta)
+  INLIB_CLASS_STRING(starttheta)
+  INLIB_CLASS_STRING(deltatheta)
+  INLIB_CLASS_STRING(zcut1)
+  INLIB_CLASS_STRING(zcut2)
+  INLIB_CLASS_STRING(ref)
+  INLIB_CLASS_STRING(n)
+  INLIB_CLASS_STRING(rho)
+  INLIB_CLASS_STRING(phi)
+  INLIB_CLASS_STRING(surfaceproperty)
+  INLIB_CLASS_STRING(finish)
+  INLIB_CLASS_STRING(model)
+  INLIB_CLASS_STRING(type)
+  INLIB_CLASS_STRING(vertex1)
+  INLIB_CLASS_STRING(vertex2)
+  INLIB_CLASS_STRING(vertex3)
+  INLIB_CLASS_STRING(vertex4)
+  INLIB_CLASS_STRING(v1x)
+  INLIB_CLASS_STRING(v1y)
+  INLIB_CLASS_STRING(v2x)
+  INLIB_CLASS_STRING(v2y)
+  INLIB_CLASS_STRING(v3x)
+  INLIB_CLASS_STRING(v3y)
+  INLIB_CLASS_STRING(v4x)
+  INLIB_CLASS_STRING(v4y)
+  INLIB_CLASS_STRING(v5x)
+  INLIB_CLASS_STRING(v5y)
+  INLIB_CLASS_STRING(v6x)
+  INLIB_CLASS_STRING(v6y)
+  INLIB_CLASS_STRING(v7x)
+  INLIB_CLASS_STRING(v7y)
+  INLIB_CLASS_STRING(v8x)
+  INLIB_CLASS_STRING(v8y)
+  INLIB_CLASS_STRING(x1)
+  INLIB_CLASS_STRING(x2)
+  INLIB_CLASS_STRING(x3)
+  INLIB_CLASS_STRING(x4)
+  INLIB_CLASS_STRING(y1)
+  INLIB_CLASS_STRING(y2)
+  INLIB_CLASS_STRING(PhiTwist)
+  INLIB_CLASS_STRING(Theta)
+  INLIB_CLASS_STRING(Phi)
+  INLIB_CLASS_STRING(Alph)
+  INLIB_CLASS_STRING(endinnerrad)
+  INLIB_CLASS_STRING(endouterrad)
+  INLIB_CLASS_STRING(zlen)
+  INLIB_CLASS_STRING(twistedangle)
+  INLIB_CLASS_STRING(lowX)
+  INLIB_CLASS_STRING(lowY)
+  INLIB_CLASS_STRING(lowZ)
+  INLIB_CLASS_STRING(highX)
+  INLIB_CLASS_STRING(highY)
+  INLIB_CLASS_STRING(highZ)
+  INLIB_CLASS_STRING(numsides)
+  INLIB_CLASS_STRING(auxtype)
+  INLIB_CLASS_STRING(auxvalue)
+  INLIB_CLASS_STRING(twoDimVertex)
+  INLIB_CLASS_STRING(section)
+  INLIB_CLASS_STRING(zPosition)
+  INLIB_CLASS_STRING(xOffset)
+  INLIB_CLASS_STRING(yOffset)
+  INLIB_CLASS_STRING(scalingFactor)
+  INLIB_CLASS_STRING(sx)
+  INLIB_CLASS_STRING(sy)
+  INLIB_CLASS_STRING(sz)
+  INLIB_CLASS_STRING(rx)
+  INLIB_CLASS_STRING(ry)
+  INLIB_CLASS_STRING(rz)
+  INLIB_CLASS_STRING(solid)
+  INLIB_CLASS_STRING(axis)
+  INLIB_CLASS_STRING(ncopies)
+  INLIB_CLASS_STRING(InR)
+  INLIB_CLASS_STRING(OutR)
+  INLIB_CLASS_STRING(hz)
+  INLIB_CLASS_STRING(StartPhi)
+  INLIB_CLASS_STRING(DeltaPhi)
+
+  ///////////////////////////////////////////////
+  /// properties ////////////////////////////////
+  ///////////////////////////////////////////////
+  INLIB_CLASS_STRING(property)
+  INLIB_CLASS_STRING(materialref)
+  INLIB_CLASS_STRING(solidref)
+  INLIB_CLASS_STRING(volumeref)
+  INLIB_CLASS_STRING(physvolref)
+  INLIB_CLASS_STRING(D)
+  INLIB_CLASS_STRING(atom)
+  INLIB_CLASS_STRING(world)
+  INLIB_CLASS_STRING(composite)
+  INLIB_CLASS_STRING(fraction)
+  INLIB_CLASS_STRING(MEE)
+  INLIB_CLASS_STRING(T)
+  INLIB_CLASS_STRING(P)
+  INLIB_CLASS_STRING(auxiliary)
+  INLIB_CLASS_STRING(positionref)
+  INLIB_CLASS_STRING(rotationref)
+  INLIB_CLASS_STRING(firstpositionref)
+  INLIB_CLASS_STRING(firstrotationref)
+  INLIB_CLASS_STRING(scaleref)
+  INLIB_CLASS_STRING(first)
+  INLIB_CLASS_STRING(second)
+  INLIB_CLASS_STRING(box)
+  INLIB_CLASS_STRING(tube)
+  INLIB_CLASS_STRING(eltube)
+  INLIB_CLASS_STRING(ellipsoid)
+  INLIB_CLASS_STRING(sphere)
+  INLIB_CLASS_STRING(cone)
+  INLIB_CLASS_STRING(torus)
+  INLIB_CLASS_STRING(elcone)
+  INLIB_CLASS_STRING(hype)
+  INLIB_CLASS_STRING(orb)
+  INLIB_CLASS_STRING(para)
+  INLIB_CLASS_STRING(paraboloid)
+  INLIB_CLASS_STRING(tet)
+  INLIB_CLASS_STRING(arb8)
+  INLIB_CLASS_STRING(trap)
+  INLIB_CLASS_STRING(trd)
+  INLIB_CLASS_STRING(twistedbox)
+  INLIB_CLASS_STRING(twistedtrap)
+  INLIB_CLASS_STRING(twistedtrd)
+  INLIB_CLASS_STRING(twistedtubs)
+  INLIB_CLASS_STRING(cutTube)
+  INLIB_CLASS_STRING(opticalsurface)
+  INLIB_CLASS_STRING(constant)
+  INLIB_CLASS_STRING(position)
+  INLIB_CLASS_STRING(rotation)
+  INLIB_CLASS_STRING(scale)
+  INLIB_CLASS_STRING(variable)
+  INLIB_CLASS_STRING(expression)
+  INLIB_CLASS_STRING(matrix)
+  INLIB_CLASS_STRING(quantity)
+  INLIB_CLASS_STRING(number)
+  INLIB_CLASS_STRING(direction)
+  INLIB_CLASS_STRING(width)
+  INLIB_CLASS_STRING(offset)
+  INLIB_CLASS_STRING(zplane)
+  INLIB_CLASS_STRING(triangular)
+  INLIB_CLASS_STRING(quadrangular)
+  INLIB_CLASS_STRING(reflectedSolid)
+
+  INLIB_CLASS_STRING(box_dimensions)
+  INLIB_CLASS_STRING(trd_dimensions)
+  INLIB_CLASS_STRING(trap_dimensions)
+  INLIB_CLASS_STRING(cone_dimensions)
+  INLIB_CLASS_STRING(tube_dimensions)
+  INLIB_CLASS_STRING(sphere_dimensions)
+  INLIB_CLASS_STRING(orb_dimensions)
+  INLIB_CLASS_STRING(torus_dimensions)
+  INLIB_CLASS_STRING(para_dimensions)
+  INLIB_CLASS_STRING(hype_dimensions)
+
+  ///////////////////////////////////////////////
+  ///////////////////////////////////////////////
+  ///////////////////////////////////////////////
+//INLIB_CLASS_STRING(solid)
+  INLIB_CLASS_STRING(liquid)
+  INLIB_CLASS_STRING(gas)
+  INLIB_CLASS_STRING(RELATIVE)
+  INLIB_CLASS_STRING(kXAxis)
+  INLIB_CLASS_STRING(kYAxis)
+  INLIB_CLASS_STRING(kZAxis)
+  INLIB_CLASS_STRING(kRho)
+  INLIB_CLASS_STRING(kPhi)
+
+  ///////////////////////////////////////////////
+  ///////////////////////////////////////////////
+  ///////////////////////////////////////////////
+
+  bool read_define(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_define :"
+            << " ..."
+            << std::endl;
+    }
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_constant()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),0,value,true)) return false;
+
+        m_consts[name] = value;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_expression()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double value;
+        if(!evaluate(m_consts,_elem->value(),value)) {
+          msg_eval(_elem->value());
+          return false;
+        }
+
+        m_consts[name] = value;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_quantity()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double unit;
+        if(!unit_value(*_elem,s_unit(),1,unit)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),0,value,true)) return false;
+
+        m_consts[name] = value*unit;
+
+        _elem->remove_attributes(s_type()); //to rm known warning.
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_position()) {
+        vec3d p;
+        if(!read_pos(*_elem,p)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotation()) {
+        vec3d r;
+        if(!read_rot(*_elem,r)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_scale()) {
+        vec3d sc;
+        if(!read_scale(*_elem,sc)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_variable()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),0,value,true)) return false;
+
+        m_vars[name] = value;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_matrix()) {
+
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double dcoldim;
+        if(!atb_value(*_elem,s_coldim(),0,dcoldim)) return false;
+        int coldim = int(dcoldim);
+        if(coldim<=0) {
+          m_ref_out << "inlib::xml::gdml::read_define :"
+                << " matrix : coldim <= 0. (" << coldim << ")."
+                << std::endl; 
+          return false;
+        }
+       
+        std::vector<double> ds;
+        std::string sv;
+        if(!atb_value(*_elem,s_values(),"",sv)) return false;
+        if(!to_doubles(sv,ds," ")) {
+          m_ref_out << "inlib::xml::gdml::read_define :"
+                << " matrix : problem to read values :"
+                << std::endl; 
+          m_ref_out << sv << std::endl; 
+          return false;
+        }
+
+        unsigned int rows = (unsigned int)(ds.size()/coldim);
+        unsigned int cols = (unsigned int)coldim;
+        if(!(rows*cols)) {
+          m_ref_out << "inlib::xml::gdml::read_define :"
+                << " matrix : empty."
+                << " coldim " << coldim
+                << ", values " << sout(sv)
+                << ", value# " << ds.size()
+                << ", rows " << rows
+                << ", cols " << cols << "."
+                << std::endl; 
+          return false;
+        }
+
+        ds.resize(rows*cols);
+
+        //G4 : m[cols*r+c] = v;
+
+        array<double>::uints_t orders(2);
+        orders[0] = cols;
+        orders[1] = rows;
+        array<double> ar(orders);
+        ar.fill(ds);
+
+        m_ars[name] = ar;
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_define :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_element(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_element :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    std::string symbol;
+    if(!atb_value(a_tree,s_formula(),"",symbol)) return false;
+    if(symbol.empty()) {msg_empty(a_tree,s_formula());/*return false;*/}
+
+    double Z;
+    if(!atb_value(a_tree,s_Z(),0,Z)) return false;
+    double atom; //in g/mole
+    if(!a_tree.element_atb_value(s_atom(),s_value(),atom)) {
+      msg_s2v(s_atom());return false;
+    }
+
+    m_elements[name] =
+      create_element(name,symbol,Z,atom*edep::g/edep::mole);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_material(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_material :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    a_tree.remove_attributes(s_formula()); //to rm known warning.
+
+    double D = 0;
+    double D_unit = edep::g/edep::cm3;
+    double atom = 0; //in g/mole
+    double atom_unit = edep::g/edep::mole;
+    double MEE = -1;
+    double T = edep::STP_temperature;
+    double P = edep::STP_pressure;
+
+    std::vector< std::pair<_G4Material*,double> > mat_frac;
+    std::vector< std::pair<_G4Element*,double> > elem_frac;
+
+    //std::vector< std::pair<_G4Material*,int> > mat_n;
+    std::vector< std::pair<_G4Element*,int> > elem_n;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_D()) {
+
+        if(!atb_value(*_elem,s_value(),0,D)) return false;
+        if(!unit_value
+        (*_elem,s_unit(),edep::g/edep::cm3,D_unit)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_atom()) {
+
+        if(!atb_value(*_elem,s_value(),0,atom)) return false;
+        if(!unit_value(*_elem,s_unit(),edep::g/edep::mole,atom_unit)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_fraction()) {
+
+        double frac;
+        if(!atb_value(*_elem,s_n(),0,frac,true)) return false;
+
+       {std::string sv;
+        if(!_elem->attribute_value(s_ref(),sv)) {
+          msg_atb(*_elem,s_ref());return false;
+        }
+        _elem->remove_attributes(s_ref());
+        map_materials_const_iterator itm = m_materials.find(sv);
+        if(itm!=m_materials.end()) {
+          mat_frac.push_back
+            (std::pair<_G4Material*,double>((*itm).second,frac));
+        } else {
+          map_elements_const_iterator _itm = m_elements.find(sv);
+          if(_itm!=m_elements.end()) {
+            elem_frac.push_back
+              (std::pair<_G4Element*,double>((*_itm).second,frac));
+          } else {
+            msg_map(sv);return false;
+          }
+        }}
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_MEE()) {
+
+        double unit;
+        if(!unit_value(*_elem,s_unit(),edep::eV,unit)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),-1,value)) return false;
+
+        MEE = value*unit;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_T()) {
+
+        double unit;
+        if(!unit_value(*_elem,s_unit(),edep::kelvin,unit)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),edep::STP_temperature,value)) return false;
+
+        T = value*unit;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_P()) {
+
+        double unit;
+        if(!unit_value(*_elem,s_unit(),edep::Pa,unit)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),edep::STP_pressure,value)) return false;
+
+        P = value*unit;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_composite()) {
+        double dn;
+        if(!atb_value(*_elem,s_n(),0,dn,true)) return false;
+        int n = int(dn);
+
+        _G4Element* elem;
+        if(!get_element(*_elem,elem)) return false;
+        elem_n.push_back(std::pair<_G4Element*,int>(elem,n));
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_D()) {
+
+      } else if(prop_name==s_property()) {
+        // done below.
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_material :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    mat_state state = mat_state_undefined;
+   {std::string sv;
+    if(!atb_value(a_tree,s_state(),"",sv)) return false;
+         if(sv==s_solid())  { state = mat_state_solid;}
+    else if(sv==s_liquid()) { state = mat_state_liquid;}
+    else if(sv==s_gas())    { state = mat_state_gas;}}
+
+    _G4Material* material = 0;
+
+    size_t number = mat_frac.size()+elem_frac.size()+elem_n.size();
+    if(number){
+
+      material = create_material
+        (name,D*D_unit,state,T,P,mat_frac,elem_frac,elem_n);
+
+    } else {
+
+      if(!a_tree.is_attribute(s_Z())) {
+
+        m_ref_out << "inlib::xml::gdml::read_material :"
+              << " no fraction, no composite and no Z found."
+              << std::endl; 
+
+        return false;
+      }
+
+      double Z;
+      if(!atb_value(a_tree,s_Z(),0,Z)) return false;
+
+      material = create_material(name,D*D_unit,state,T,P,Z,atom*atom_unit);
+
+    }
+
+    if(MEE!=-1) { // ionisation potential (mean excitation energy)
+      material_set_MEE(*material,MEE);
+    }
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_property()) {
+        std::string pname;
+        if(!get_name(*_elem,pname)) return false;
+
+        array<double> ar;
+        if(!get_array(*_elem,s_ref(),ar)) return false;
+
+        const array<double>::uints_t& is = ar.orders();
+        if(is.size()!=2) {
+          m_ref_out << "inlib::xml::gdml::read_material :"
+                << " property : array not of dim 2."
+                << std::endl; 
+          return false;
+        }
+        unsigned int cols = is[0];
+        unsigned int rows = is[1];
+
+        if(!rows) {
+          m_ref_out << "inlib::xml::gdml::read_material :"
+                << " for material " << sout(name)
+                << " and property " << sout(pname)
+                << ", matrix has no rows."
+                << std::endl; 
+          return false;
+        }
+
+        if(cols==1) { // constant property assumed
+          
+          array<double>::uints_t _is(2);
+          double c;
+          _is[0] = 0;            
+          _is[1] = 0;            
+          ar.value(_is,c);
+
+          material_add_property(*material,pname,c);
+
+        } else if(cols!=2) {
+          m_ref_out << "inlib::xml::gdml::read_material :"
+                << " for material " << sout(name)
+                << " and property " << sout(pname)
+                << ", referenced matrix should have two columns."
+                << std::endl; 
+          return false;
+
+        } else { // build the material properties vector
+
+          array<double>::uints_t _is(2);
+          double c0,c1;
+
+          std::vector< std::pair<double,double> > vals;
+
+          for(unsigned int i=0;i<rows;i++){
+            _is[0] = 0;            
+            _is[1] = i;            
+            ar.value(_is,c0);
+            _is[0] = 1;            
+            _is[1] = i;            
+            ar.value(_is,c1);
+
+            vals.push_back(std::pair<double,double>(c0,c1));
+          }
+          material_add_property(*material,pname,vals);
+        }
+
+        atb_warn(*_elem);
+
+      }
+
+    }}  
+
+    m_materials[name] = material;
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_materials(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_materials :"
+            << " ..."
+            << std::endl;
+    }
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_material()) {
+        if(!read_material(*_tree)) return false;
+      } else if(tag_name==s_element()) {
+        if(!read_element(*_tree)) return false;
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_materials :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_boolean(tree& a_tree,op_type a_op){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_boolean :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    _G4VSolid* first_solid = 0;
+    _G4VSolid* second_solid = 0;
+
+    vec3d pos;
+    mat4d rot;
+    rot.set_identity(); 
+
+    vec3d fpos;
+    mat4d frot;
+    frot.set_identity(); 
+
+    vec3d fvrot;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_first()) {
+        if(!get_solid(*_elem,s_ref(),first_solid)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_second()) {
+        if(!get_solid(*_elem,s_ref(),second_solid)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_position()) {
+        if(!read_pos(*_elem,pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_positionref()) {
+        if(!_get_pos(*_elem,s_ref(),pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_firstpositionref()) {
+        if(!_get_pos(*_elem,s_ref(),fpos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotation()) {
+        vec3d r;
+        if(!read_rot(*_elem,r)) return false;
+
+        rot.left_mul_rotate(1,0,0,r.x());
+        rot.left_mul_rotate(0,1,0,r.y());
+        rot.left_mul_rotate(0,0,1,r.z());
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotationref()) {
+        vec3d r;
+        if(!get_rot(*_elem,r)) return false;
+
+        rot.left_mul_rotate(1,0,0,r.x());
+        rot.left_mul_rotate(0,1,0,r.y());
+        rot.left_mul_rotate(0,0,1,r.z());
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_firstrotationref()) {
+        if(!get_rot(*_elem,fvrot)) return false;
+
+        frot.left_mul_rotate(1,0,0,fvrot.x());
+        frot.left_mul_rotate(0,1,0,fvrot.y());
+        frot.left_mul_rotate(0,0,1,fvrot.z());
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_boolean :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    if(!first_solid) {
+      m_ref_out << "inlib::xml::gdml::read_boolean :"
+            << " no first solid given."
+            << std::endl; 
+      return false;
+    }
+
+    if(!second_solid) {
+      m_ref_out << "inlib::xml::gdml::read_boolean :"
+            << " no second solid given."
+            << std::endl; 
+      return false;
+    }
+
+    if ( ((fvrot.x()!=0.0)||(fvrot.y()!=0.0)||(fvrot.z()!=0.0)) ||
+         ((fpos.x()!=0.0)||(fpos.y()!=0.0)||(fpos.z()!=0.0)) ){ 
+
+      mat4d ftransform;
+      ftransform.set_identity(); 
+      ftransform.mul_translate(fpos.x(),fpos.y(),fpos.z());
+      ftransform.mul_mtx(frot);
+
+      std::string fsname;
+      solid_name(*first_solid,fsname);
+
+      first_solid = create_displaced("displaced_"+fsname,first_solid,ftransform);
+    }
+
+    mat4d transform;
+    transform.set_identity(); 
+    transform.mul_translate(pos.x(),pos.y(),pos.z());
+    transform.mul_mtx(rot);
+
+    m_solids[name] = create_boolean(name,a_op,first_solid,second_solid,transform);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  typedef struct {double rmin,rmax,z;} zplaneType;
+
+  bool read_polycone(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_polycone :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    double lunit;
+    if(!unit_value
+          (a_tree,s_lunit(),edep::millimeter,lunit)) return false;
+    double aunit;
+    if(!unit_value
+          (a_tree,s_aunit(),edep::radian,aunit)) return false;
+
+    double startphi;
+    if(!atb_value(a_tree,s_startphi(),0,startphi)) return false;
+    double deltaphi;
+    if(!atb_value(a_tree,s_deltaphi(),0,deltaphi)) return false;
+
+    startphi *= aunit;
+    deltaphi *= aunit;
+
+    std::vector<zplaneType> zplaneList;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_zplane()) {
+
+        zplaneType _zplane = {0.,0.,0.};
+
+        if(!atb_value(*_elem,s_rmin(),0,_zplane.rmin)) return false;
+        if(!atb_value(*_elem,s_rmax(),0,_zplane.rmax)) return false;
+        if(!atb_value(*_elem,s_z(),0,_zplane.z)) return false;
+
+        zplaneList.push_back(_zplane);
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_polycone :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    unsigned int numZPlanes = (unsigned int)zplaneList.size();
+    if(!numZPlanes) {
+      m_ref_out << "inlib::xml::gdml::read_polycone :"
+            << " no zplane given."
+            << std::endl; 
+      return false;
+    }
+
+    double* z_array    = new double[numZPlanes];
+    double* rmin_array = new double[numZPlanes];
+    double* rmax_array = new double[numZPlanes];
+    for(unsigned int i=0;i<numZPlanes;i++) { 
+      z_array[i]    = zplaneList[i].z*lunit;
+      rmin_array[i] = zplaneList[i].rmin*lunit;
+      rmax_array[i] = zplaneList[i].rmax*lunit;
+    }
+
+    m_solids[name] = 
+      create_polycone(name,startphi,deltaphi,numZPlanes,
+                      z_array,rmin_array,rmax_array);
+
+    delete [] z_array;
+    delete [] rmin_array;
+    delete [] rmax_array;
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_polyhedra(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_polyhedra :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    double lunit;
+    if(!unit_value
+          (a_tree,s_lunit(),edep::millimeter,lunit)) return false;
+    double aunit;
+    if(!unit_value
+          (a_tree,s_aunit(),edep::radian,aunit)) return false;
+
+    double startphi;
+    if(!atb_value(a_tree,s_startphi(),0,startphi)) return false;
+    double deltaphi;
+    if(!atb_value(a_tree,s_deltaphi(),0,deltaphi)) return false;
+
+    double dnumsides;
+    if(!atb_value(a_tree,s_numsides(),0,dnumsides)) return false;
+    int numsides = int(dnumsides);
+
+    startphi *= aunit;
+    deltaphi *= aunit;
+
+    std::vector<zplaneType> zplaneList;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_zplane()) {
+
+        zplaneType _zplane = {0.,0.,0.};
+
+        if(!atb_value(*_elem,s_rmin(),0,_zplane.rmin)) return false;
+        if(!atb_value(*_elem,s_rmax(),0,_zplane.rmax)) return false;
+        if(!atb_value(*_elem,s_z(),0,_zplane.z)) return false;
+
+        zplaneList.push_back(_zplane);
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_polyhedra :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    unsigned int numZPlanes = (unsigned int)zplaneList.size();
+    if(!numZPlanes) {
+      m_ref_out << "inlib::xml::gdml::read_polyhedra :"
+            << " no zplane given."
+            << std::endl; 
+      return false;
+    }
+
+    double* z_array    = new double[numZPlanes];
+    double* rmin_array = new double[numZPlanes];
+    double* rmax_array = new double[numZPlanes];
+    for(unsigned int i=0;i<numZPlanes;i++) { 
+      z_array[i]    = zplaneList[i].z*lunit;
+      rmin_array[i] = zplaneList[i].rmin*lunit;
+      rmax_array[i] = zplaneList[i].rmax*lunit;
+    }
+
+    m_solids[name] = 
+      create_polyhedra(name,startphi,deltaphi,numsides,numZPlanes,
+                       z_array,rmin_array,rmax_array);
+
+    delete [] z_array;
+    delete [] rmin_array;
+    delete [] rmax_array;
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_xtru(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_xtru :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    double lunit;
+    if(!unit_value(a_tree,s_lunit(),edep::millimeter,lunit)) return false;
+
+    std::vector< std::pair<double,double> > twoDimVertexList;
+    std::vector<zsection> sectionList;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+
+      if(prop_name==s_twoDimVertex()) {
+
+        double x;
+        if(!atb_value(*_elem,s_x(),0,x)) return false;
+        double y;
+        if(!atb_value(*_elem,s_y(),0,y)) return false;
+
+        twoDimVertexList.push_back(std::pair<double,double>(x*lunit,y*lunit));
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_section()) {
+
+        double zPosition;
+        if(!atb_value(*_elem,s_zPosition(),0,zPosition)) return false;
+        double xOffset;
+        if(!atb_value(*_elem,s_xOffset(),0,xOffset)) return false;
+        double yOffset;
+        if(!atb_value(*_elem,s_yOffset(),0,yOffset)) return false;
+        double scalingFactor;
+        if(!atb_value(*_elem,s_scalingFactor(),1,scalingFactor)) return false;
+
+        sectionList.push_back
+         (zsection(zPosition*lunit,xOffset*lunit,yOffset*lunit,scalingFactor));
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_xtru :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    m_solids[name] = 
+      create_extruded_solid(name,twoDimVertexList,sectionList);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_tessellated(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_tessellated :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    std::vector<triangular_facet> tris;
+    std::vector<quadrangular_facet> quads;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_triangular()) {
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        vec3d v1;
+        if(!_get_pos(*_elem,s_vertex1(),v1)) return false;
+        vec3d v2;
+        if(!_get_pos(*_elem,s_vertex2(),v2)) return false;
+        vec3d v3;
+        if(!_get_pos(*_elem,s_vertex3(),v3)) return false;
+
+        facet_vertex_type type = facet_vertex_absolute;
+       {std::string sv;
+        if(!atb_value(*_elem,s_type(),"",sv)) return false;
+        if(sv==s_RELATIVE()) type = facet_vertex_relative;}
+
+        tris.push_back(triangular_facet(v1*lunit,v2*lunit,v3*lunit,type));
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_quadrangular()) {
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        vec3d v1;
+        if(!_get_pos(*_elem,s_vertex1(),v1)) return false;
+        vec3d v2;
+        if(!_get_pos(*_elem,s_vertex2(),v2)) return false;
+        vec3d v3;
+        if(!_get_pos(*_elem,s_vertex3(),v3)) return false;
+        vec3d v4;
+        if(!_get_pos(*_elem,s_vertex4(),v4)) return false;
+
+        facet_vertex_type type = facet_vertex_absolute;
+       {std::string sv;
+        if(!atb_value(*_elem,s_type(),"",sv)) return false;
+        if(sv==s_RELATIVE()) type = facet_vertex_relative;}
+
+        quads.push_back
+          (quadrangular_facet(v1*lunit,v2*lunit,v3*lunit,v4*lunit,type));
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_polyhedra :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    m_solids[name] = create_tessellated(name,tris,quads);
+
+    a_tree.remove_attributes(s_aunit()); //to rm known warning.
+    a_tree.remove_attributes(s_lunit()); //to rm known warning.
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_divisionvol(tree& a_tree,_G4LogicalVolume& a_mother){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_divisionvol :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(a_tree.attribute_value(s_name(),name)){
+      if(name.empty()) {msg_empty(a_tree,s_name());return false;}
+    }
+
+    double unit;
+    if(!unit_value(a_tree,s_unit(),edep::millimeter,unit)) return false;
+    double width;
+    if(!atb_value(a_tree,s_width(),0,width)) return false;
+    double offset;
+    if(!atb_value(a_tree,s_offset(),0,offset)) return false;
+    double dnumber;
+    if(!atb_value(a_tree,s_number(),0,dnumber)) return false;
+    unsigned int number = (unsigned int)dnumber;
+
+    axis_type axis = axis_Undefined;
+   {std::string sv;
+    if(!atb_value(a_tree,s_axis(),"",sv)) return false;
+         if(sv==s_kXAxis()) {axis = axis_XAxis;}
+    else if(sv==s_kYAxis()) {axis = axis_YAxis;}
+    else if(sv==s_kZAxis()) {axis = axis_ZAxis;}
+    else if(sv==s_kRho()) {axis = axis_Rho;}
+    else if(sv==s_kPhi()) {axis = axis_Phi;}}
+
+    _G4LogicalVolume* volume = 0;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_volumeref()) {
+        if(!get_volume(*_elem,volume)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_divisionvol :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    width *= unit;
+    offset *= unit;
+
+    if(!volume)  { 
+      m_ref_out << "inlib::xml::gdml::read_divisionvol :"
+            << " no volume found."
+            << std::endl; 
+      return false;
+    }
+
+    std::pair<_G4VPhysicalVolume*,_G4VPhysicalVolume*> pair;
+
+    std::string pv_name;
+    volume_name(*volume,pv_name);
+    pv_name += "_div";
+
+    if((number != 0) && (width == 0.0)) {
+      pair = divide_lv(pv_name,volume,&a_mother,axis,number,offset);
+    } else if ((number == 0) && (width != 0.0)) {
+      pair = divide_lv(pv_name,volume,&a_mother,axis,width,offset);
+    } else {
+      pair = divide_lv(pv_name,volume,&a_mother,axis,number,width,offset);
+    }
+
+    if(pair.first) {
+      if(name.empty()) {
+        volume_name(*pv_lv(*pair.first),name);
+        name += "_PV";
+        pv_set_name(*pair.first,name);
+      }
+    }
+    if(pair.second) {
+      if(name.empty()) {
+        volume_name(*pv_lv(*pair.second),name);
+        name += "_PV";
+        pv_set_name(*pair.second,name);
+      }
+    }
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_solids(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_solids :"
+            << " ..."
+            << std::endl;
+    }
+
+   {const std::list<ielem*>& list = a_tree.childs();
+    inlib_lforcit(ielem*,list,it) {
+    if(element* _elem = id_cast<ielem,element>(*(*it))) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_box()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double x;
+        if(!atb_value(*_elem,s_x(),0,x)) return false;
+        double y;
+        if(!atb_value(*_elem,s_y(),0,y)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        x *= 0.5*lunit;
+        y *= 0.5*lunit;
+        z *= 0.5*lunit;
+
+        m_solids[name] = create_box(name,x,y,z);
+
+        _elem->remove_attributes(s_aunit()); //to rm known warning.
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_tube()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+             (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+             (*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double rmin;
+        if(!atb_value(*_elem,s_rmin(),0,rmin)) return false;
+        double rmax;
+        if(!atb_value(*_elem,s_rmax(),0,rmax)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double startphi;
+        if(!atb_value(*_elem,s_startphi(),0,startphi)) return false;
+        double deltaphi;
+        if(!atb_value(*_elem,s_deltaphi(),0,deltaphi)) return false;
+
+        rmin *= lunit;
+        rmax *= lunit;
+        z *= 0.5*lunit;
+        startphi *= aunit;
+        deltaphi *= aunit;
+
+        m_solids[name] = create_tube(name,rmin,rmax,z,startphi,deltaphi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_eltube()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double dx;
+        if(!atb_value(*_elem,s_dx(),0,dx)) return false;
+        double dy;
+        if(!atb_value(*_elem,s_dy(),0,dy)) return false;
+        double dz;
+        if(!atb_value(*_elem,s_dz(),0,dz)) return false;
+
+        dx *= lunit;
+        dy *= lunit;
+        dz *= lunit;
+
+        m_solids[name] = create_elliptical_tube(name,dx,dy,dz);
+
+        _elem->remove_attributes(s_aunit()); //to rm known warning.
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_ellipsoid()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double ax;
+        if(!atb_value(*_elem,s_ax(),0,ax)) return false;
+        double by;
+        if(!atb_value(*_elem,s_by(),0,by)) return false;
+        double cz;
+        if(!atb_value(*_elem,s_cz(),0,cz)) return false;
+        double zcut1;
+        if(!atb_value(*_elem,s_zcut1(),0,zcut1)) return false;
+        double zcut2;
+        if(!atb_value(*_elem,s_zcut2(),0,zcut2)) return false;
+
+        ax *= lunit;
+        by *= lunit;
+        cz *= lunit;
+        zcut1 *= lunit;
+        zcut2 *= lunit; 
+
+        m_solids[name] = create_ellipsoid(name,ax,by,cz,zcut1,zcut2);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_sphere()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+        double rmin;
+        if(!atb_value(*_elem,s_rmin(),0,rmin)) return false;
+        double rmax;
+        if(!atb_value(*_elem,s_rmax(),0,rmax)) return false;
+        double startphi;
+        if(!atb_value(*_elem,s_startphi(),0,startphi)) return false;
+        double deltaphi;
+        if(!atb_value(*_elem,s_deltaphi(),0,deltaphi)) return false;
+        double starttheta;
+        if(!atb_value(*_elem,s_starttheta(),0,starttheta)) return false;
+        double deltatheta;
+        if(!atb_value(*_elem,s_deltatheta(),0,deltatheta)) return false;
+
+        rmin *= lunit;
+        rmax *= lunit;
+        startphi *= aunit;
+        deltaphi *= aunit;
+        starttheta *= aunit;
+        deltatheta *= aunit;
+
+        m_solids[name] = create_sphere(name,rmin,rmax,
+                                       startphi,deltaphi,
+                                       starttheta,deltatheta);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_cone()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+        double rmin1;
+        if(!atb_value(*_elem,s_rmin1(),0,rmin1)) return false;
+        double rmax1;
+        if(!atb_value(*_elem,s_rmax1(),0,rmax1)) return false;
+
+        double rmin2;
+        if(!atb_value(*_elem,s_rmin2(),0,rmin2)) return false;
+        double rmax2;
+        if(!atb_value(*_elem,s_rmax2(),0,rmax2)) return false;
+
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        double startphi;
+        if(!atb_value(*_elem,s_startphi(),0,startphi)) return false;
+        double deltaphi;
+        if(!atb_value(*_elem,s_deltaphi(),0,deltaphi)) return false;
+
+        rmin1 *= lunit;
+        rmax1 *= lunit;
+        rmin2 *= lunit;
+        rmax2 *= lunit;
+        z *= 0.5*lunit;
+        startphi *= aunit;
+        deltaphi *= aunit;
+
+        m_solids[name] =
+          create_cone(name,rmin1,rmax1,rmin2,rmax2,z,startphi,deltaphi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_torus()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+        double rmin;
+        if(!atb_value(*_elem,s_rmin(),0,rmin)) return false;
+        double rmax;
+        if(!atb_value(*_elem,s_rmax(),0,rmax)) return false;
+        double rtor;
+        if(!atb_value(*_elem,s_rtor(),0,rtor)) return false;
+
+        double startphi;
+        if(!atb_value(*_elem,s_startphi(),0,startphi)) return false;
+        double deltaphi;
+        if(!atb_value(*_elem,s_deltaphi(),0,deltaphi)) return false;
+
+        rmin *= lunit;
+        rmax *= lunit;
+        rtor *= lunit;
+        startphi *= aunit;
+        deltaphi *= aunit;
+
+        m_solids[name] = create_torus(name,rmin,rmax,rtor,startphi,deltaphi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_elcone()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double dx;
+        if(!atb_value(*_elem,s_dx(),0,dx)) return false;
+        double dy;
+        if(!atb_value(*_elem,s_dy(),0,dy)) return false;
+        double zmax;
+        if(!atb_value(*_elem,s_zmax(),0,zmax)) return false;
+        double zcut;
+        if(!atb_value(*_elem,s_zcut(),0,zcut)) return false;
+
+        zmax *= lunit;
+        zcut *= lunit;
+
+        m_solids[name] = create_elliptical_cone(name,dx,dy,zmax,zcut);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_hype()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+        double rmin;
+        if(!atb_value(*_elem,s_rmin(),0,rmin)) return false;
+        double rmax;
+        if(!atb_value(*_elem,s_rmax(),0,rmax)) return false;
+        double inst;
+        if(!atb_value(*_elem,s_inst(),0,inst)) return false;
+        double outst;
+        if(!atb_value(*_elem,s_outst(),0,outst)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        rmin *= lunit;
+        rmax *= lunit;
+        inst *= aunit;
+        outst *= aunit;
+        z *= 0.5*lunit;
+
+        m_solids[name] = create_hype(name,rmin,rmax,inst,outst,z);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_orb()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double r;
+        if(!atb_value(*_elem,s_r(),0,r)) return false;
+
+        r *= lunit;
+
+        m_solids[name] = create_orb(name,r);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_para()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+        double x;
+        if(!atb_value(*_elem,s_x(),0,x)) return false;
+        double y;
+        if(!atb_value(*_elem,s_y(),0,y)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double alpha;
+        if(!atb_value(*_elem,s_alpha(),0,alpha)) return false;
+        double theta;
+        if(!atb_value(*_elem,s_theta(),0,theta)) return false;
+        double phi;
+        if(!atb_value(*_elem,s_phi(),0,phi)) return false;
+
+        x *= 0.5*lunit;
+        y *= 0.5*lunit;
+        z *= 0.5*lunit;
+        alpha *= aunit;
+        theta *= aunit;
+        phi *= aunit;
+
+        m_solids[name] = create_para(name,x,y,z,alpha,theta,phi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_paraboloid()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double rlo;
+        if(!atb_value(*_elem,s_rlo(),0,rlo)) return false;
+        double rhi;
+        if(!atb_value(*_elem,s_rhi(),0,rhi)) return false;
+        double dz;
+        if(!atb_value(*_elem,s_dz(),0,dz)) return false;
+
+        rlo *= 1.*lunit;
+        rhi *= 1.*lunit;
+        dz *= 1.*lunit;
+
+        m_solids[name] = create_paraboloid(name,dz,rlo,rhi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_tet()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        vec3d vertex1;
+        if(!_get_pos(*_elem,s_vertex1(),vertex1)) return false;
+        vec3d vertex2;
+        if(!_get_pos(*_elem,s_vertex2(),vertex2)) return false;
+        vec3d vertex3;
+        if(!_get_pos(*_elem,s_vertex3(),vertex3)) return false;
+        vec3d vertex4;
+        if(!_get_pos(*_elem,s_vertex4(),vertex4)) return false;
+
+        m_solids[name] = 
+          create_tet(name,
+                    vertex1*lunit,vertex2*lunit,vertex3*lunit,vertex4*lunit);
+
+        _elem->remove_attributes(s_aunit()); //to rm known warning.
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_arb8()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        double dz;
+        if(!atb_value(*_elem,s_dz(),0,dz)) return false;
+
+        double v1x;
+        if(!atb_value(*_elem,s_v1x(),0,v1x)) return false;
+        double v1y;
+        if(!atb_value(*_elem,s_v1y(),0,v1y)) return false;
+
+        double v2x;
+        if(!atb_value(*_elem,s_v2x(),0,v2x)) return false;
+        double v2y;
+        if(!atb_value(*_elem,s_v2y(),0,v2y)) return false;
+
+        double v3x;
+        if(!atb_value(*_elem,s_v3x(),0,v3x)) return false;
+        double v3y;
+        if(!atb_value(*_elem,s_v3y(),0,v3y)) return false;
+
+        double v4x;
+        if(!atb_value(*_elem,s_v4x(),0,v4x)) return false;
+        double v4y;
+        if(!atb_value(*_elem,s_v4y(),0,v4y)) return false;
+
+        double v5x;
+        if(!atb_value(*_elem,s_v5x(),0,v5x)) return false;
+        double v5y;
+        if(!atb_value(*_elem,s_v5y(),0,v5y)) return false;
+
+        double v6x;
+        if(!atb_value(*_elem,s_v6x(),0,v6x)) return false;
+        double v6y;
+        if(!atb_value(*_elem,s_v6y(),0,v6y)) return false;
+
+        double v7x;
+        if(!atb_value(*_elem,s_v7x(),0,v7x)) return false;
+        double v7y;
+        if(!atb_value(*_elem,s_v7y(),0,v7y)) return false;
+
+        double v8x;
+        if(!atb_value(*_elem,s_v8x(),0,v8x)) return false;
+        double v8y;
+        if(!atb_value(*_elem,s_v8y(),0,v8y)) return false;
+
+        dz *= lunit;
+
+        double p[16];
+        p[ 0] = v1x*lunit; p[ 1] = v1y*lunit;
+        p[ 2] = v2x*lunit; p[ 3] = v2y*lunit;
+        p[ 4] = v3x*lunit; p[ 5] = v3y*lunit;
+        p[ 6] = v4x*lunit; p[ 7] = v4y*lunit;
+        p[ 8] = v5x*lunit; p[ 9] = v5y*lunit;
+        p[10] = v6x*lunit; p[11] = v6y*lunit;
+        p[12] = v7x*lunit; p[13] = v7y*lunit;
+        p[14] = v8x*lunit; p[15] = v8y*lunit;
+
+        m_solids[name] = create_generic_trap(name,dz,p);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_trap()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value
+              (*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value
+              (*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double theta;
+        if(!atb_value(*_elem,s_theta(),0,theta)) return false;
+        double phi;
+        if(!atb_value(*_elem,s_phi(),0,phi)) return false;
+        double y1;
+        if(!atb_value(*_elem,s_y1(),0,y1)) return false;
+        double x1;
+        if(!atb_value(*_elem,s_x1(),0,x1)) return false;
+        double x2;
+        if(!atb_value(*_elem,s_x2(),0,x2)) return false;
+
+        double alpha1;
+        if(!atb_value(*_elem,s_alpha1(),0,alpha1)) return false;
+        double y2;
+        if(!atb_value(*_elem,s_y2(),0,y2)) return false;
+        double x3;
+        if(!atb_value(*_elem,s_x3(),0,x3)) return false;
+        double x4;
+        if(!atb_value(*_elem,s_x4(),0,x4)) return false;
+        double alpha2;
+        if(!atb_value(*_elem,s_alpha2(),0,alpha2)) return false;
+
+        z *= 0.5*lunit;
+        theta *= aunit;
+        phi *= aunit;
+        y1 *= 0.5*lunit;
+        x1 *= 0.5*lunit;
+        x2 *= 0.5*lunit;
+        alpha1 *= aunit;
+        y2 *= 0.5*lunit;
+        x3 *= 0.5*lunit;
+        x4 *= 0.5*lunit;
+        alpha2 *= aunit;
+
+        m_solids[name] =
+          create_trap(name,z,theta,phi,y1,x1,x2,alpha1,y2,x3,x4,alpha2);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_trd()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        double x1;
+        if(!atb_value(*_elem,s_x1(),0,x1)) return false;
+        double x2;
+        if(!atb_value(*_elem,s_x2(),0,x2)) return false;
+
+        double y1;
+        if(!atb_value(*_elem,s_y1(),0,y1)) return false;
+        double y2;
+        if(!atb_value(*_elem,s_y2(),0,y2)) return false;
+
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        x1 *= 0.5*lunit;
+        x2 *= 0.5*lunit;
+        y1 *= 0.5*lunit;
+        y2 *= 0.5*lunit;
+        z *= 0.5*lunit;
+
+        m_solids[name] = create_trd(name,x1,x2,y1,y2,z);
+
+        _elem->remove_attributes(s_aunit()); //to rm known warning.
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_twistedbox()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double PhiTwist;
+        if(!atb_value(*_elem,s_PhiTwist(),0,PhiTwist)) return false;
+
+        double x;
+        if(!atb_value(*_elem,s_x(),0,x)) return false;
+        double y;
+        if(!atb_value(*_elem,s_y(),0,y)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        PhiTwist *= aunit;
+        x *= 0.5*lunit;
+        y *= 0.5*lunit;
+        z *= 0.5*lunit;
+
+        m_solids[name] = create_twisted_box(name,PhiTwist,x,y,z);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_twistedtrap()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double PhiTwist;
+        if(!atb_value(*_elem,s_PhiTwist(),0,PhiTwist)) return false;
+
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double Theta;
+        if(!atb_value(*_elem,s_Theta(),0,Theta)) return false;
+        double Phi;
+        if(!atb_value(*_elem,s_Phi(),0,Phi)) return false;
+        double y1;
+        if(!atb_value(*_elem,s_y1(),0,y1)) return false;
+        double x1;
+        if(!atb_value(*_elem,s_x1(),0,x1)) return false;
+        double x2;
+        if(!atb_value(*_elem,s_x2(),0,x2)) return false;
+        double y2;
+        if(!atb_value(*_elem,s_y2(),0,y2)) return false;
+        double x3;
+        if(!atb_value(*_elem,s_x3(),0,x3)) return false;
+        double x4;
+        if(!atb_value(*_elem,s_x4(),0,x4)) return false;
+        double Alph;
+        if(!atb_value(*_elem,s_Alph(),0,Alph)) return false;
+
+        PhiTwist *= aunit;
+        z *= 0.5*lunit;
+        Theta *= aunit;
+        Phi *= aunit;
+        Alph *= aunit;
+        y1 *= 0.5*lunit;
+        x1 *= 0.5*lunit;
+        x2 *= 0.5*lunit;
+        y2 *= 0.5*lunit;
+        x3 *= 0.5*lunit;
+        x4 *= 0.5*lunit;
+
+        m_solids[name] =
+          create_twisted_trap(name,
+                              PhiTwist,z,Theta,Phi,y1,x1,x2,y2,x3,x4,Alph);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_twistedtrd()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double x1;
+        if(!atb_value(*_elem,s_x1(),0,x1)) return false;
+        double x2;
+        if(!atb_value(*_elem,s_x2(),0,x2)) return false;
+
+        double y1;
+        if(!atb_value(*_elem,s_y1(),0,y1)) return false;
+        double y2;
+        if(!atb_value(*_elem,s_y2(),0,y2)) return false;
+
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+
+        double PhiTwist;
+        if(!atb_value(*_elem,s_PhiTwist(),0,PhiTwist)) return false;
+
+        x1 *= 0.5*lunit;
+        x2 *= 0.5*lunit;
+        y1 *= 0.5*lunit;
+        y2 *= 0.5*lunit;
+        z *= 0.5*lunit;
+        PhiTwist *= aunit;
+
+        m_solids[name] = create_twisted_trd(name,x1,x2,y1,y2,z,PhiTwist);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_twistedtubs()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double twistedangle;
+        if(!atb_value(*_elem,s_twistedangle(),0,twistedangle)) return false;
+
+        double endinnerrad;
+        if(!atb_value(*_elem,s_endinnerrad(),0,endinnerrad)) return false;
+        double endouterrad;
+        if(!atb_value(*_elem,s_endouterrad(),0,endouterrad)) return false;
+        double zlen;
+        if(!atb_value(*_elem,s_zlen(),0,zlen)) return false;
+        double phi;
+        if(!atb_value(*_elem,s_phi(),0,phi)) return false;
+
+        twistedangle *= aunit;
+        endinnerrad *= lunit;
+        endouterrad *= lunit;
+        zlen *= 0.5*lunit;
+        phi *= aunit;
+
+        m_solids[name] = 
+          create_twisted_tubs(name,
+                              twistedangle,endinnerrad,endouterrad,zlen,phi);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_cutTube()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        double rmin;
+        if(!atb_value(*_elem,s_rmin(),0,rmin)) return false;
+        double rmax;
+        if(!atb_value(*_elem,s_rmax(),0,rmax)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double startphi;
+        if(!atb_value(*_elem,s_startphi(),0,startphi)) return false;
+        double deltaphi;
+        if(!atb_value(*_elem,s_deltaphi(),0,deltaphi)) return false;
+
+        double lowX;
+        if(!atb_value(*_elem,s_lowX(),0,lowX)) return false;
+        double lowY;
+        if(!atb_value(*_elem,s_lowY(),0,lowY)) return false;
+        double lowZ;
+        if(!atb_value(*_elem,s_lowZ(),0,lowZ)) return false;
+
+        double highX;
+        if(!atb_value(*_elem,s_highX(),0,highX)) return false;
+        double highY;
+        if(!atb_value(*_elem,s_highY(),0,highY)) return false;
+        double highZ;
+        if(!atb_value(*_elem,s_highZ(),0,highZ)) return false;
+
+        rmin *= lunit;
+        rmax *= lunit;
+        z *= 0.5*lunit;
+        startphi *= aunit;
+        deltaphi *= aunit;
+
+        m_solids[name] = 
+          create_cut_tubs(name,rmin,rmax,z,startphi,deltaphi,
+                          lowX,lowY,lowZ,
+                          highX,highY,highZ);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_reflectedSolid()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        _G4VSolid* solid;
+        if(!get_solid(*_elem,s_solid(),solid)) return false;
+
+        double sx;
+        if(!atb_value(*_elem,s_sx(),1,sx)) return false;
+        double sy;
+        if(!atb_value(*_elem,s_sy(),1,sy)) return false;
+        double sz;
+        if(!atb_value(*_elem,s_sz(),1,sz)) return false;
+
+        double rx;
+        if(!atb_value(*_elem,s_rx(),0,rx)) return false;
+        double ry;
+        if(!atb_value(*_elem,s_ry(),0,ry)) return false;
+        double rz;
+        if(!atb_value(*_elem,s_rz(),0,rz)) return false;
+
+        double dx;
+        if(!atb_value(*_elem,s_dx(),0,dx)) return false;
+        double dy;
+        if(!atb_value(*_elem,s_dy(),0,dy)) return false;
+        double dz;
+        if(!atb_value(*_elem,s_dz(),0,dz)) return false;
+
+        m_solids[name] = 
+          create_reflected_solid(name,solid,
+                                 rx*aunit,ry*aunit,rz*aunit,
+                                 dx*lunit,dy*lunit,dz*lunit,
+                                 sx,sy,sz);
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_opticalsurface()) {
+        std::string name;
+        if(!get_name(*_elem,name)) return false;
+
+        std::string smodel;
+        if(!atb_value(*_elem,s_model(),"",smodel)) return false;
+
+        std::string sfinish;
+        if(!atb_value(*_elem,s_finish(),"",sfinish)) return false;
+
+        std::string stype;
+        if(!atb_value(*_elem,s_type(),"",stype)) return false;
+
+        double value;
+        if(!atb_value(*_elem,s_value(),0,value)) return false;
+
+        optical_surface_model model; 
+        if ((smodel=="glisur") || (smodel=="0")) {
+          model = optical_surface_glisur; 
+        } else if ((smodel=="unified") || (smodel=="1")) {
+          model = optical_surface_unified;
+        } else {
+          model = optical_surface_LUT;
+        }
+
+        optical_surface_finish finish;
+        if ((sfinish=="polished") || (sfinish=="0")){
+          finish = optical_surface_polished;
+        } else if ((sfinish=="polishedfrontpainted") || (sfinish=="1")) {
+          finish = optical_surface_polishedfrontpainted;
+        } else if ((sfinish=="polishedbackpainted") || (sfinish=="2")) {
+          finish = optical_surface_polishedbackpainted;
+        } else if ((sfinish=="ground") || (sfinish=="3")) {
+          finish = optical_surface_ground;
+        } else if ((sfinish=="groundfrontpainted") || (sfinish=="4")) {
+          finish = optical_surface_groundfrontpainted;
+        } else if ((sfinish=="groundbackpainted") || (sfinish=="5")) { 
+          finish = optical_surface_groundbackpainted;
+        } else if ((sfinish=="polishedlumirrorair") || (sfinish=="6")) { 
+          finish = optical_surface_polishedlumirrorair;
+        } else if ((sfinish=="polishedlumirrorglue") || (sfinish=="7")) { 
+          finish = optical_surface_polishedlumirrorglue;
+        } else if ((sfinish=="polishedair") || (sfinish=="8")) { 
+          finish = optical_surface_polishedair;
+        } else if ((sfinish=="polishedteflonair") || (sfinish=="9")) { 
+          finish = optical_surface_polishedteflonair;
+        } else if ((sfinish=="polishedtioair") || (sfinish=="10")) { 
+          finish = optical_surface_polishedtioair;
+        } else if ((sfinish=="polishedtyvekair") || (sfinish=="11")) { 
+          finish = optical_surface_polishedtyvekair;
+        } else if ((sfinish=="polishedvm2000air") || (sfinish=="12")) { 
+          finish = optical_surface_polishedvm2000air;
+        } else if ((sfinish=="polishedvm2000glue") || (sfinish=="13")) { 
+          finish = optical_surface_polishedvm2000glue;
+        } else if ((sfinish=="etchedlumirrorair") || (sfinish=="14")) { 
+          finish = optical_surface_etchedlumirrorair;
+        } else if ((sfinish=="etchedlumirrorglue") || (sfinish=="15")) { 
+          finish = optical_surface_etchedlumirrorglue;
+        } else if ((sfinish=="etchedair") || (sfinish=="16")) { 
+          finish = optical_surface_etchedair;
+        } else if ((sfinish=="etchedteflonair") || (sfinish=="17")) { 
+          finish = optical_surface_etchedteflonair;
+        } else if ((sfinish=="etchedtioair") || (sfinish=="18")) { 
+          finish = optical_surface_etchedtioair;
+        } else if ((sfinish=="etchedtyvekair") || (sfinish=="19")) { 
+          finish = optical_surface_etchedtyvekair;
+        } else if ((sfinish=="etchedvm2000air") || (sfinish=="20")) { 
+          finish = optical_surface_etchedvm2000air;
+        } else if ((sfinish=="etchedvm2000glue") || (sfinish=="21")) { 
+          finish = optical_surface_etchedvm2000glue;
+        } else if ((sfinish=="groundlumirrorair") || (sfinish=="22")) { 
+          finish = optical_surface_groundlumirrorair;
+        } else if ((sfinish=="groundlumirrorglue") || (sfinish=="23")) { 
+          finish = optical_surface_groundlumirrorglue;
+        } else if ((sfinish=="groundair") || (sfinish=="24")) { 
+          finish = optical_surface_groundair;
+        } else if ((sfinish=="groundteflonair") || (sfinish=="25")) { 
+          finish = optical_surface_groundteflonair;
+        } else if ((sfinish=="groundtioair") || (sfinish=="26")) { 
+          finish = optical_surface_groundtioair;
+        } else if ((sfinish=="groundtyvekair") || (sfinish=="27")) { 
+          finish = optical_surface_groundtyvekair;
+        } else if ((sfinish=="groundvm2000air") || (sfinish=="28")) {
+          finish = optical_surface_groundvm2000air;
+        } else {
+          finish = optical_surface_groundvm2000glue;
+        }
+     
+        surface_type type;   
+        if ((stype=="dielectric_metal") || (stype=="0")){
+          type = surface_dielectric_metal;
+        } else if ((stype=="dielectric_dielectric") || (stype=="1")){
+          type = surface_dielectric_dielectric;
+        } else if ((stype=="dielectric_LUT") || (stype=="2")){
+          type = surface_dielectric_LUT;
+        } else if ((stype=="firsov") || (stype=="3")){
+          type = surface_firsov;
+        } else {
+          type = surface_x_ray;
+        }
+     
+        m_surfprops[name] =
+          create_optical_surface(name,model,finish,type,value);
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_solids :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+
+    } else if(tree* _tree = id_cast<ielem,tree>(*(*it))) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_union()) {
+        if(!read_boolean(*_tree,op_union)) return false;
+      } else if(tag_name==s_intersection()) {
+        if(!read_boolean(*_tree,op_intersection)) return false;
+      } else if(tag_name==s_subtraction()) {
+        if(!read_boolean(*_tree,op_subtraction)) return false;
+      } else if(tag_name==s_polycone()) {
+        if(!read_polycone(*_tree)) return false;
+      } else if(tag_name==s_polyhedra()) {
+        if(!read_polyhedra(*_tree)) return false;
+      } else if(tag_name==s_xtru()) {
+        if(!read_xtru(*_tree)) return false;
+      } else if(tag_name==s_tessellated()) {
+        if(!read_tessellated(*_tree)) return false;
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_solids :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}}
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool _read_physvol(tree& a_tree,
+                     _G4AssemblyVolume*& a_assembly,
+                     _G4LogicalVolume*& a_volume,
+                     vec3d& a_rot,
+                     vec3d& a_pos,
+                     vec3d& a_sca){
+
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::_read_physvol :"
+            << " ..."
+            << std::endl;
+    }
+
+    a_rot.set_value(0,0,0);
+    a_pos.set_value(0,0,0);
+    a_sca.set_value(1,1,1);
+
+    a_assembly = 0;
+    a_volume = 0;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_volumeref()) {
+
+        if(!a_assembly && !a_volume) {
+
+          std::string sv;
+          if(!_elem->attribute_value(s_ref(),sv)) {
+            msg_atb(*_elem,s_ref());
+            return false;
+          }
+          _elem->remove_attributes(s_ref());
+          map_assemblies_const_iterator ita = m_assemblies.find(sv);
+          if(ita!=m_assemblies.end()) {
+            a_assembly = (*ita).second;
+          } else {
+            map_volumes_const_iterator itv = m_volumes.find(sv);
+            if(itv!=m_volumes.end()) {
+              a_volume = (*itv).second;        
+            }
+          }
+        }
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_position()) {
+        if(!read_pos(*_elem,a_pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_positionref()) {
+        if(!_get_pos(*_elem,s_ref(),a_pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotation()) {
+        if(!read_rot(*_elem,a_rot)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotationref()) {
+        if(!get_rot(*_elem,a_rot)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_scale()) {
+        if(!read_scale(*_elem,a_sca)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_scaleref()) {
+        if(!get_scale(*_elem,s_ref(),a_sca)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::_read_physvol :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    return true;
+  }
+
+  bool read_physvol(tree& a_tree,_G4LogicalVolume& a_mother){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_physvol :"
+            << " ..."
+            << std::endl;
+    }
+
+    // it is ok to have no name atb.
+    std::string name;
+    if(a_tree.attribute_value(s_name(),name)){
+      if(name.empty()) {msg_empty(a_tree,s_name());return false;}
+    }
+    a_tree.remove_attributes(s_name());
+
+    _G4AssemblyVolume* assembly = 0;
+    _G4LogicalVolume* volume = 0;
+
+    vec3d rot;
+    vec3d pos;
+    vec3d sca;
+
+    if(!_read_physvol(a_tree,assembly,volume,rot,pos,sca)) return false;
+
+    if(assembly) {
+
+      place_assembly(*assembly,&a_mother,rot,pos,sca);
+
+    } else if(volume) {
+      if(name.empty()) {
+        volume_name(*volume,name);
+        name += "_PV";
+        m_physvols[name] = create_pv_placement(name,volume,&a_mother,rot,pos);
+      } else {
+        m_physvols[name] = create_pv_placement(name,volume,&a_mother,rot,pos);
+      }
+
+    } else {
+      m_ref_out << "inlib::xml::gdml::read_physvol :"
+            << " no assembly or volume found."
+            << std::endl; 
+      return false;
+    }
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_assembly_physvol(tree& a_tree,
+                             _G4AssemblyVolume& a_assembly){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_assembly_physvol :"
+            << " ..."
+            << std::endl;
+    }
+
+    //std::string name;
+    //if(a_tree.attribute_value(s_name(),name)){
+    //  if(name.empty()) {msg_empty();return false;}
+    //}
+
+    _G4AssemblyVolume* assembly = 0;
+    _G4LogicalVolume* volume = 0;
+
+    vec3d rot;
+    vec3d pos;
+    vec3d sca;
+
+    if(!_read_physvol(a_tree,assembly,volume,rot,pos,sca)) return false;
+
+    if(!volume) {
+      m_ref_out << "inlib::xml::gdml::read_assembly_physvol :"
+            << " no volume found."
+            << std::endl; 
+      return false;
+    }
+
+    assembly_add_volume(a_assembly,volume,rot,pos,sca);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_replicate_along_axis(tree& a_tree,
+                                 axis_type& a_axis,
+                                 double& a_width,
+                                 double& a_offset){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_replicate_along_axis :"
+            << " ..."
+            << std::endl;
+    }
+
+    a_axis = axis_Undefined;
+    a_width = 0;
+    a_offset = 0;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_direction()) {
+        double x;
+        if(!atb_value(*_elem,s_x(),0,x)) return false;
+        double y;
+        if(!atb_value(*_elem,s_y(),0,y)) return false;
+        double z;
+        if(!atb_value(*_elem,s_z(),0,z)) return false;
+        double rho;
+        if(!atb_value(*_elem,s_rho(),0,rho)) return false;
+        double phi;
+        if(!atb_value(*_elem,s_phi(),0,phi)) return false;
+        
+        if(x==1.0)   a_axis = axis_XAxis;
+        if(y==1.0)   a_axis = axis_YAxis;
+        if(z==1.0)   a_axis = axis_ZAxis;
+        if(rho==1.0) a_axis = axis_Rho;
+        if(phi==1.0) a_axis = axis_Phi;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_width()) {
+        double unit;
+        if(!unit_value(*_elem,s_unit(),edep::millimeter,unit)) return false;
+        if(!atb_value(*_elem,s_value(),0,a_width)) return false;
+        a_width *= unit;
+         
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_offset()) {
+        double unit;
+        if(!unit_value(*_elem,s_unit(),edep::millimeter,unit)) return false;
+        if(!atb_value(*_elem,s_value(),0,a_offset)) return false;
+        a_offset *= unit;
+         
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_replicate_along_axis :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_replica(tree& a_tree,_G4LogicalVolume& a_volume){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_replica :"
+            << " ..."
+            << std::endl;
+    }
+
+    double dnumber;
+    if(!atb_value(a_tree,s_number(),0,dnumber)) return false;
+    unsigned int number = (unsigned int)dnumber;
+    if(!number) {
+      m_ref_out << "inlib::xml::gdml::read_replica :"
+            << " replicavol with number=0."
+            << std::endl;
+      return false;
+    }
+
+    _G4LogicalVolume* volume = 0; //to be replicated.
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_volumeref()) {
+        if(!get_volume(*_elem,volume)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_replica :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    if(!volume) {
+      m_ref_out << "inlib::xml::gdml::read_replica :"
+            << " no volume to replicate."
+            << std::endl; 
+      return false;
+    }
+
+    axis_type axis = axis_Undefined;
+    double width = 0;
+    double offset = 0;
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_replicate_along_axis()) {
+        if(!read_replicate_along_axis(*_tree,axis,width,offset)) return false;
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_replica :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    std::string name;
+    volume_name(*volume,name);
+    name += "_PV";
+
+    m_physvols[name] = create_pv_replica(name,volume,&a_volume,
+                                         axis,number,width,offset);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_parameter(tree& a_tree,PARAMETER& a_parameter){
+
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_parameter :"
+            << " ..."
+            << std::endl;
+    }
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_position()) {
+        if(!read_pos(*_elem,a_parameter.m_pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_positionref()) {
+        if(!_get_pos(*_elem,s_ref(),a_parameter.m_pos)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotation()) {
+        if(!read_rot(*_elem,a_parameter.m_rot)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_rotationref()) {
+        if(!get_rot(*_elem,a_parameter.m_rot)) return false;
+
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_box_dimensions()) {
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+
+        if(!atb_value(*_elem,s_x(),0,a_parameter.m_dim[0])) return false;
+        if(!atb_value(*_elem,s_y(),0,a_parameter.m_dim[1])) return false;
+        if(!atb_value(*_elem,s_z(),0,a_parameter.m_dim[2])) return false;
+
+        a_parameter.m_dim[0] *= 0.5*lunit;
+        a_parameter.m_dim[1] *= 0.5*lunit;
+        a_parameter.m_dim[2] *= 0.5*lunit;
+
+      } else if(prop_name==s_tube_dimensions()) {
+
+        double lunit;
+        if(!unit_value(*_elem,s_lunit(),edep::millimeter,lunit)) return false;
+        double aunit;
+        if(!unit_value(*_elem,s_aunit(),edep::radian,aunit)) return false;
+
+        if(!atb_value(*_elem,s_InR(),0,a_parameter.m_dim[0])) return false;
+        if(!atb_value(*_elem,s_OutR(),0,a_parameter.m_dim[1])) return false;
+        if(!atb_value(*_elem,s_hz(),0,a_parameter.m_dim[2])) return false;
+        if(!atb_value(*_elem,s_StartPhi(),0,a_parameter.m_dim[3]))
+          return false;
+        if(!atb_value(*_elem,s_DeltaPhi(),0,a_parameter.m_dim[4]))
+          return false;
+
+        a_parameter.m_dim[0] *= lunit;
+        a_parameter.m_dim[1] *= lunit;
+        a_parameter.m_dim[2] *= 0.5*lunit;
+        a_parameter.m_dim[3] *= aunit;
+        a_parameter.m_dim[4] *= aunit;
+/*
+      } else if(prop_name==s_trd_dimensions()) {
+      } else if(prop_name==s_trap_dimensions()) {
+      } else if(prop_name==s_cone_dimensions()) {
+      } else if(prop_name==s_tube_dimensions()) {
+      } else if(prop_name==s_sphere_dimensions()) {
+      } else if(prop_name==s_orb_dimensions()) {
+      } else if(prop_name==s_torus_dimensions()) {
+      } else if(prop_name==s_para_dimensions()) {
+      } else if(prop_name==s_hype_dimensions()) {
+*/
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_parameter :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    a_tree.remove_attributes(s_number()); //to rm known warning.
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_parameterised_position_size(tree& a_tree,
+                                        std::vector<PARAMETER>& a_params){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_parameterised_position_size :"
+            << " ..."
+            << std::endl;
+    }
+
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+
+      if(tag_name==s_parameters()) {
+        PARAMETER parameter;
+        if(!read_parameter(*_tree,parameter)) return false;
+        a_params.push_back(parameter);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_parameterised_position_size :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_paramvol(tree& a_tree,_G4LogicalVolume& a_volume){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_paramvol :"
+            << " ..."
+            << std::endl;
+    }
+
+    _G4LogicalVolume* volume = 0; //to be replicated.
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_volumeref()) {
+        if(!get_volume(*_elem,volume)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_paramvol :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    if(!volume) {
+      m_ref_out << "inlib::xml::gdml::read_paramvol :"
+            << " no volume to replicate."
+            << std::endl; 
+      return false;
+    }
+
+    std::vector<PARAMETER> params;
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+
+      if(tag_name==s_parameterised_position_size()) {
+        if(!read_parameterised_position_size(*_tree,params)) return false;
+
+        break; //???
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_paramvol :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    if(params.empty()) {
+      m_ref_out << "inlib::xml::gdml::read_paramvol :"
+            << " no parameters are defined in parameterised volume."
+            << std::endl; 
+      return false;
+    }
+
+    std::string name;
+    volume_name(*volume,name);
+    name += "_param";
+
+    m_physvols[name] = create_pv_parameterised(name,volume,&a_volume,params);
+
+    a_tree.remove_attributes(s_ncopies()); //to rm known warning.
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_volume(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_volume :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    _G4Material* material = 0;
+    _G4VSolid* solid = 0;
+
+    auxs _auxs;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_materialref()) {
+        if(!get_material(*_elem,material)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_solidref()) {
+        if(!get_solid(*_elem,s_ref(),solid)) return false;
+        atb_warn(*_elem);
+
+      } else if(prop_name==s_auxiliary()) {
+
+        std::string type,val;
+
+        if(!atb_value(*_elem,s_auxtype(),"",type)) return false;
+        if(!atb_value(*_elem,s_auxvalue(),"",val)) return false;
+
+        _auxs.push_back(auxpair(type,val));
+
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_volume :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    if(!solid) {
+      m_ref_out << "inlib::xml::gdml::read_volume :"
+            << " no solid given."
+            << std::endl; 
+      return false;
+    }
+
+    if(!material) {
+      m_ref_out << "inlib::xml::gdml::read_volume :"
+            << " no material given."
+            << std::endl; 
+      return false;
+    }
+
+    _G4LogicalVolume* volume = create_logical_volume(name,solid,material);
+    m_volumes[name] = volume;
+    m_auxs[volume] = _auxs;
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_physvol()) {
+        if(!read_physvol(*_tree,*volume)) return false;
+
+      } else if(tag_name==s_replicavol()) {
+        if(!read_replica(*_tree,*volume)) return false;
+
+      } else if(tag_name==s_divisionvol()) {
+        if(!read_divisionvol(*_tree,*volume)) return false;
+
+      } else if(tag_name==s_paramvol()) {
+        if(!read_paramvol(*_tree,*volume)) return false;
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_volume :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_assembly(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_assembly :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    _G4AssemblyVolume* assembly = create_assembly();
+    m_assemblies[name] = assembly;
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_physvol()) {
+        if(!read_assembly_physvol(*_tree,*assembly)) return false;
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_assembly :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_skinsurface(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_skinsurface :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    _G4SurfaceProperty* prop;
+    if(!get_surfprop(a_tree,prop)) return false;
+
+    _G4LogicalVolume* volume = 0;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_volumeref()) {
+        if(!get_volume(*_elem,volume)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_skinsurface :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    m_surfs[name] = create_logical_skin_surface(name,volume,prop);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_bordersurface(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_bordersurface :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    _G4SurfaceProperty* prop;
+    if(!get_surfprop(a_tree,prop)) return false;
+
+    std::vector<_G4VPhysicalVolume*> pvs;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_physvolref()) {
+        _G4VPhysicalVolume* pv;
+        if(!get_physvol(*_elem,pv)) return false;
+        pvs.push_back(pv);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_bordersurface :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    if(pvs.size()!=2) {
+      m_ref_out << "inlib::xml::gdml::read_bordersurface :"
+            << " two physical volumes expected."
+            << ". (" << pvs.size() << ") given."
+            << std::endl; 
+      return false;
+    }
+
+    m_surfs[name] = create_logical_border_surface(name,pvs[0],pvs[1],prop);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  bool read_structure(tree& a_tree){
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_structure :"
+            << " ..."
+            << std::endl;
+    }
+
+   {looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      const std::string& tag_name = _tree->tag_name();
+      if(tag_name==s_volume()) {
+        if(!read_volume(*_tree)) return false;
+
+      } else if(tag_name==s_assembly()) {
+        if(!read_assembly(*_tree)) return false;
+
+      } else if(tag_name==s_skinsurface()) {
+        if(!read_skinsurface(*_tree)) return false;
+
+      } else if(tag_name==s_bordersurface()) {
+        if(!read_bordersurface(*_tree)) return false;
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_structure :"
+              << " unknown tag " << sout(tag_name) << "."
+              << std::endl;        
+        return false;
+      }
+
+    }}
+
+    atb_warn(a_tree);
+    return true;
+  }
+  bool read_setup(tree& a_tree,
+                  _G4VPhysicalVolume*& a_pv){
+    a_pv = 0;
+    if(m_verbose) {
+      m_ref_out << "inlib::xml::gdml::read_setup :"
+            << " ..."
+            << std::endl;
+    }
+    std::string name;
+    if(!get_name(a_tree,name)) return false;
+
+    std::string version;
+    if(!atb_value(a_tree,s_version(),"",version)) return false;
+
+    _G4LogicalVolume* volume = 0;
+
+   {looper _for(a_tree);
+    while(element* _elem = _for.next_element()) {
+
+      const std::string& prop_name = _elem->name();
+      if(prop_name==s_world()) {
+        if(!get_volume(*_elem,volume)) return false;
+        atb_warn(*_elem);
+
+      } else {
+        m_ref_out << "inlib::xml::gdml::read_solids :"
+              << " unknown property " << sout(prop_name) << "."
+              << std::endl; 
+        return false;
+      }
+
+    }}  
+
+    vec3d rot(0,0,0);
+    vec3d pos(0,0,0);
+    
+    volume_name(*volume,name);
+    name += "_PV";
+    a_pv = create_pv_placement(name,volume,0,rot,pos);
+
+    atb_warn(a_tree);
+    return true;
+  }
+
+  INLIB_CLASS_STRING(m)
+  INLIB_CLASS_STRING(mm)
+  INLIB_CLASS_STRING(cm)
+  INLIB_CLASS_STRING(degree)
+  INLIB_CLASS_STRING(deg)
+  INLIB_CLASS_STRING(radian)
+  INLIB_CLASS_STRING(cm3)
+  INLIB_CLASS_STRING(g)
+  INLIB_CLASS_STRING(mg)
+  INLIB_CLASS_STRING(rad)
+  INLIB_CLASS_STRING(mole)
+  INLIB_CLASS_STRING(eV)
+  INLIB_CLASS_STRING(K)
+
+  void init_map_units(){
+    m_units.clear();
+    m_units[s_m()] = edep::m;
+    m_units[s_mm()] = edep::mm;
+    m_units[s_cm()] = edep::cm;
+
+    m_units[s_degree()] = edep::degree;
+    m_units[s_deg()] = edep::deg;
+    m_units[s_radian()] = edep::radian;
+    m_units[s_rad()] = edep::rad;
+
+    m_units[s_cm3()] = edep::cm3;
+
+    m_units[s_eV()] = edep::eV;
+    m_units[s_K()] = edep::kelvin;
+
+    m_units[s_g()] = edep::g;
+    m_units[s_mg()] = edep::mg;
+    m_units[s_mole()] = edep::mole;
+  }
+
+  bool s2unit(const std::string& a_s,double& a_v) {
+    if(!evaluate(m_units,a_s,a_v)) {
+      msg_eval(a_s);
+      a_v = 0;
+      return false;
+    }
+    return true;
+  }
+
+  void msg_empty(tree& a_tree,const std::string& a_what) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " empty " << a_what
+          << " for tree " << sout(a_tree.tag_name())
+          << std::endl;
+  }
+  void msg_empty(element& a_prop,const std::string& a_what) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " empty " << a_what
+          << " for prop " << sout(a_prop.name())
+          << std::endl;
+  }
+
+  void msg_atb(tree& a_tree,const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " atb " << a_s << " not found"
+          << " for tree " << sout(a_tree.tag_name())
+          << std::endl;
+  }
+  void msg_atb(element& a_prop,const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " atb " << a_s << " not found"
+          << " for prop " << sout(a_prop.name())
+          << std::endl;
+  }
+
+  void msg_s2v(const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " for " << a_s << " can't convert string to value."
+          << std::endl;
+  }
+  void msg_unit(const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " unit " << a_s << " not found."
+          << std::endl;
+  }
+  void msg_map(const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " " << a_s << " not found in map."
+          << std::endl;
+  }
+
+  void msg_eval(const std::string& a_s) const {
+    m_ref_out << "inlib::xml::gdml :"
+          << " can't evaluate " << sout(a_s) << "."
+          << std::endl;
+  }
+
+  bool read_pos(element& a_prop,vec3d& a_pos){
+    std::string name;
+    if(!get_name(a_prop,name)) return false;
+
+    double lunit;
+    if(!unit_value(a_prop,s_unit(),edep::millimeter,lunit)) return false;
+    double x;
+    if(!atb_value(a_prop,s_x(),0,x)) return false;
+    double y;
+    if(!atb_value(a_prop,s_y(),0,y)) return false;
+    double z;
+    if(!atb_value(a_prop,s_z(),0,z)) return false;
+
+    a_pos.set_value(x*lunit,y*lunit,z*lunit);
+
+    m_poss[name] = a_pos;
+
+    return true;
+  }
+
+  bool read_scale(element& a_prop,vec3d& a_scale){
+    std::string name;
+    if(!get_name(a_prop,name)) return false;
+
+    double x;
+    if(!atb_value(a_prop,s_x(),1,x)) return false;
+    double y;
+    if(!atb_value(a_prop,s_y(),1,y)) return false;
+    double z;
+    if(!atb_value(a_prop,s_z(),1,z)) return false;
+
+    a_scale.set_value(x,y,z);
+
+    m_scales[name] = a_scale;
+    return true;
+  }
+
+  bool read_rot(element& a_prop,vec3d& a_rot){
+    std::string name;
+    if(!get_name(a_prop,name)) return false;
+
+    double angle_unit;
+    if(!unit_value
+      (a_prop,s_unit(),edep::radian,angle_unit)) return false;
+    double x;
+    if(!atb_value(a_prop,s_x(),0,x)) return false;
+    double y;
+    if(!atb_value(a_prop,s_y(),0,y)) return false;
+    double z;
+    if(!atb_value(a_prop,s_z(),0,z)) return false;
+
+    a_rot.set_value(x*angle_unit,y*angle_unit,z*angle_unit);
+
+    m_rots[name] = a_rot;
+
+    return true;
+  }
+
+  bool get_name(element& a_prop,std::string& a_name){
+    if(!a_prop.attribute_value(s_name(),a_name)) {
+      msg_atb(a_prop,s_name());return false;
+    }
+    a_prop.remove_attributes(s_name());
+    if(a_name.empty()) {msg_empty(a_prop,s_name());return false;}
+    return true;
+  }
+
+  bool get_name(tree& a_tree,std::string& a_name){
+    if(!a_tree.attribute_value(s_name(),a_name)) {
+      msg_atb(a_tree,s_name());return false;
+    }
+    a_tree.remove_attributes(s_name());
+    if(a_name.empty()) {msg_empty(a_tree,s_name());return false;}
+    return true;
+  }
+
+  bool _get_pos(element& a_prop,
+                const std::string& a_atb,
+                vec3d& a_pos){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      a_pos.set_value(0,0,0);
+      msg_atb(a_prop,a_atb);
+      return false;
+    }
+    a_prop.remove_attributes(a_atb);
+    map_vecs_const_iterator it = m_poss.find(sv);
+    if(it==m_poss.end()) {
+      a_pos.set_value(0,0,0);
+      msg_map(sv);
+      return false;
+    }
+    a_pos = (*it).second;        
+    return true;
+  }
+
+  bool get_scale(element& a_prop,
+                 const std::string& a_atb,
+                 vec3d& a_v){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      a_v.set_value(1,1,1);
+      msg_atb(a_prop,a_atb);
+      return false;
+    }
+    a_prop.remove_attributes(a_atb);
+    map_vecs_const_iterator it = m_scales.find(sv);
+    if(it==m_poss.end()) {
+      a_v.set_value(1,1,1);
+      msg_map(sv);
+      return false;
+    }
+    a_v = (*it).second;        
+    return true;
+  }
+
+  bool get_rot(element& a_prop,vec3d& a_v){
+    std::string sv;
+    if(!a_prop.attribute_value(s_ref(),sv)) {
+      a_v.set_value(0,0,0);
+      msg_atb(a_prop,s_ref());
+      return false;
+    }
+    a_prop.remove_attributes(s_ref());
+    map_vecs_const_iterator it = m_rots.find(sv);
+    if(it==m_rots.end()) {
+      a_v.set_value(0,0,0);
+      msg_map(sv);
+      return false;
+    }
+    a_v = (*it).second;        
+    return true;
+  }
+
+
+  bool get_volume(element& a_prop,_G4LogicalVolume*& a_volume){
+    std::string sv;
+    if(!a_prop.attribute_value(s_ref(),sv)) {
+      a_volume = 0;
+      msg_atb(a_prop,s_ref());
+      return false;
+    }
+    a_prop.remove_attributes(s_ref());
+    map_volumes_const_iterator it = m_volumes.find(sv);
+    if(it==m_volumes.end()) {
+      a_volume = 0;
+      msg_map(sv);
+      return false;
+    }
+    a_volume = (*it).second;        
+    return true;
+  }
+
+  bool get_physvol(element& a_prop,_G4VPhysicalVolume*& a_pv){
+    std::string sv;
+    if(!a_prop.attribute_value(s_ref(),sv)) {
+      a_pv = 0;
+      msg_atb(a_prop,s_ref());
+      return false;
+    }
+    a_prop.remove_attributes(s_ref());
+    map_physvols_const_iterator it = m_physvols.find(sv);
+    if(it==m_physvols.end()) {
+      a_pv = 0;
+      msg_map(sv);
+      return false;
+    }
+    a_pv = (*it).second;        
+    return true;
+  }
+
+  bool get_solid(element& a_prop,
+                 const std::string& a_atb,
+                 _G4VSolid*& a_solid){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      a_solid = 0;
+      msg_atb(a_prop,a_atb);
+      return false;
+    }
+    a_prop.remove_attributes(a_atb);
+    map_solids_const_iterator it = m_solids.find(sv);
+    if(it==m_solids.end()) {
+      a_solid = 0;
+      msg_map(sv);
+      return false;
+    }
+    a_solid = (*it).second;
+    return true;  
+  }
+
+  bool get_material(element& a_prop,_G4Material*& a_mat){
+    std::string sv;
+    if(!a_prop.attribute_value(s_ref(),sv)) {
+      a_mat = 0;
+      msg_atb(a_prop,s_ref());
+      return false;
+    }
+    a_prop.remove_attributes(s_ref());
+    map_materials_const_iterator it = m_materials.find(sv);
+    if(it==m_materials.end()) {
+      a_mat = find_material(sv);
+      if(!a_mat) {
+        msg_map(sv);
+        return false;
+      }
+      return true;
+    }
+    a_mat = (*it).second;        
+    return true;
+  }
+
+  bool get_element(element& a_prop,_G4Element*& a_elem){
+    std::string sv;
+    if(!a_prop.attribute_value(s_ref(),sv)) {
+      a_elem = 0;
+      msg_atb(a_prop,s_ref());
+      return false;
+    }
+    a_prop.remove_attributes(s_ref());
+    map_elements_const_iterator it = m_elements.find(sv);
+    if(it==m_elements.end()) {
+      a_elem = 0;
+      msg_map(sv);
+      return false;
+    }
+    a_elem = (*it).second;
+    return true;
+  }
+
+  bool get_surfprop(tree& a_tree,_G4SurfaceProperty*& a_p){
+    std::string sv;
+    if(!a_tree.attribute_value(s_surfaceproperty(),sv)) {
+      a_p = 0;
+      msg_atb(a_tree,s_surfaceproperty());
+      return false;
+    }
+    a_tree.remove_attributes(s_surfaceproperty());
+    map_surfprops_const_iterator it = m_surfprops.find(sv);
+    if(it==m_surfprops.end()) {
+      a_p = 0;
+      msg_map(sv);
+      return false;
+    }
+    a_p = (*it).second;        
+    return true;
+  }
+
+  bool get_array(element& a_prop,
+                 const std::string& a_atb,
+                 array<double>& a_v){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      a_v.clear();
+      msg_atb(a_prop,a_atb);
+      return false;
+    }
+    a_prop.remove_attributes(a_atb);
+    map_ars_const_iterator it = m_ars.find(sv);
+    if(it==m_ars.end()) {
+      a_v.clear();
+      msg_map(sv);
+      return false;
+    }
+    a_v = (*it).second;        
+    return true;
+  }
+
+  bool atb_value(element& a_prop,
+                 const std::string& a_atb,
+                 double a_def,
+                 double& a_v,
+                 bool a_mendatory = false){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      if(a_mendatory) {
+        msg_s2v(a_atb);
+        a_v = a_def;
+        return false;
+      }
+      a_v = a_def;
+      return true;
+    }
+    a_prop.remove_attributes(a_atb);
+    if(!evaluate(m_consts,sv,a_v)) {
+      msg_eval(sv);
+      a_v = 0;
+      return false;
+    }
+    return true;
+  }
+
+  bool atb_value(element& a_prop,
+                 const std::string& a_atb,
+                 const std::string& a_def,
+                 std::string& a_v,
+                 bool a_mendatory = false){
+    if(!a_prop.attribute_value(a_atb,a_v)) {
+      if(a_mendatory) {
+        msg_s2v(a_atb);
+        a_v = a_def;
+        return false;
+      }
+      a_v = a_def;
+      return true;
+    }
+    a_prop.remove_attributes(a_atb);
+    return true;
+  }
+
+  void atb_warn(element& a_prop){
+    const std::vector<element::atb>& atbs = a_prop.attributes();
+    if(atbs.empty()) return;
+    m_ref_out << "property " << sout(a_prop.name())
+          << " still have attributes : " << std::endl;
+    inlib_vforcit(element::atb,atbs,it) {
+      m_ref_out << " " << (*it).first << std::endl;
+    }
+  }
+
+  bool unit_value(element& a_prop,
+                  const std::string& a_atb,
+                  double a_def,
+                  double& a_v,
+                  bool a_mendatory = false){
+    std::string sv;
+    if(!a_prop.attribute_value(a_atb,sv)) {
+      if(a_mendatory) {
+        msg_s2v(a_atb);
+        a_v = a_def;
+        return false;
+      }
+      a_v = a_def;
+      return true;
+    }
+    a_prop.remove_attributes(a_atb);
+    //if(!evaluate(s,a_v)) {
+    //  msg_eval(s);
+    if(!s2unit(sv,a_v)) {
+      msg_unit(sv);
+      a_v = 0;
+      return false;
+    }
+    return true;
+  }
+
+  bool unit_value(tree& a_tree,
+                  const std::string& a_atb,
+                  double a_def,
+                  double& a_v,
+                  bool a_mendatory = false){
+    std::string sv;
+    if(!a_tree.attribute_value(a_atb,sv)) {
+      if(a_mendatory) {
+        msg_s2v(a_atb);
+        a_v = a_def;
+        return false;
+      }
+      a_v = a_def;
+      return true;
+    }
+    a_tree.remove_attributes(a_atb);
+    //if(!evaluate(s,a_v)) {
+    //  msg_eval(s);
+    if(!s2unit(sv,a_v)) {
+      msg_unit(sv);
+      a_v = 0;
+      return false;
+    }
+    return true;
+  }
+
+  bool atb_value(tree& a_tree,
+                 const std::string& a_atb,
+                 double a_def,
+                 double& a_v){
+    std::string sv;
+    if(!a_tree.attribute_value(a_atb,sv)) {
+      //msg_s2v(a_atb);
+      a_v = a_def;
+      return true;
+    }
+    a_tree.remove_attributes(a_atb);
+    if(!evaluate(m_consts,sv,a_v)) {
+      msg_eval(sv);
+      a_v = 0;
+      return false;
+    }
+    return true;
+  }
+
+  bool atb_value(tree& a_tree,
+                 const std::string& a_atb,
+                 const std::string& a_def,
+                 std::string& a_v){
+    if(!a_tree.attribute_value(a_atb,a_v)) {
+      //msg_s2v(a_atb);
+      a_v = a_def;
+      return true;
+    }
+    a_tree.remove_attributes(a_atb);
+    return true;
+  }
+
+  void atb_warn(tree& a_tree){
+    const std::vector<element::atb>& atbs = a_tree.attributes();
+    if(atbs.empty()) return;
+    m_ref_out << "tree " << sout(a_tree.tag_name())
+          << " still have attributes : " << std::endl;
+    inlib_vforcit(element::atb,atbs,it) {
+      m_ref_out << " " << (*it).first << std::endl;
+    }
+  }
+
+  //////////////////////////////////////////////
+  /// constants ////////////////////////////////
+  //////////////////////////////////////////////
+  INLIB_CLASS_STRING(pi)
+
+  void init_map_consts(){
+    m_consts.clear();
+    m_consts[s_pi()] = pi();
+  }
+
+  void _clear(){
+    m_elements.clear();
+    m_materials.clear();
+    m_solids.clear();
+    m_volumes.clear();
+    m_assemblies.clear();
+    m_physvols.clear();
+    m_surfs.clear();
+    m_poss.clear();
+    m_scales.clear();
+    m_rots.clear();
+    m_surfprops.clear();
+    m_vars.clear();
+    m_auxs.clear();
+    m_ars.clear();
+    m_units.clear();
+    m_consts.clear();
+  }
+
+protected:
+  std::ostream& m_ref_out;
+  bool m_verbose;
+
+  typedef std::map<std::string,_G4Element*> map_elements;
+  map_elements m_elements;
+  typedef std::map<std::string,_G4Material*> map_materials;
+  map_materials m_materials;
+  typedef std::map<std::string,_G4VSolid*> map_solids;
+  map_solids m_solids;
+  typedef std::map<std::string,_G4LogicalVolume*> map_volumes;
+  map_volumes m_volumes;
+  typedef std::map<std::string,_G4VPhysicalVolume*> map_physvols;
+  map_physvols m_physvols;
+  typedef std::map<std::string,_G4LogicalSurface*> map_surfs;
+  map_surfs m_surfs;
+  typedef std::map<std::string,_G4AssemblyVolume*> map_assemblies;
+  map_assemblies m_assemblies;
+
+  map_dbls m_consts;
+  map_dbls m_units;
+  map_dbls m_vars;
+
+  typedef std::map<std::string,vec3d> map_vecs;
+
+  map_vecs m_poss;
+  map_vecs m_rots;
+  map_vecs m_scales;
+
+  typedef std::map<std::string,_G4SurfaceProperty*> map_surfprops;
+  map_surfprops m_surfprops;
+
+  typedef std::pair<std::string,std::string> auxpair;
+  typedef std::vector<auxpair> auxs;
+  typedef std::map<_G4LogicalVolume*,auxs> map_auxs;
+  map_auxs m_auxs;
+
+  typedef std::map<std::string, array<double> > map_ars;
+  map_ars m_ars;
+
+  typedef typename map_elements::const_iterator map_elements_const_iterator;
+  typedef typename map_materials::const_iterator map_materials_const_iterator;
+  typedef typename map_solids::const_iterator map_solids_const_iterator;
+  typedef typename map_volumes::const_iterator map_volumes_const_iterator;
+  typedef typename map_physvols::const_iterator map_physvols_const_iterator;
+  typedef typename map_surfs::const_iterator map_surfs_const_iterator;
+  typedef typename map_assemblies::const_iterator map_assemblies_const_iterator;
+
+  typedef typename map_vecs::const_iterator map_vecs_const_iterator;
+  typedef typename map_surfprops::const_iterator map_surfprops_const_iterator;
+  typedef typename map_auxs::const_iterator map_auxs_const_iterator;
+  typedef typename map_ars::const_iterator map_ars_const_iterator;
+
+  typedef typename map_dbls::const_iterator map_dbls_const_iterator;
+};
+
+}}
+
+#endif

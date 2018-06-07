@@ -1,0 +1,96 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_base_tex_anim
+#define inlib_sg_base_tex_anim
+
+#include "base_anim"
+
+#include "../image"
+#include "../nostream"
+#include "../HEADER"
+
+namespace inlib {
+namespace sg {
+
+class base_tex_anim : public base_anim {
+public:
+  INLIB_HEADER(base_tex_anim,inlib::sg::base_tex_anim,base_anim)
+public:
+  sf<unsigned int> time_interval; //msecs
+  sf<bool> repeat;
+protected:
+  virtual void _update_sg(std::ostream& a_out,
+                          unsigned int a_w,unsigned int a_h,unsigned int a_n,
+                          unsigned char* a_buffer,bool a_owner) = 0;
+public:
+  virtual bool action(std::ostream& a_out,const atime& a_now) {
+    if(!m_it.entries()) return true;
+
+    if(time_interval.value()) {
+      unsigned int elaps = (unsigned int)atime::diff(a_now,m_prev).milli_seconds();
+      if(elaps<=time_interval.value()) return false; //do not set m_prev.
+    }
+
+    if(m_it.index()<m_it.entries()) { //if "!repeat and done", do not update.
+      unsigned int w,h,bpp;
+      unsigned char* buffer = m_it.read_image(w,h,bpp);    
+      if(buffer) _update_sg(a_out,w,h,bpp,buffer,true);
+    }
+
+    m_it.next();
+    if(m_it.index()>=m_it.entries()) {
+      if(repeat.value()) m_it.rewind();
+    }
+
+    //a_out << "inlib::sg::base_tex_anim::action :"
+    //      << " visualize " << sout(file) << " ..."
+    //      << std::endl;
+
+    return true;
+  }
+public:
+  base_tex_anim(const atime& a_start,image::iterator& a_it)
+  :base_anim(a_start)
+  ,time_interval(0)
+  ,repeat(true)
+  ,m_it(a_it)
+  {}
+  virtual ~base_tex_anim(){}
+public:
+  base_tex_anim(const base_tex_anim& a_from)
+  :base_anim(a_from)
+  ,time_interval(a_from.time_interval)
+  ,repeat(a_from.repeat)
+  ,m_it(a_from.m_it)
+  {}
+  base_tex_anim& operator=(const base_tex_anim& a_from){
+    base_anim::operator=(a_from);
+    time_interval = a_from.time_interval;
+    repeat = a_from.repeat;
+    return *this;
+  }
+public:
+  bool load_first_image() {
+    if(!m_it.entries()) return false;
+    m_it.rewind();
+    //first entry may be a directory.
+    while(m_it.index()<m_it.entries()) {
+      unsigned int w,h,bpp;
+      unsigned char* buffer = m_it.read_image(w,h,bpp);    
+      if(buffer) {
+        nostream out;
+        _update_sg(out,w,h,bpp,buffer,true);
+        return true;
+      }
+      m_it.next();
+    }
+    return false;
+  }
+protected:
+  image::iterator& m_it;
+};
+
+}}
+
+#endif

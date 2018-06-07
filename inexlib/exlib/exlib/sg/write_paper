@@ -1,0 +1,101 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef exlib_sg_write_paper
+#define exlib_sg_write_paper
+
+#include "gl2ps_action"
+#include "text_freetype"
+
+#include "../jpeg"
+#include "../png"
+
+#include <inlib/sg/zb_action>
+#include <inlib/wps>
+
+namespace exlib {
+namespace sg {
+
+inline bool write_paper(std::ostream& a_out,gl2ps_manager& a_gl2ps_mgr,inlib::sg::zb_manager& a_zb_mgr,
+                        float a_back_r,float a_back_g,float a_back_b,float a_back_a,
+                        inlib::sg::node& a_scene_graph,
+                        unsigned int a_width,unsigned int a_height,
+                        const std::string& a_file,const std::string& a_format) {
+  if(!a_width || !a_height) return false;
+  if(a_format.substr(0,6)=="GL2PS_") {
+    gl2ps_action action(a_gl2ps_mgr,a_out,a_width,a_height);
+    action.clear_color(a_back_r,a_back_g,a_back_b,a_back_a);
+    if(a_format=="GL2PS_EPS") {
+      if(!action.open(a_file,GL2PS_EPS)) return false;
+    } else if(a_format=="GL2PS_PS") {
+      if(!action.open(a_file,GL2PS_PS)) return false;
+    } else if(a_format=="GL2PS_PDF") {
+      if(!action.open(a_file,GL2PS_PDF)) return false;
+    } else if(a_format=="GL2PS_SVG") {
+      if(!action.open(a_file,GL2PS_SVG)) return false;
+    } else if(a_format=="GL2PS_TEX") {
+      if(!action.open(a_file,GL2PS_TEX)) return false;
+    } else if(a_format=="GL2PS_PGF") {
+      if(!action.open(a_file,GL2PS_PGF)) return false;
+    } else { //just in case.
+      if(!action.open(a_file,GL2PS_EPS)) return false;
+    }
+    a_scene_graph.render(action);
+    action.close();
+      
+  } else {
+    inlib::sg::zb_action action(a_zb_mgr,a_out,a_width,a_height);
+    action.zbuffer().clear_color_buffer(0);
+    action.add_color(a_back_r,a_back_g,a_back_b,a_back_a);
+    action.zbuffer().clear_depth_buffer();    
+    a_scene_graph.render(action);
+    if(a_format=="INZB_PS") {
+      inlib::wps wps(a_out);
+      if(!wps.open_file(a_file)) {
+        a_out << "exlib::sg::write_paper : can't open " << a_file << "." << std::endl;
+        return false;
+      }
+      wps.PS_BEGIN_PAGE();
+      wps.PS_PAGE_SCALE(float(a_width),float(a_height));
+      wps.PS_IMAGE(a_width,a_height,inlib::wps::rgb_4,inlib::sg::zb_action::get_rgb,&action);
+      wps.PS_END_PAGE();
+      wps.close_file();
+      
+    } else {
+      inlib::byte* buffer = new inlib::byte[3*a_width*a_height];
+     {inlib::sg::zb_action::VCol r,g,b;
+      inlib::byte* pos = buffer;
+      for(int row=a_height-1;row>=0;row--) {
+      for(unsigned int col=0;col<a_width;col++) {
+        inlib::sg::zb_action::get_rgb(&action,col,row,r,g,b);
+        *pos = inlib::byte(255.0f*r);pos++;
+        *pos = inlib::byte(255.0f*g);pos++;
+        *pos = inlib::byte(255.0f*b);pos++;
+      }}}
+  
+      if(a_format=="INZB_JPEG") {
+        if(!exlib::jpeg::write(a_out,a_file,buffer,a_width,a_height,3,100)) {
+          a_out << "exlib::sg::write_paper : exlib::jpeg::write() failed." << std::endl;
+          delete [] buffer;
+          return false;
+        }
+      } else if(a_format=="INZB_PNG") {
+        if(!exlib::png::write(a_out,a_file,buffer,a_width,a_height,3)) {
+          a_out << "exlib::sg::write_paper : exlib::png::write() failed." << std::endl;
+          delete [] buffer;
+          return false;
+        }
+      } else {
+        a_out << "exlib::sg::write_paper : unknown format " << a_format << std::endl;
+      }
+      delete [] buffer;
+    }
+  }
+  return true;
+}
+
+}}
+
+//exlib_build_use inlib jpeg gl2ps png zlib freetype inlib_glutess
+
+#endif

@@ -1,0 +1,436 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_net_http_server
+#define inlib_net_http_server
+
+#include "inet_socket"
+#include "../cstr"
+#include "../args"
+#include "../vmanip"
+#include "../realloc"
+#include "../num2s"
+
+namespace inlib {
+namespace net {
+
+class http_part {
+public:
+  http_part(const std::string& a_name,const std::string& a_filename,char* a_buffer,size_t a_length)
+  :m_name(a_name),m_filename(a_filename),m_buffer(0),m_length(0)
+  {
+    if(a_length) {
+      m_buffer = new char[a_length];
+      ::memcpy(m_buffer,a_buffer,a_length);
+    }
+    m_length = a_length;
+  }
+  virtual ~http_part(){
+    delete [] m_buffer;
+  }
+protected:
+  http_part(const http_part&){}
+  http_part& operator=(const http_part&){return *this;}
+public:
+  const std::string& name() const {return m_name;}
+  const std::string& filename() const {return m_filename;}
+  const char* buffer() const {return m_buffer;}
+  size_t buffer_length() const {return m_length;}
+protected:
+  std::string m_name;
+  std::string m_filename;
+  char* m_buffer;
+  size_t m_length;
+};
+
+class http_server {
+protected:
+  static char LF() {return 10;} //\n line feed
+  static char CR() {return 13;} //\r carriage return
+  INLIB_CLASS_STRING(GET)
+  INLIB_CLASS_STRING(POST)
+  INLIB_CLASS_STRING_VALUE(multipart_form_data,multipart/form-data)
+  INLIB_CLASS_STRING(boundary)
+  INLIB_CLASS_STRING(name)
+  INLIB_CLASS_STRING(filename)
+public:
+  virtual bool dispatch_GET(const std::string& a_url,const args&) = 0;
+  virtual bool dispatch_POST(const std::string& a_document) = 0;
+  virtual bool dispatch_multipart(const std::string&,const std::vector<http_part*>& a_parts) = 0;
+public:
+  http_server(std::ostream& a_out,bool a_verbose):m_out(a_out),m_verbose(a_verbose),m_server(a_out,false),m_client(a_out,false) {}
+  virtual ~http_server() {}
+protected:
+  http_server(const http_server& a_from)
+  :m_out(a_from.m_out),m_verbose(false),m_server(a_from.m_out,false),m_client(a_from.m_out,false)
+  {}
+  http_server& operator=(const http_server&) {return *this;}
+public:
+  bool initialize(const std::string& a_host,unsigned int a_port) {
+    if(m_verbose) m_out << "http_server : host " << a_host << ", port " << a_port << "." << std::endl;
+
+    if(!m_server.bind(a_host,a_port,num_try(),1,true)) {
+      m_out << "inlib::net::http_server::initialize :"
+            << " m_server.bind() failed."
+            << std::endl;
+      return false;
+    }
+    return true;
+  }
+
+  bool steer() {
+    if(!m_server.is_connected()) return false;
+
+    while(true) {
+      if(!m_client.accept(m_server.socket(),true)) {
+        m_out << "inlib::net::http_server::steer :"
+              << " accept() failed."
+              << std::endl;
+        return false;
+      }
+
+      char* buffer;
+      uint64 length;
+      if(!m_client.fetch_one_shoot(buffer,length)) {
+        m_out << "inlib::net::http_server::steer :"
+              << " fetch_buffer() failed."
+              << std::endl;
+        m_client.close();
+        continue;
+      }
+
+      // parse HTTP protocol :
+ 
+      if(m_verbose) {
+        m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+        m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+        m_out << "http_server : have a client request (length " << length << ") :" << std::endl;
+        m_out << buffer << std::endl;
+        m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+        m_out << "http_server : /// analyse content : //////////////////////////////" << std::endl;
+        m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+      }
+
+      // get first line :
+      std::string first_line;
+     {char* pos = find_CR_LF(buffer,buffer+length);
+      if(!pos) {
+        m_out << "inlib::net::http_server::steer :"
+              << " Have some data but first line not found."
+              << std::endl;
+        m_client.close();
+        delete [] buffer;
+        continue;
+      }
+      char old_char = *pos;
+      *pos = 0;
+      first_line = std::string(buffer);
+      *pos = old_char;}
+  
+      if(m_verbose) {
+        m_out << "http_server : first line : " << sout(first_line) << std::endl;
+      }
+
+      // parse first line :
+      std::string method; //GET or POST
+      std::string request;
+     {std::vector<std::string> ws;
+      words(first_line," ",false,ws);
+      if(ws.size()<2) {
+        m_out << "inlib::net::http_server::steer :"
+              << " Syntax error in first line " << sout(first_line)
+              << std::endl;
+        m_client.close();
+        delete [] buffer;
+        continue;
+      }
+      method = ws[0];
+      request = ws[1];}
+  
+      if(m_verbose) {
+        m_out << "http_server : method : " << sout(method) << std::endl;
+        m_out << "http_server : request : " << sout(request) << std::endl;
+      }
+
+      std::string url;
+      args url_args;
+     {std::string::size_type pos = request.find('?');
+      if(pos==std::string::npos) {
+        url = request;
+      } else {
+        url = request.substr(0,pos);
+        std::string rest = request.substr(pos+1,request.size()-(pos+1));
+        url_args = args(rest,"&",false);
+      }
+      if(m_verbose) {
+        m_out << "http_server : url : " << sout(url) << std::endl;
+        url_args.dump(m_out,"","http_server : ");
+      }}
+
+      if(method==s_GET()) {
+        delete [] buffer;
+
+        if(m_verbose) {
+          m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+          m_out << "http_server : /// dispatch_GET() : ///////////////////////////////" << std::endl;
+          m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+        }
+        if(!dispatch_GET(url,url_args)) {m_client.close();break;}
+
+      } else if(method==s_POST()) {
+
+        //multipart message ? (coming from a form) :
+        std::string ct;
+        find_content_type(buffer,buffer+length,ct);
+        if(m_verbose) m_out << "http_server : found content-type " << sout(ct) << std::endl;
+        args _args(ct,";",true);
+        if(_args.is_arg(s_multipart_form_data())) {
+          std::string content_sep;
+          if(!_args.find(s_boundary(),content_sep)) {
+            m_out << "inlib::net::http_server::steer :"
+                  << " multipart : can't find boundary."
+                  << std::endl;
+            m_client.close();
+            delete [] buffer;
+            continue;
+          }
+          if(m_verbose) m_out << "http_server : boundary " << sout(content_sep) << std::endl;
+          unsigned int content_length = find_content_length(buffer,buffer+length);
+          delete [] buffer;
+
+          //::printf("debug : 000 : content_length %u\n",content_length);
+
+          if(content_length) {
+
+            char* mp_buffer = 0;
+            unsigned int mp_length = 0;
+            while(mp_length<content_length) {
+              char* b;
+              uint64 l;
+              if(!m_client.fetch_one_shoot(b,l)) {
+                m_out << "inlib::net::http_server::steer :"
+                      << " fetch_buffer() failed."
+                      << std::endl;
+                m_client.close();
+                delete [] mp_buffer;
+                mp_buffer = 0;
+                break;
+              }
+              //::printf("debug : part : read length %lu\n",l);
+              if(l) {
+                if(!realloc<char>(mp_buffer,mp_length+(unsigned int)l,mp_length)) {}
+                ::memcpy(mp_buffer+mp_length,b,(size_t)l);
+                mp_length += (unsigned int)l;
+              }
+              delete [] b;
+            }
+
+            if(mp_length!=content_length) {
+              m_out << "inlib::net::http_server::steer :"
+                    << " get buffer parts failed."
+                    << std::endl;
+              m_client.close();
+              delete [] mp_buffer;
+              continue;
+            }
+
+            std::vector<http_part*> _parts;
+            if(!find_parts(content_sep,mp_buffer,mp_length,_parts)) {}
+            delete [] mp_buffer;
+
+            if(!dispatch_multipart(url,_parts)) {
+              m_client.close();
+              safe_clear<http_part>(_parts);
+              continue;
+            }
+            safe_clear<http_part>(_parts);
+
+          } //content_length
+
+        } else {
+
+          std::string document;
+         {char* pos = find_message_body(buffer,buffer+length);
+          if(!pos) {
+            m_out << "inlib::net::http_server::steer :"
+                  << " Have some data but message body not found."
+                  << std::endl;
+            m_client.close();
+            delete [] buffer;
+            continue;
+          }
+          if(m_verbose) {
+            m_out << "http_server : document :" << std::endl;
+            m_out << pos << std::endl;
+          }
+          document = std::string(pos);}
+
+          delete [] buffer;
+
+          if(m_verbose) {
+            m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+            m_out << "http_server : /// dispatch_POST() : //////////////////////////////" << std::endl;
+            m_out << "http_server : ////////////////////////////////////////////////////" << std::endl;
+          }
+          if(!dispatch_POST(document)) {m_client.close();break;}
+        }
+      }
+
+      m_client.close();
+    }
+    return true;
+  }
+public:
+  bool send_reply(const std::string& a_answer,const std::string& a_content_type = "") {
+    char* cmd = str_new();
+    str_cat(cmd,"HTTP/1.1 200 OK");
+    str_cat(cmd,CR());
+    str_cat(cmd,LF());
+    /*
+    str_cat(cmd,"Host: ");
+    str_cat(cmd,m_host.c_str());
+    str_cat(cmd,CR());
+    str_cat(cmd,LF());
+    if(a_in_cookie.size()) {
+      str_cat(cmd,"Cookie: ");
+      str_cat(cmd,a_in_cookie.c_str());
+      str_cat(cmd,CR());
+      str_cat(cmd,LF());
+    }
+     */
+    if(a_content_type.size()) {
+      str_cat(cmd,"Content-Type: ");
+      str_cat(cmd,a_content_type.c_str());
+      str_cat(cmd,CR());
+      str_cat(cmd,LF());
+    }
+    str_cat(cmd,"Content-Length: ");
+    std::string stmp;
+    if(!num2s((uint64)a_answer.size(),stmp)) {}
+    str_cat(cmd,stmp.c_str());
+    str_cat(cmd,CR());
+    str_cat(cmd,LF());
+    //end :
+    str_cat(cmd,CR());
+    str_cat(cmd,LF());
+    //data :
+    str_cat(cmd,a_answer.c_str());
+    bool status = m_client.send_buffer(cmd,::strlen(cmd));
+    str_del(cmd);
+    return status;
+  }
+protected:
+  static char* find_CR_LF(const char* a_beg,const char* a_end) {
+     char* pos = const_cast<char*>(a_beg);
+     for(;(pos+1)<a_end;pos++) {
+       if( ((*(pos+0))==CR()) && ((*(pos+1))==LF()) ) return pos;
+     }
+     return 0;
+  }
+  static char* find_CR_LF_CR_LF(const char* a_beg,const char* a_end) {
+     char* pos = const_cast<char*>(a_beg);
+     for(;(pos+3)<a_end;pos++) {
+       if( ((*(pos+0))==CR()) && ((*(pos+1))==LF()) && ((*(pos+2))==CR()) && ((*(pos+3))==LF()) ) return pos;
+     }
+     return 0;
+  }
+  static void find_content_type(const char* a_beg,const char* a_end,std::string& a_value) {
+    char* pos = search_cstr(a_beg,a_end,"Content-Type: ");
+    //                                   12345678901234
+    if(!pos) pos = search_cstr(a_beg,a_end,"Content-type: ");
+    if(!pos) {a_value.clear();return;}
+    char* p = find_CR_LF(pos+14,a_end);
+    if(!p) {a_value.clear();return;}
+    char old_char = *p;
+    *p = 0;
+    a_value = std::string(pos+14);
+    *p = old_char;
+  }
+  static char* find_message_body(const char* a_beg,const char* a_end) {
+    char* pos = find_CR_LF_CR_LF(a_beg,a_end);
+    if(!pos) return 0;
+    pos += 4;
+    return pos;
+  }
+  static unsigned int find_content_length(const char* a_beg,const char* a_end) {
+    char* pos = search_cstr(a_beg,a_end,"Content-Length: ");
+    //                                   1234567890123456
+    if(!pos) pos = search_cstr(a_beg,a_end,"Content-length: ");
+    if(!pos) return 0;
+    unsigned int length;
+    if(::sscanf(pos+16,"%u",&length)!=1) return 0;
+    return length;
+  }
+
+  static bool find_content_disposition(const char* a_beg,const char* a_end,std::string& a_name,std::string& a_filename) {
+    char* pos = search_cstr(a_beg,a_end,"Content-Disposition: ");
+    //                                   123456789012345678901
+    if(!pos) {a_name.clear();a_filename.clear();return false;}
+    char* p = find_CR_LF(pos+21,a_end);
+    if(!p) {a_name.clear();a_filename.clear();return false;}
+    char old_char = *p;
+    *p = 0;
+    std::string value = std::string(pos+21);
+    *p = old_char;
+    args _args(value,";",true);
+    _args.find(s_name(),a_name,"");
+    _args.find(s_filename(),a_filename,"");
+    strip(a_name,both,'"');
+    strip(a_filename,both,'"');
+    return true;
+  }
+  static bool find_parts(const std::string& a_sep,const char* a_buffer,uint64 a_length,std::vector<http_part*>& a_parts) {
+    safe_clear<http_part>(a_parts);
+
+    size_t lsep = a_sep.size();
+    std::vector<char*> parts;
+    char* beg = const_cast<char*>(a_buffer);
+    while(true) {
+      char* pos = search_cstr(beg,a_buffer+a_length,a_sep.c_str());
+      if(!pos) break;
+      //::printf("debug : part : find sep\n");
+      pos += lsep;
+      parts.push_back(pos);
+      beg = pos;
+    }
+
+    for(unsigned int ipart=0;ipart<(parts.size()-1);ipart++) { //ignore last sep.
+      char* pbeg = parts[ipart]+2; //include CRLF
+      char* pend = parts[ipart+1];
+      char* msg = find_message_body(pbeg,pend);
+      if(msg) {
+/*
+        msg -= 4;
+        char old_char = *msg;
+        *msg = 0;
+        std::string header = pbeg;
+        ::printf("debug : part header : |%s|\n",header.c_str());
+        *msg = old_char;
+        msg += 4;
+*/
+        std::string name,filename;
+        if(!find_content_disposition(pbeg,msg,name,filename)){}
+
+        size_t lmsg = pend-lsep-msg-2; //rm also a CRLF
+
+        //::printf("debug : part : \"%s\", \"%s\", msg length %u\n",name.c_str(),filename.c_str(),lmsg);
+
+        a_parts.push_back(new http_part(name,filename,msg,lmsg));
+      }
+
+    }
+
+    return true;
+  }
+protected:
+  std::ostream& m_out;
+  bool m_verbose;
+  inet_socket m_server;
+  inet_socket m_client;
+};
+
+}}
+
+//inlib_build_use socket
+
+#endif

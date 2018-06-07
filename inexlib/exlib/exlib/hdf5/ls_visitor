@@ -1,0 +1,88 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_ls_visitor
+#define exlib_hdf5_ls_visitor
+
+#include "ivisitor"
+#include "tools"
+
+#include <inlib/sout>
+#include <inlib/S_STRING>
+#include <ostream>
+
+namespace exlib {
+namespace hdf5 {
+
+class ls_visitor : public virtual ivisitor {
+  INLIB_CLASS_STRING(directory)
+  INLIB_CLASS_STRING(object)
+public:
+  virtual std::ostream& out() const {return m_out;}
+
+  virtual bool begin_group(hid_t a_loc,const std::string& a_name) { //a_loc = parent of a_name group.
+    bool status = true;
+    hid_t id = exlib_H5Gopen(a_loc,a_name.c_str());
+    if(id<0) {
+      spaces(m_out) << "group : " << inlib::sout(a_name) << ", open failed." << "." << std::endl;
+      status = false;
+    } else {
+      std::string sclass;
+      if(!read_atb(id,"class",sclass)) sclass = "none";
+      std::string stype;
+      if(!read_atb(id,"type",stype)) stype = "none";
+      if(stype==s_directory()) {
+        spaces(m_out) << "directory : " << inlib::sout(a_name) << "." << std::endl;
+      } else if(stype==s_object()) {
+        spaces(m_out) << "object : " << inlib::sout(a_name) << ", class : " << inlib::sout(sclass) << "." << std::endl;
+        status = false;
+      } else {
+        spaces(m_out) << "class : " << inlib::sout(sclass) << ", name : " << inlib::sout(a_name)
+                      << "." << std::endl;
+        status = false;
+      }
+      ::H5Gclose(id);
+    }
+    if(status) m_level += 2;
+    return status;
+  }
+
+  virtual void end_group(hid_t,const std::string&) {m_level -= 2;}
+
+  virtual void data_set(hid_t,const std::string&) {}
+  virtual void named_type(hid_t,const std::string&) {}
+  virtual void attribute(hid_t,const std::string&) {}
+
+  virtual unsigned int level() const {return m_level;}
+  virtual void set_level(unsigned int a_value) {m_level = a_value;}
+  
+public:
+  ls_visitor(std::ostream& a_out):m_out(a_out),m_level(0){}
+  virtual ~ls_visitor() {}
+protected:
+  ls_visitor(const ls_visitor& a_from)
+  :ivisitor(a_from)
+  ,m_out(a_from.m_out)
+  ,m_level(0)
+  {}
+  ls_visitor& operator=(const ls_visitor&){return *this;}
+protected:
+  std::ostream& spaces(std::ostream& a_out) const {
+    for(size_t index=0;index<m_level;index++) a_out << " ";
+    return a_out;
+  }
+protected:
+  std::ostream& m_out;
+  unsigned int m_level;
+};
+
+inline void ls(std::ostream& a_out,hid_t a_file_id,const std::string& a_path = "/"){
+  ls_visitor visitor(a_out);
+  ::H5Giterate(a_file_id,a_path.c_str(),NULL,visit_file,(ivisitor*)&visitor);
+}
+
+}}
+
+//exlib_build_use inlib hdf5
+
+#endif

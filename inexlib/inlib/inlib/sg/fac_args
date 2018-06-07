@@ -1,0 +1,41 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_fac_args
+#define inlib_sg_fac_args
+
+namespace inlib {class atime;}
+namespace inlib {namespace sg {class ui;}}
+namespace inlib {namespace sg {class base_freetype;}}
+namespace inlib {class wget;}
+namespace inlib {namespace SDSS {class catalog;}}
+
+#include <ostream>
+
+namespace inlib {
+namespace sg {
+
+class fac_args {
+public:
+  virtual ~fac_args() {}
+public:
+  virtual sg::ui& ui() = 0;
+  virtual std::ostream& out() const = 0;
+
+  virtual bool get_time_now(atime&) const = 0;
+  virtual const base_freetype& ttf() const = 0;
+  virtual const base_freetype& ttf_marker() const = 0;
+
+  virtual const wget* get_simbad_wget() const = 0;
+
+  virtual const wget* get_stars_wget() const = 0;
+  virtual bool get_stars_local() const = 0;
+  virtual void get_stars_host(std::string&) const = 0;
+  virtual unsigned int get_stars_port() const = 0;
+  virtual void get_stars_dir(std::string&) const = 0;
+  virtual SDSS::catalog* get_stars_catalog() const = 0;
+};
+
+}}
+
+#endif

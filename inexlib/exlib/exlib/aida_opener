@@ -1,0 +1,148 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_aida_opener
+#define exlib_aida_opener
+
+#include <inlib/sg/iopener>
+#include <inlib/sg/holder>
+#include <inlib/cbk/aida_obj>
+
+#include "raxml"
+#include "gzip"
+
+namespace exlib {
+
+class aida_opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::aida_opener)
+public:
+  virtual parent* copy() const {return new aida_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return inlib::file::is_aida(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,inlib::sg::viewer& a_viewer,const inlib::args& a_args,bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    //popup :
+    bool popup;
+    if(!a_args.find(inlib::sg::s_popup(),popup,false)) {}
+    int ex;
+    if(!a_args.find<int>(inlib::sg::s_ex(),ex)) {}
+    int ey;
+    if(!a_args.find<int>(inlib::sg::s_ey(),ey)) {}
+
+    std::ostream& out = a_gv.out();
+
+    bool verbose = false;
+
+    inlib::xml::default_factory fac;
+    raxml ml(fac,out,verbose);
+  
+   {bool _is = false;
+    if(inlib::file::is_gzip(a_path,_is)) {
+      if(_is) {
+        ml.set_compressed_reader(new gzip_reader());//ml takes ownership
+      }
+    }}
+  
+    typedef std::vector<inlib::raxml_out> aobjs_t;
+  
+    aobjs_t& objs = ml.objects(); //WARNING : ref.
+    objs.clear();
+  
+    if(!ml.load_file(a_path,false)) {
+      out << "exlib::opener::open :"
+          << " can't load file " << inlib::sout(a_path)
+          << std::endl;
+      a_gv.pop_warn(popup,ex,ey,"raxml.load_file() failed");
+      return false;
+    }
+  
+    if(verbose) {
+      if(objs.empty()) {
+        out << "exlib::opener::open :"
+            << " no data found."
+            << std::endl;
+      } else {
+        inlib_vforcit(inlib::raxml_out,objs,it) {
+          out << "exlib::opener::open :" << std::endl;
+          out << " obj = " << (*it).object() << std::endl;
+          out << " class = " << (*it).cls() << std::endl;
+          out << " path = " << (*it).path() << std::endl;
+          out << " name = " << (*it).name() << std::endl;       
+        }
+      }
+    }
+  
+    // get ownership of all the inlib::raxml_out.object() :
+    a_gv.remove_in_tmp_group<inlib::raxml_outs>(a_path);
+    a_gv.add_in_tmp_group<inlib::raxml_outs>(a_path,new inlib::raxml_outs(objs));
+
+    if(objs.empty()) {
+      a_gv.pop_warn(popup,ex,ey,"empty");
+    } else {
+
+      inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+      a_gv.set_style(*list);
+  
+      inlib_vforcit(inlib::raxml_out,objs,it) list->add((*it).name(),new inlib::cbk::aida_obj(a_gv,*it,popup,ex,ey));
+  
+      a_gv.show_widget(inlib::sg::pos_data(popup,ex,ey),list);
+    }
+
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string&,
+                    inlib::sg::viewer&,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  aida_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~aida_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  aida_opener(const aida_opener& a_from):parent(a_from){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  aida_opener& operator=(const aida_opener&){return *this;}  
+};
+
+}
+
+//exlib_build_use inlib expat zlib kernel
+
+#endif
+

@@ -1,0 +1,70 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_net_wget
+#define inlib_net_wget
+
+#include "../wget"
+#include "http"
+
+namespace inlib {
+namespace net {
+
+class wget : public virtual inlib::wget {
+public:
+  INLIB_SCLASS(inlib::net::wget)
+public:
+  virtual bool get(const std::string& a_host,unsigned int a_port,const std::string& a_request,
+                   char*& a_doc,uint64& a_ldoc,const std::string& a_icookie,std::string& a_ocookie) const {
+    //a_doc should be deleted with delete []
+    net::http http(m_out,false);
+    if(!http.start(a_host,a_port)) {a_ocookie.clear();return false;}
+    if(!http.GET(a_request,a_icookie,a_doc,a_ldoc,a_ocookie)) return false;
+#ifdef INLIB_MEM
+    mem::decrement(s_new().c_str());
+#endif
+    return true;
+  }
+
+  virtual bool post(const std::string& a_host,unsigned int a_port,const std::string& a_request,
+                    char*& a_doc,uint64& a_ldoc,const std::string& a_icookie,std::string& a_ocookie) const {
+    //a_doc should be deleted with delete []
+    net::http http(m_out,false);
+    if(!http.start(a_host,a_port)) {a_ocookie.clear();return false;}
+    if(!http.POST(a_request,a_icookie,a_doc,a_ldoc,a_ocookie)) return false;
+#ifdef INLIB_MEM
+    mem::decrement(s_new().c_str());
+#endif
+    return true;
+  }
+
+  //virtual finder* copy() const {return new wget(*this);}
+public:
+  wget(std::ostream& a_out):m_out(a_out){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~wget() {
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  wget(const wget& a_from):inlib::wget(a_from),m_out(a_from.m_out){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  wget& operator=(const wget&){return *this;}
+public:
+  std::ostream& out() const {return m_out;}
+protected:
+  std::ostream& m_out;
+};
+
+}}
+
+//inlib_build_use socket
+
+#endif

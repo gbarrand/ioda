@@ -1,0 +1,27 @@
+#ifndef wrap_web_help
+#define wrap_web_help
+
+//
+//  This file had been produced automatically
+// by the inlib/wrap program from the file :
+//    web.help
+//
+
+inline const char** web_help(unsigned int& a_linen){
+  static const char _0[] = "  The web site is at :";
+  static const char _1[] = "    http://ioda.lal.in2p3.fr";
+  static const char _2[] = "";
+  static const char _3[] = "  You can get some data files under :";
+  static const char _4[] = "    http://ioda.lal.in2p3.fr/download/data";
+  static const char* _lines[] = {
+_0
+,_1
+,_2
+,_3
+,_4
+};
+ a_linen = 5;
+ return _lines;
+}
+
+#endif

@@ -1,0 +1,68 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_keys_menu
+#define exlib_hdf5_keys_menu
+
+#include "hdf5_h"
+
+#include <inlib/sg/bcbk>
+#include <inlib/sg/list>
+#include <inlib/sg/gui_viewer>
+
+namespace exlib {
+namespace hdf5 {
+
+inline unsigned int action_obj() {return 0;}
+inline unsigned int action_dir() {return 1;}
+
+class icbk_fact {
+public:
+  virtual ~icbk_fact(){}
+public:
+  virtual inlib::sg::bcbk* create(inlib::sg::gui_viewer& a_gv,
+                                  hid_t a_FID,bool a_is_osc,
+                                  const std::string& a_path,
+                                  const std::string& a_sid, //sid = storage id
+                                  unsigned int a_action,const inlib::sg::pos_data& a_data) = 0;
+};
+
+inline bool menu_sids(hid_t a_FID,bool a_is_osc,
+                      const std::string& a_path,
+                      const std::vector<std::string>& a_objs,
+                      const std::vector<std::string>& a_dirs,
+                      inlib::sg::gui_viewer& a_gv,
+                      icbk_fact& a_fact,
+                      const inlib::sg::pos_data& a_data) {
+  if(a_objs.empty()&&a_dirs.empty()) {
+    a_gv.pop_warn(a_data,"empty");
+    return false;
+  } else {
+    inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+    a_gv.set_style(*list);
+
+   {inlib_vforcit(std::string,a_objs,it) {
+      list->add(*it,a_fact.create(a_gv,a_FID,a_is_osc,a_path,*it,action_obj(),a_data));
+    }}
+
+   {inlib_vforcit(std::string,a_dirs,it) {
+      list->add(*it,a_fact.create(a_gv,a_FID,a_is_osc,a_path,*it,action_dir(),a_data),true);
+    }}
+
+    if(!list->items.size()) {
+      delete list;
+      a_gv.pop_warn(a_data,"empty");
+      return false;
+    } else {
+      a_gv.show_widget(a_data,list);
+      return true;
+    }
+  }
+
+}
+
+}}
+
+//exlib_build_use inlib hdf5 inlib_glutess freetype kernel
+
+#endif

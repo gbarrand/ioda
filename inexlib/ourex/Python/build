@@ -1,0 +1,153 @@
+#!/bin/sh -f
+
+#set -x
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+#//////////////////////////////////////////////
+#/// compile //////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_compile} = "yes" ] ; then
+
+/bin/rm -f c_tmp
+
+find ./src -name '*.c' -print >> c_tmp
+
+# python.c not in the lib :
+grep -v '/python.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+
+# the two below need special compilation :
+grep -v '/getpath.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+grep -v '/getbuildinfo.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+
+grep -v '/getcwd.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+grep -v '/strdup.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+grep -v '/strtod.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+grep -v '/dynload_shlib.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+grep -v '/importdl.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+
+grep -v '/frozenmain.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+
+if [ ${build_visual} = "yes" ] ; then
+  grep -v '/pwdmodule.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  grep -v '/dup2.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  grep -v '/mactoolboxglue.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+else
+  grep -v '/frozen_dllmain.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  if [ ${build_sdk_ios} = "yes" ] ; then
+    grep -v '/mactoolboxglue.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  elif [ ${build_sdk_android} = "yes" ] ; then
+    grep -v '/mactoolboxglue.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  elif [ `uname` = Linux ] ; then
+    grep -v '/mactoolboxglue.c' ./c_tmp > tmp_0;/bin/mv ./tmp_0 c_tmp;/bin/rm -f ./tmp_0
+  fi
+fi
+
+if [ ${build_visual} = "yes" ] ; then
+  ccflags="${ccflags} -wd4018 -wd4244 -wd4101"
+elif [ ${build_sdk_mac} = "yes" ] ; then
+  ccflags="${ccflags} -Wno-tautological-constant-out-of-range-compare"
+  ccflags="${ccflags} -Wno-tautological-compare"
+elif [ ${build_sdk_ios} = "yes" ] ; then
+  ccflags="${ccflags} -Wno-format"
+  ccflags="${ccflags} -Wno-tautological-compare"
+fi
+
+ccflags="${ccflags} -I./src -I./src/Include"
+
+if [ ${build_visual} = "yes" ] ; then
+  ccflags="${ccflags} -I./src/PC"
+fi
+
+if [ ${build_visual} = "yes" ] ; then
+  libs="${libs} shell32.lib"
+else
+  if [ ${build_clang} = "yes" ] ; then
+    ccflags="${ccflags} -Wno-tautological-compare"
+  fi
+fi
+
+ccflags="${ccflags} -DPy_BUILD_CORE"
+
+#-fno-strict-aliasing -g -O2 -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes
+
+. ${bush_home}/compile
+
+ccflags_old="${ccflags}"
+
+#install_dir=`pwd`
+#if [ ${build_visual} = "yes" ] ; then
+#  install_dir="`cygpath -w ${install_dir}`"
+#fi
+
+# for getpath.c :
+getpath_ccflags=
+#getpath_ccflags="${getpath_ccflags} -DPYTHONPATH='\":plat-darwin:plat-mac:plat-mac/lib-scriptpackages:lib-tk:lib-old\"'"
+#getpath_ccflags="${getpath_ccflags} -DPREFIX='\"${install_dir}\"'"
+#getpath_ccflags="${getpath_ccflags} -DEXEC_PREFIX='\"${install_dir}\"'"
+#getpath_ccflags="${getpath_ccflags} -DVERSION='\"2.7\"'"
+#getpath_ccflags="${getpath_ccflags} -DVPATH='\"\"'"
+
+ccflags="${ccflags_old} ${getpath_ccflags}"
+cfiles=./src/Modules/getpath.c
+. ${bush_home}/compile
+cfiles=
+
+# for getbuildinfo.c :
+getbuildinfo_ccflags=
+#getbuildinfo_ccflags="${getbuildinfo_ccflags} -DSVNVERSION='\"`LC_ALL=C svnversion .`\"'"
+#getbuildinfo_ccflags="${getbuildinfo_ccflags} -DHGVERSION='\"`LC_ALL=C `\"'"
+#getbuildinfo_ccflags="${getbuildinfo_ccflags} -DHGTAG='\"`LC_ALL=C `\"'"
+#getbuildinfo_ccflags="${getbuildinfo_ccflags} -DHGBRANCH='\"`LC_ALL=C `\"'"
+
+ccflags="${ccflags_old} ${getbuildinfo_ccflags}"
+cfiles=./src/Modules/getbuildinfo.c
+. ${bush_home}/compile
+cfiles=
+ccflags="${ccflags_old}"
+
+fi # end build_compile
+
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_archive} = "yes" ] ; then . ${bush_home}/archive; fi
+
+#NOTE : we need to have the python program linked with the shlib if wanting
+#       to have boost-python modules working. Else at any object creation we have :
+#         TypeError: __init__() should return None, not 'NoneType'
+
+#/bin/rm -f ${build_path}/lib${libname}.a
+
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_app} = "yes" ] ; then
+
+  objs=
+
+  use_thread=yes
+
+  . ${bush_home}/use/thread
+
+  . ${bush_home}/preplib
+
+#    if [ `uname` = Darwin ] ; then
+#      libs="${libs} -framework CoreFoundation"
+#    fi
+
+  #-u _PyMac_Error
+
+  app_exe=python
+  app_src=./src/Modules/python.c
+  . ${bush_home}/application
+
+  #./python.exe -E -S -m sysconfig --generate-posix-vars
+
+fi
+
+. ${bush_home}/clean
+

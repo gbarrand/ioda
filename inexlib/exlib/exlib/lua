@@ -1,0 +1,15 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_lua
+#define exlib_lua
+
+#ifdef EXLIB_USE_NATIVE_LUA
+#include <lua.hpp>
+#else
+#include <ourex_lua.hpp> //enforce ourex lua.
+#endif
+
+#endif
+
+//exlib_build_use lua

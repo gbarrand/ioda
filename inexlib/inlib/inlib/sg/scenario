@@ -1,0 +1,241 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_scenario
+#define inlib_sg_scenario
+
+#include "geo_atb"
+#include "separator"
+#include "matrix"
+#include "style_colormap"
+#include "guib"
+
+#include "../xml/snos"
+#include "../rroot/vds"
+#include "../colorf"
+#include "../smatch"
+#include "../schar"
+
+namespace inlib {
+
+template <class TVOLUME,class TGEO>
+inline bool create_scenario_sg(
+ sg::guib& a_gv
+,sg::cmaps_t a_cmaps
+,const xml::scenario& a_sno
+,const TVOLUME& a_master
+,sg::separator& a_sep
+,void (*a_no_vds)(const TVOLUME& a_vol,
+                  std::vector< std::pair<std::string,unsigned int> >&)
+,bool(*a_pv_name)(const TVOLUME&,std::string&)
+,std::string& a_swarn
+) {
+  a_swarn.clear();
+
+  //a_gv.out() << "debug : create_scenario_sg : begin." << std::endl;        
+  //std::ostream& out = a_gv.out();
+
+  //////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////
+  /// loop on scenario volumes /////////////////////////////
+  //////////////////////////////////////////////////////////
+
+  //atime begin = atime::now();
+
+  std::vector< std::pair<std::string,unsigned int> > vds;
+  if(a_sno.m_volumes.size()) {
+    if(a_sno.m_vds.size()) {
+      std::string _path;
+      if(!a_gv.find_file(a_sno.m_vds,_path)){
+        a_gv.warn("file "+a_sno.m_vds+" not found.");
+        return false;
+      }
+      if(!read_vds(_path,vds)){
+        a_gv.warn("can't read vds file "+_path+".");
+        return false;
+      }
+    } else { //lengthy :
+      //a_gv.out() << "inlib::create_scenario_sg :"
+      //           << " WARNING : no vds given. Compute them."
+      //           << std::endl;
+      vds.clear();
+      //vds(a_master,0,vds);
+      a_no_vds(a_master,vds);
+    }
+  }
+
+  bool some_stopped_by_max_time = false;
+  bool some_stopped_by_max_shapes = false;
+  bool some_not_found = false;
+
+  sg::group* geos = new sg::group;
+
+  unsigned int shape_count = 0;
+
+ {unsigned int geon = 0;
+  std::string pv_name;
+  std::vector<xml::volume>::const_iterator it;
+  for(it=a_sno.m_volumes.begin();it!=a_sno.m_volumes.end();++it){
+    const xml::volume& xvol = *it;
+
+    const std::string& filter = xvol.m_name; //can contain wildcard.
+
+    std::vector< std::pair<std::string,unsigned int> > fvds;
+
+    if(belong(filter,'*')) {
+
+      std::vector< std::pair<std::string,unsigned int> >::const_iterator it2;
+      for(it2=vds.begin();it2!=vds.end();++it2){
+        //in the below line, false = we know filter is a pattern.
+        if(match((*it2).first,filter,false)) fvds.push_back(*it2);
+      }
+
+    } else {
+
+      if(filter.empty()) {
+
+        a_pv_name(a_master,pv_name);
+        fvds.push_back(std::pair<std::string,unsigned int>(pv_name,0));
+
+      } else {
+
+        std::vector< std::pair<std::string,unsigned int> >::const_iterator it2;
+        for(it2=vds.begin();it2!=vds.end();++it2){
+          if(rcmp((*it2).first,filter)) {
+            fvds.push_back(*it2);
+            break;
+          }
+        }
+
+      }
+    }
+
+    unsigned int min_depth;
+    if(!to(xvol.m_min_depth,min_depth)) min_depth = 0;
+
+    unsigned int max_depth;
+    if(!to(xvol.m_max_depth,max_depth)) max_depth = 1;
+
+    unsigned int solid_depth;
+    if(!to(xvol.m_solid_depth,solid_depth)) solid_depth = max_depth;
+
+    unsigned int max_time;
+    if(!to(xvol.m_max_time,max_time)) max_time = 0;
+
+    unsigned int max_shapes;
+    if(!to(xvol.m_max_shapes,max_shapes)) max_shapes = 0;
+
+    if(fvds.empty()) some_not_found = true;
+
+    std::vector< std::pair<std::string,unsigned int> >::const_iterator it3;
+    for(it3=fvds.begin();it3!=fvds.end();++it3){
+
+      //a_gv.out() << "debug : create_scenario_sg : "
+      //           << " exlib::sg::geo for " << (*it3).first << std::endl
+      //           << " vol depth " << (*it3).second << std::endl
+      //           << " min_depth " << min_depth << std::endl
+      //           << " max_depth " << max_depth << std::endl
+      //           << " solid_depth " << solid_depth << std::endl
+      //           << " max_time " << max_time << std::endl
+      //           << " max_shapes " << max_shapes << std::endl
+      //           << std::endl;        
+
+      TGEO* geo = new TGEO(a_master);
+
+      geo->volume = (*it3).first;
+      geo->volume_depth = (*it3).second;
+
+      geo->min_depth = min_depth;
+      geo->max_depth = max_depth;
+      geo->solid_depth = solid_depth;
+
+      //::printf("debug : %s : max_depth %d, solid_depth %d\n",
+      //    (*it3).first.c_str(),max_depth,solid_depth);
+
+      if(xvol.m_color.size()) {
+        colorf col;
+        if(!sg::find_color(a_cmaps,xvol.m_color,col)) {
+          a_gv.warn("color "+xvol.m_color+" not found.");
+          delete geos;
+          return false;    
+        }
+
+        geo->atb = sg::atb_single;
+        geo->color = col;
+
+      } else {
+        sg::style_colormap cmap;
+       {const std::vector<std::string>& bd_cmap = xvol.m_colormap;
+        std::vector<std::string>::const_iterator it4;
+        for(it4=bd_cmap.begin();it4!=bd_cmap.end();++it4){
+          colorf col;
+          if(!sg::find_color(a_cmaps,*it4,col)) {
+            a_gv.warn("color "+(*it4)+" not found.");
+            delete geos;
+            return false;    
+          }
+          cmap.add(sg::style_color(*it4,col));
+        }} 
+  
+        geo->atb = sg::atb_by_depth;
+        geo->set_cmap(cmap);
+      }
+  
+      geo->max_time = max_time;
+      geo->max_shapes = max_shapes;
+
+      //force an update now :
+      //a_gv.out() << "debug : create_scenario_sg : update_sg..." << std::endl;
+      geo->update_sg(a_gv.out_stream());
+      geo->reset_touched(); //avoid another update_sg at first render().
+      //a_gv.out() << "debug : create_scenario_sg :"
+      //           << " update_sg : end." << std::endl;
+
+
+      if(geo->stopped_by_max_time())   some_stopped_by_max_time = true;
+      if(geo->stopped_by_max_shapes()) some_stopped_by_max_shapes = true;
+
+      if(geo->volume_not_found()) {
+        some_not_found = true;
+        delete geo;
+      } else {
+
+        sg::separator* sep = new sg::separator;
+        geos->add(sep);
+  
+        sep->add(new sg::matrix()); //for manip.
+        sep->add(geo);
+
+        geon++;
+        shape_count += geo->shape_count();
+      }
+    }
+  }
+
+  //std::string st = atime2s(atime::elapsed(begin));
+  //std::string s;
+  //s += "XML volumes done in "+st+".";
+  //s += " Num geo "+to(geon)+".";
+  //a_gv.out() << s << std::endl;
+
+  }
+  
+  a_sep.add(geos);
+
+  if(some_stopped_by_max_time)   a_swarn += "some stopped by max time.";
+  if(some_stopped_by_max_shapes) a_swarn += " some stopped by max shapes.";
+  if(some_not_found)             a_swarn += " some volumes not found.";
+
+  if(shape_count>=5000) a_gv.m_params.m_auto_hide_scene = true;
+
+  return true;
+}
+
+}
+
+//inlib_build_use kernel
+
+#endif

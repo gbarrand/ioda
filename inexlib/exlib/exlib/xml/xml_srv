@@ -1,0 +1,31 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_xml_srv
+#define exlib_xml_srv
+
+#include "loader"
+
+#include <inlib/xml/srvs>
+
+namespace exlib {
+namespace xml {
+
+inline bool load_srv_file(std::ostream& a_out,const std::string& a_file,inlib::xml::srvs& a_srvs) {
+  inlib::xml::default_factory factory;
+  loader ml(factory,a_out,false);
+  std::vector<std::string> tags;
+  tags.push_back("srvs");
+  tags.push_back("srv");
+  ml.set_tags(tags);
+  if(!ml.load_file(a_file,false)) return false;
+  inlib::xml::tree* top = ml.top_item();
+  if(!top) return true; //File could be empty.
+  return a_srvs.scan_tree(*top);
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib expat

@@ -1,0 +1,64 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_read_bsg_file
+#define exlib_read_bsg_file
+
+#include <inlib/sg/field_factory>
+
+#include <inlib/sg/read_bsg>
+
+#include "gzip"
+
+namespace exlib {
+
+inline bool read_bsg_file(std::ostream& a_out,
+                          const inlib::sg::bsg_factories& a_fac,
+                          inlib::sg::fac_args& a_args,
+                          const std::string& a_path,
+                          inlib::sg::group& a_group,
+                          bool a_verbose = false) {
+  inlib::sg::field_factory ffac;
+  inlib::sg::read_bsg ml(a_out,a_fac,a_args,a_group,ffac,a_verbose);
+ {char* _buffer;
+  long sz;
+  bool _is = false;
+  if(inlib::file::is_gzip(a_path,_is)&&_is) {
+    if(!exlib::gzip_read_bytes(a_path,_buffer,sz)) {
+      a_out << "exlib::read_bsg_file :"
+            << " exlib::gzip_read_bytes() failed."
+            << std::endl;
+      return false;
+    }
+  } else {
+    if(!inlib::file::read_bytes(a_path,_buffer,sz)) {
+      a_out << "exlib::read_bsg_file :"
+            << " inlib::file::read_bytes() failed."
+            << std::endl;
+      return false;
+    }
+  }            
+  if(_buffer) {      
+    if(!ml.load_buffer((unsigned int)sz,_buffer)) {
+      a_out << "exlib::read_bsg_file :"
+            << " inlib::sg::read_bsg::load_buffer() failed."
+            << std::endl;
+      delete [] _buffer;
+#ifdef INLIB_MEM
+      inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+      return false;
+    }
+    delete [] _buffer;
+#ifdef INLIB_MEM
+    inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+  }}
+  return true;
+}
+
+}
+
+#endif
+
+//exlib_build_use inlib inlib_glutess freetype zlib

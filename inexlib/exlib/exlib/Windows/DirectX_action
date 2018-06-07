@@ -1,0 +1,814 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_sg_DirectX_action
+#define exlib_sg_DirectX_action
+
+#include <windows.h>
+#include <windowsx.h>
+
+#include <d3d11.h>
+#include <d3dcompiler.h>
+//#include <d3dx11.h>
+//#include <d3dx10.h>
+
+#include <inlib/sg/render_manager>
+#include <inlib/sg/render_action>
+#include <inlib/sg/primitive_visitor>
+#include <inlib/colorfs>
+
+namespace exlib {
+namespace Windows {
+
+class DirectX_manager : public virtual inlib::sg::render_manager {
+public:
+  INLIB_SCLASS(exlib::Windows::DirectX_manager)
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = inlib::cmp_cast<DirectX_manager>(this,a_class)) {return p;}
+    else return 0;
+  }  
+public:
+  struct _VERTEX {
+    FLOAT m_x,m_y,m_z,m_r,m_g,m_b,m_a;
+  };
+public:
+  virtual bool begin_render(int,int,unsigned int a_ww,unsigned int a_wh,
+                            float a_r,float a_g,float a_b,float a_a,bool = true) {
+    if(!m_hwnd) return false;
+    
+    m_out << "debug : begin_render : 021 " << a_ww << " " << a_wh << std::endl;
+
+    bool resize = false;
+    if((a_ww!=m_ww)||(a_wh!=m_wh)) {
+      m_ww = a_ww;
+      m_wh = a_wh;
+      resize = true;
+    }      
+
+    if(resize) {
+      _clear();
+      if(!initialize()) {
+        m_out << "exlib::Windows::DirectX_manager::begin_render : init failed." << std::endl;
+        return false;
+      }
+    }
+    
+    if(!m_swap_chain) return false;
+    
+    // Set the viewport
+  //::ZeroMemory(&m_viewport, sizeof(D3D11_VIEWPORT));
+    m_viewport.TopLeftX = 0;
+    m_viewport.TopLeftY = 0;
+    m_viewport.Width = FLOAT(a_ww);
+    m_viewport.Height = FLOAT(a_wh);
+    m_viewport.MinDepth = 0;
+    m_viewport.MaxDepth = 0;
+
+    m_context->RSSetViewports(1,&m_viewport);
+
+    m_clear_color[0] = a_r;
+    m_clear_color[1] = a_g;
+    m_clear_color[2] = a_b;
+    m_clear_color[3] = a_a;
+    m_context->ClearRenderTargetView(m_back_buffer,m_clear_color);
+
+    //draw_test();
+    
+    return true;
+  }
+  virtual void end_render() {
+    m_swap_chain->Present(0,0); // switch the back buffer and the front buffer
+  }
+
+  virtual unsigned int create_texture(const inlib::img_byte&,bool /*a_NEAREST*/) {
+    m_out << "exlib::Windows::DirectX_action::create_texture : dummy." << std::endl;
+    return 0;
+  }
+  virtual unsigned int create_gsto_from_data(size_t,const float*) {
+    m_out << "exlib::Windows::DirectX_action::create_gsto_from_data : dummy." << std::endl;
+    return 0;
+  }
+
+  virtual bool is_gsto_id_valid(unsigned int) const {
+    m_out << "exlib::Windows::DirectX_action::is_gsto_id_valid : dummy." << std::endl;
+    return false;
+  }
+  virtual void delete_gsto(unsigned int) {
+    m_out << "exlib::Windows::DirectX_action::delete_gsto : dummy." << std::endl;
+  }
+
+  virtual inlib::sg::gsto_mode get_gsto_mode() const {
+    m_out << "exlib::Windows::DirectX_action::get_gsto_mode : dummy." << std::endl;
+    return inlib::sg::gsto_memory;
+  }
+  virtual void set_gsto_mode(inlib::sg::gsto_mode) {
+    m_out << "exlib::Windows::DirectX_action::set_gsto_mode : dummy." << std::endl;
+  }
+  virtual void available_gsto_modes(std::vector<std::string>& a_v) {
+    m_out << "exlib::Windows::DirectX_action::available_gsto_mode : dummy." << std::endl;
+    a_v.clear();
+  }
+  virtual void available_not_memory_gsto_mode(std::string& a_s) const {
+    m_out << "exlib::Windows::DirectX_action::available_not_memory_gsto_mode : dummy." << std::endl;
+    a_s.clear();
+  }
+  virtual size_t used_texture_memory() const {
+    m_out << "exlib::Windows::DirectX_action::used_texture_memory : dummy." << std::endl;
+    return 0;
+  }
+  virtual size_t gstos_size() const {
+    m_out << "exlib::Windows::DirectX_action::gsto_size : dummy." << std::endl;
+    return 0;
+  }
+public:
+  DirectX_manager(std::ostream& a_out,HWND a_hwnd)
+  :m_out(a_out)
+  ,m_hwnd(a_hwnd)
+  ,m_VS(0),m_PS(0)
+  ,m_swap_chain(0),m_device(0),m_context(0),m_back_buffer(0)
+  ,m_pVS(0),m_pPS(0)
+  ,m_pLayout(0),m_pRasterizerState(0),m_pDepthStencil(0),m_pDSState(0),m_pDSV(0)
+  ,m_ww(0),m_wh(0)
+  {
+    if(!a_hwnd) {m_out << "exlib::Windows::DirectX_manager::DirectX_manager : null HWND." << std::endl;return;}
+    
+    static const char s_shader[] = "\
+struct VOut {float4 position : SV_POSITION;float4 color : COLOR;};\
+VOut VShader(float4 a_position : POSITION, float4 a_color : COLOR) {\
+  VOut output;\
+  output.position = a_position;\
+  output.color = a_color;\
+  return output;\
+}\
+float4 PShader(float4 position : SV_POSITION, float4 a_color : COLOR) : SV_TARGET {return a_color;}\
+struct VPointOut {float4 position : SV_POSITION;};\
+VPointOut VPointShader(float4 a_position : POSITION) {\
+  VPointOut output;\
+  output.position = a_position;\
+  return output;\
+}";
+
+    if(D3DCompile(s_shader,sizeof(s_shader),NULL,0,0,"VShader","vs_4_0",0,0,&m_VS,0)!=S_OK) {
+      m_out << "exlib::Windows::DirectX_manager::DirectX_manager : can't compile shader for VShader." << std::endl;
+      m_VS = 0;
+    }
+    if(D3DCompile(s_shader,sizeof(s_shader),NULL,0,0,"PShader","ps_4_0",0,0,&m_PS,0)!=S_OK) {
+      m_out << "exlib::Windows::DirectX_manager::DirectX_manager : can't compile shader for PShader." << std::endl;
+      m_PS = 0;
+    }
+    
+  }
+  virtual ~DirectX_manager() {
+    _clear();
+    m_VS = 0;
+    m_PS = 0;
+  }
+public:
+  DirectX_manager(const DirectX_manager& a_from)
+  :render_manager(a_from)
+  ,m_out(a_from.m_out)
+  ,m_hwnd(a_from.m_hwnd)
+  ,m_VS(0),m_PS(0)
+  ,m_swap_chain(0),m_device(0),m_context(0),m_back_buffer(0)
+  ,m_pVS(0),m_pPS(0)
+  ,m_pLayout(0),m_pRasterizerState(0),m_pDepthStencil(0),m_pDSState(0),m_pDSV(0)
+  ,m_ww(0),m_wh(0)
+  {}
+  DirectX_manager& operator=(const DirectX_manager& a_from){
+    if(&a_from==this) return *this;
+    return *this;
+  }
+public:  
+  const ID3D11Device& device() const {return *m_device;}
+  const ID3D11DeviceContext& context() const {return *m_context;}
+  ID3D11Device& device() {return *m_device;}
+  ID3D11DeviceContext& context() {return *m_context;}
+  
+  bool set_mode(inlib::gl::mode_t a_mode) {
+    if(!m_context) return false;
+    if(a_mode==inlib::gl::points()) {
+      m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_POINTLIST);
+    } else if(a_mode==inlib::gl::lines()) {
+      m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+//  } else if(a_mode==inlib::gl::line_loop()) {
+    } else if(a_mode==inlib::gl::line_strip()) {
+      m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_LINESTRIP);
+    } else if(a_mode==inlib::gl::triangles()) {
+      m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    } else if(a_mode==inlib::gl::triangle_strip()) {
+      m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+//  } else if(a_mode==inlib::gl::triangle_fan()) {
+    } else {
+      m_out << "exlib::Windows::DirectX_manager::set_mode : mode not treated : "
+            << (unsigned int)a_mode << ". Set line strip." << std::endl;	  
+    }
+    return true;
+  }
+  
+  void draw_test() {
+    _VERTEX OurVertices[] = {
+      {0.0f, 0.5f, 0.0f,    1.0f, 0.0f, 0.0f, 1.0f},
+      {0.45f, -0.5, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f},
+      {-0.45f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f}
+    };
+    D3D11_BUFFER_DESC bd;
+  //::ZeroMemory(&bd,sizeof(bd));
+    bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
+    bd.ByteWidth = sizeof(_VERTEX) * 3;            // size is the _VERTEX struct * 3
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
+    bd.MiscFlags = 0;
+    bd.StructureByteStride = 0;
+
+    ID3D11Buffer* pVBuffer;
+    m_device->CreateBuffer(&bd,NULL,&pVBuffer);       // create the buffer
+
+    // copy the vertices into the buffer
+    D3D11_MAPPED_SUBRESOURCE ms;
+    m_context->Map(pVBuffer,NULL,D3D11_MAP_WRITE_DISCARD,NULL,&ms);  // map the buffer
+  ::memcpy(ms.pData,OurVertices,sizeof(OurVertices));                // copy the data
+    m_context->Unmap(pVBuffer,NULL);                                 // unmap the buffer
+
+    UINT stride = sizeof(_VERTEX);
+    UINT offset = 0;
+    m_context->IASetVertexBuffers(0,1,&pVBuffer,&stride,&offset);
+    
+    m_context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    m_context->Draw(3, 0);
+
+    pVBuffer->Release();
+  }
+
+  void set_state(bool a_ccw) {
+    if(m_pRasterizerState) {m_pRasterizerState->Release();m_pRasterizerState = 0;}
+    
+  //::ZeroMemory(&m_srd,sizeof(D3D11_RASTERIZER_DESC));
+    m_srd.FillMode              = D3D11_FILL_SOLID;
+    m_srd.CullMode              = D3D11_CULL_BACK;
+    m_srd.FrontCounterClockwise = a_ccw;
+    m_srd.DepthBias	        = 0;
+    m_srd.SlopeScaledDepthBias  = 0.0f;
+    m_srd.DepthBiasClamp	= 0.0f;
+    m_srd.DepthClipEnable	= FALSE;
+    m_srd.ScissorEnable	        = FALSE;
+    m_srd.MultisampleEnable     = FALSE;
+    m_srd.AntialiasedLineEnable = FALSE;
+    if(m_device->CreateRasterizerState(&m_srd,&m_pRasterizerState)!=S_OK) {}
+    
+    m_context->RSSetState(m_pRasterizerState);
+  }
+  
+protected:  
+  bool initialize() {
+    if(!m_hwnd) return false;
+    if(!m_VS) return false;
+    if(!m_PS) return false;
+  
+  ::ZeroMemory(&m_scd,sizeof(DXGI_SWAP_CHAIN_DESC));
+    // fill the swap chain description struct
+    m_scd.BufferCount = 1;                                    // one back buffer
+    m_scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;     // use 32-bit color
+    m_scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;      // how swap chain is to be used
+    m_scd.OutputWindow = m_hwnd;                              // the window to be used
+    m_scd.SampleDesc.Count = 4;                               // how many multisamples
+    m_scd.Windowed = TRUE;                                    // windowed/full-screen mode
+
+    // create a device, device context and swap chain using the information in the scd struct
+  ::D3D11CreateDeviceAndSwapChain(NULL,
+                                  D3D_DRIVER_TYPE_HARDWARE,
+                                  NULL,NULL,NULL,NULL,
+                                  D3D11_SDK_VERSION,
+                                  &m_scd,&m_swap_chain,&m_device,NULL,&m_context);
+  
+    if((m_swap_chain==NULL)||(m_device==NULL)||(m_context==NULL)) {
+      _clear();
+      return false;
+    }
+    
+    ID3D11Texture2D* pBackBuffer;
+    m_swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+    if(!pBackBuffer) {_clear();return false;}
+
+    // use the back buffer address to create the render target
+    m_device->CreateRenderTargetView(pBackBuffer, NULL, &m_back_buffer);
+    pBackBuffer->Release();
+  
+    if(!m_back_buffer) {_clear();return false;}
+
+  //m_context->OMSetRenderTargets(1, &m_back_buffer, NULL); // set the render target as the back buffer
+  
+    m_device->CreateVertexShader(m_VS->GetBufferPointer(),m_VS->GetBufferSize(),NULL,&m_pVS);
+    m_device->CreatePixelShader(m_PS->GetBufferPointer(),m_PS->GetBufferSize(),NULL,&m_pPS);
+    m_context->VSSetShader(m_pVS, 0, 0);
+    m_context->PSSetShader(m_pPS, 0, 0);
+
+    static const D3D11_INPUT_ELEMENT_DESC m_ied[] = {
+      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+  
+    m_device->CreateInputLayout(m_ied,2,m_VS->GetBufferPointer(),m_VS->GetBufferSize(),&m_pLayout);
+    m_context->IASetInputLayout(m_pLayout);
+
+  //::ZeroMemory(&m_srd,sizeof(D3D11_RASTERIZER_DESC));
+    m_srd.FillMode              = D3D11_FILL_SOLID;
+    m_srd.CullMode              = D3D11_CULL_BACK;
+    m_srd.FrontCounterClockwise = TRUE;
+    m_srd.DepthBias	        = 0;
+    m_srd.SlopeScaledDepthBias  = 0.0f;
+    m_srd.DepthBiasClamp	= 0.0f;
+    m_srd.DepthClipEnable	= TRUE;
+    m_srd.ScissorEnable	        = FALSE;
+    m_srd.MultisampleEnable     = FALSE;
+    m_srd.AntialiasedLineEnable = FALSE;
+    if(m_device->CreateRasterizerState(&m_srd,&m_pRasterizerState)!=S_OK) {}
+    m_context->RSSetState(m_pRasterizerState);
+
+    /////////////////////////////////////////////////////
+    /// depth buffer : //////////////////////////////////
+    /////////////////////////////////////////////////////
+  //m_descDepth.Width = backBufferSurfaceDesc.Width;
+  //m_descDepth.Height = backBufferSurfaceDesc.Height;
+    m_descDepth.Width = m_ww;
+    m_descDepth.Height = m_wh;
+    m_descDepth.MipLevels = 1;
+    m_descDepth.ArraySize = 1;
+  //m_descDepth.Format = pDeviceSettings->d3d11.AutoDepthStencilFormat;
+  //m_descDepth.Format = m_device->d3d11.AutoDepthStencilFormat;
+    m_descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; //???
+    m_descDepth.SampleDesc.Count = 1;
+    m_descDepth.SampleDesc.Quality = 0;
+    m_descDepth.Usage = D3D11_USAGE_DEFAULT;
+    m_descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    m_descDepth.CPUAccessFlags = 0;
+    m_descDepth.MiscFlags = 0;
+    if(m_device->CreateTexture2D(&m_descDepth,NULL,&m_pDepthStencil)!=S_OK) {}
+    
+    m_dsd.DepthEnable = true;
+    m_dsd.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    m_dsd.DepthFunc = D3D11_COMPARISON_LESS;
+    m_dsd.StencilEnable = false;
+    //m_dsd.StencilReadMask = 0xFF;
+    //m_dsd.StencilWriteMask = 0xFF;
+    // Stencil operations if pixel is front-facing
+    //m_dsd.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    //m_dsd.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+    //m_dsd.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    //m_dsd.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    // Stencil operations if pixel is back-facing
+    //m_dsd.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    //m_dsd.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+    //m_dsd.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    //m_dsd.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    if(m_device->CreateDepthStencilState(&m_dsd,&m_pDSState)!=S_OK){}
+    m_context->OMSetDepthStencilState(m_pDSState,1);
+    
+    m_descDSV.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    m_descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    m_descDSV.Texture2D.MipSlice = 0;
+    if(m_device->CreateDepthStencilView(m_pDepthStencil,&m_descDSV,&m_pDSV)!=S_OK) {}
+    /////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
+
+    m_context->OMSetRenderTargets(1,&m_back_buffer,m_pDSV);
+
+    return true;
+  }
+
+  void _clear(){
+    if(m_pDSV) {m_pDSV->Release();m_pDSV = 0;}
+    if(m_pDSState) {m_pDSState->Release();m_pDSState = 0;}
+    if(m_pDepthStencil) {m_pDepthStencil->Release();m_pDepthStencil = 0;}
+    
+    if(m_pRasterizerState) {m_pRasterizerState->Release();m_pRasterizerState = 0;}
+    if(m_pLayout) {m_pLayout->Release();m_pLayout = 0;}
+    if(m_pVS) {m_pVS->Release();m_pVS = 0;}
+    if(m_pPS) {m_pPS->Release();m_pPS = 0;}
+    if(m_back_buffer) {m_back_buffer->Release();m_back_buffer = 0;}
+    if(m_swap_chain) {m_swap_chain->Release();m_swap_chain = 0;}
+    if(m_device) {m_device->Release();m_device = 0;}
+    if(m_context) {m_context->Release();m_context = 0;}    
+  }
+  
+protected:  
+  std::ostream& m_out;
+  HWND m_hwnd;
+  ID3D10Blob* m_VS;
+  ID3D10Blob* m_PS;
+  IDXGISwapChain* m_swap_chain;
+  ID3D11Device* m_device;
+  ID3D11DeviceContext* m_context;
+  ID3D11RenderTargetView* m_back_buffer;
+  ID3D11VertexShader* m_pVS;
+  ID3D11PixelShader* m_pPS;
+  ID3D11InputLayout* m_pLayout;
+  ID3D11RasterizerState* m_pRasterizerState;
+  ID3D11Texture2D* m_pDepthStencil;
+  ID3D11DepthStencilState* m_pDSState;
+  ID3D11DepthStencilView* m_pDSV;
+  // optimisation :
+  D3D11_VIEWPORT m_viewport;
+  float m_clear_color[4];
+  DXGI_SWAP_CHAIN_DESC m_scd;
+  D3D11_RASTERIZER_DESC m_srd;
+  unsigned int m_ww;
+  unsigned int m_wh;
+  D3D11_TEXTURE2D_DESC m_descDepth;
+  D3D11_DEPTH_STENCIL_DESC m_dsd;
+  D3D11_DEPTH_STENCIL_VIEW_DESC m_descDSV;
+};
+
+class DirectX_action : public inlib::sg::render_action {
+  typedef inlib::sg::render_action parent;
+public:
+  virtual void draw_vertex_array(inlib::gl::mode_t a_mode,size_t a_floatn,const float* a_xyzs) {
+    size_t num = a_floatn/3;
+    if(!num) return;
+    
+    //m_out << "debug : draw_vertex_array : color "
+    //      << m_color.r() << " " << m_color.g() << " " << m_color.b() << " " << m_color.a()
+    //      << std::endl;
+
+    size_t old_num = num;
+    inlib::gl::mode_t mode = a_mode;
+    if(a_mode==inlib::gl::triangle_fan()) {
+      if(num<=2) return;
+      num = (num-2)*3;
+      mode = inlib::gl::triangles();
+    } else if(a_mode==inlib::gl::line_loop()) {
+      num++;
+      mode = inlib::gl::line_strip();
+    }
+
+    //D3D11_BUFFER_DESC bd;
+  //::ZeroMemory(&bd,sizeof(bd));
+    m_bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
+    m_bd.ByteWidth = sizeof(DirectX_manager::_VERTEX)*num;
+    m_bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
+    m_bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
+    m_bd.MiscFlags = 0;
+    m_bd.StructureByteStride = 0;
+
+    ID3D11Buffer* pVBuffer;
+    m_mgr.device().CreateBuffer(&m_bd,NULL,&pVBuffer);       // create the buffer
+
+    // copy the vertices into the buffer
+    m_mgr.context().Map(pVBuffer, NULL,D3D11_MAP_WRITE_DISCARD, NULL, &m_ms);
+    
+    if(a_mode==inlib::gl::triangle_fan()) {
+      float* pxyz_rgbas = (float*)m_ms.pData;
+      inlib::gl::triangle_fan_to_triangles(old_num,a_xyzs,m_color.r(),m_color.g(),m_color.b(),m_color.a(),pxyz_rgbas);
+    } else {
+      float* mpos = (float*)m_ms.pData;
+      float* apos = (float*)a_xyzs;
+      for(size_t index=0;index<old_num;index++) {
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = m_color.r();mpos++;
+        *mpos = m_color.g();mpos++;
+        *mpos = m_color.b();mpos++;
+        *mpos = m_color.a();mpos++;
+      }
+      if(a_mode==inlib::gl::line_loop()) { //close the loop
+        float* apos = (float*)a_xyzs;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = m_color.r();mpos++;
+        *mpos = m_color.g();mpos++;
+        *mpos = m_color.b();mpos++;
+        *mpos = m_color.a();mpos++;
+      }
+    }
+
+    if(!project_xyz_rgbas(num,(float*)m_ms.pData)) {}
+    
+    m_mgr.context().Unmap(pVBuffer,NULL);
+
+    UINT stride = sizeof(DirectX_manager::_VERTEX);
+    UINT offset = 0;
+    m_mgr.context().IASetVertexBuffers(0,1,&pVBuffer,&stride,&offset);
+    
+    m_mgr.set_state(m_ccw);
+
+    if(m_mgr.set_mode(mode)) m_mgr.context().Draw(num,0);
+
+    pVBuffer->Release();
+  }
+
+  virtual void draw_vertex_array_xy(inlib::gl::mode_t a_mode,size_t a_floatn,const float* a_xys){
+    size_t num = a_floatn/2;
+    if(!num) return;
+    
+    //m_out << "debug : draw_vertex_array_xy : color "
+    //      << m_color.r() << " " << m_color.g() << " " << m_color.b() << " " << m_color.a()
+    //      << std::endl;
+	  
+    size_t old_num = num;
+    inlib::gl::mode_t mode = a_mode;
+    if(a_mode==inlib::gl::triangle_fan()) {
+      if(num<=2) return;
+      num = (num-2)*3;
+      mode = inlib::gl::triangles();
+    } else if(a_mode==inlib::gl::line_loop()) {
+      num++;
+      mode = inlib::gl::line_strip();
+    }
+
+    //D3D11_BUFFER_DESC bd;
+  //::ZeroMemory(&m_bd,sizeof(m_bd));
+    m_bd.Usage = D3D11_USAGE_DYNAMIC;                // write access access by CPU and GPU
+    m_bd.ByteWidth = sizeof(DirectX_manager::_VERTEX)*num;
+    m_bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;       // use as a vertex buffer
+    m_bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;    // allow CPU to write in buffer
+    m_bd.MiscFlags = 0;
+    m_bd.StructureByteStride = 0;
+
+    ID3D11Buffer* pVBuffer;
+    m_mgr.device().CreateBuffer(&m_bd,NULL,&pVBuffer);       // create the buffer
+
+    // copy the vertices into the buffer
+    m_mgr.context().Map(pVBuffer, NULL,D3D11_MAP_WRITE_DISCARD, NULL, &m_ms);
+
+    if(a_mode==inlib::gl::triangle_fan()) {
+      float* pxyz_rgbas = (float*)m_ms.pData;
+      inlib::gl::triangle_fan_to_triangles_2to3(old_num,a_xys,m_color.r(),m_color.g(),m_color.b(),m_color.a(),pxyz_rgbas);
+    } else {
+      float* mpos = (float*)m_ms.pData;
+      float* apos = (float*)a_xys;
+      for(size_t index=0;index<old_num;index++) {
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = 0;mpos++;
+        *mpos = m_color.r();mpos++;
+        *mpos = m_color.g();mpos++;
+        *mpos = m_color.b();mpos++;
+        *mpos = m_color.a();mpos++;
+      }
+      if(a_mode==inlib::gl::line_loop()) { //close the loop
+        float* apos = (float*)a_xys;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = *apos;mpos++;apos++;
+        *mpos = 0;mpos++;
+        *mpos = m_color.r();mpos++;
+        *mpos = m_color.g();mpos++;
+        *mpos = m_color.b();mpos++;
+        *mpos = m_color.a();mpos++;
+      }
+    }
+
+    if(!project_xyz_rgbas(num,(float*)m_ms.pData)) {}
+    
+    m_mgr.context().Unmap(pVBuffer,NULL);
+
+    UINT stride = sizeof(DirectX_manager::_VERTEX);
+    UINT offset = 0;
+    m_mgr.context().IASetVertexBuffers(0,1,&pVBuffer,&stride,&offset);
+    
+    m_mgr.set_state(m_ccw);
+    
+    if(m_mgr.set_mode(mode)) m_mgr.context().Draw(num,0);
+
+    pVBuffer->Release();
+  }
+
+  virtual void draw_vertex_color_array(inlib::gl::mode_t a_mode,
+                                       size_t a_floatn,
+                                       const float* a_xyzs,
+                                       const float* a_rgbas){
+    //m_pv.add_primitive(a_mode,a_floatn,a_xyzs,a_rgbas);
+    m_out << "exlib::Windows::DirectX_action::draw_vertex_color_array : dummy." << std::endl;
+  }
+
+  virtual void draw_vertex_normal_array(inlib::gl::mode_t a_mode,
+                                        size_t a_floatn,
+                                        const float* a_xyzs,
+                                        const float* /*a_nms*/){
+    //m_pv.add_primitive(a_mode,a_floatn,a_xyzs);
+    m_out << "exlib::Windows::DirectX_action::draw_vertex_normal_array : dummy." << std::endl;
+  }
+
+  virtual void draw_vertex_color_normal_array(inlib::gl::mode_t a_mode,
+                                              size_t a_floatn,
+                                              const float* a_xyzs,
+                                              const float* a_rgbas,
+                                              const float* /*a_nms*/){
+    // We expect a_nms of size : 3*(a_floatn/3)
+    // (then one normal per 3D point).
+    //m_pv.add_primitive(a_mode,a_floatn,a_xyzs,a_rgbas);
+    m_out << "exlib::Windows::DirectX_action::draw_vertex_color_normal_array : dummy." << std::endl;
+  }
+
+  virtual void clear_color(float a_r,float a_g,float a_b,float /*a_a*/){
+    m_out << "exlib::Windows::DirectX_action::clear_color : dummy." << std::endl;
+  }
+  virtual void color4f(float a_r,float a_g,float a_b,float a_a){
+    m_color.set_value(a_r,a_g,a_b,a_a);
+  }
+  virtual void line_width(float a_v){m_line_width = a_v;}
+  virtual void point_size(float a_v) {m_point_size = a_v;}
+  virtual void set_polygon_offset(bool a_v) {m_POLYGON_OFFSET_FILL = a_v;}
+  virtual void normal(float a_x,float a_y,float a_z) {
+    m_normal.set_value(a_x,a_y,a_z);
+  }
+
+  virtual void set_winding(inlib::sg::winding_type a_v) {m_ccw = (a_v==inlib::sg::winding_ccw?true:false);}
+
+  virtual void set_depth_test(bool a_on) {m_DEPTH_TEST = a_on;}
+
+  virtual void set_cull_face(bool a_on) {m_CULL_FACE = a_on;}
+  virtual void set_point_smooth(bool a_on) {m_POINT_SMOOTH = a_on;}
+  virtual void set_line_smooth(bool a_on) {m_LINE_SMOOTH = a_on;}
+
+  virtual void load_proj_matrix(const inlib::mat4f& a_mtx) {m_proj = a_mtx;}
+  virtual void load_model_matrix(const inlib::mat4f& a_mtx) {m_model = a_mtx;}
+
+  virtual unsigned int max_lights() {return 1000;}
+
+  virtual void enable_light(unsigned int,
+                            float a_dx,float a_dy,float a_dz,
+                            float a_r,float a_g,float a_b,float a_a){
+    m_light_color.set_value(a_r,a_g,a_b,a_a);
+    m_light_direction.set_value(a_dx,a_dy,a_dz);
+    m_light_on = true;
+  }
+
+  virtual void set_lighting(bool a_on) {m_light_on = a_on;}
+
+  virtual void restore_state(unsigned int /*a_ret_num_light*/) {
+    m_proj = m_state.m_proj;
+    m_model = m_state.m_model;
+
+    m_color = m_state.m_color;
+    m_ccw = (m_state.m_winding==inlib::sg::winding_ccw?true:false);
+    m_POLYGON_OFFSET_FILL = m_state.m_GL_POLYGON_OFFSET_FILL;
+    m_CULL_FACE = m_state.m_GL_CULL_FACE;
+    m_POINT_SMOOTH = m_state.m_GL_POINT_SMOOTH;
+    m_LINE_SMOOTH = m_state.m_GL_LINE_SMOOTH;
+    m_point_size = m_state.m_point_size;
+    m_line_width = m_state.m_line_width;
+    m_light_on = m_state.m_GL_LIGHTING;
+    m_DEPTH_TEST = m_state.m_GL_DEPTH_TEST;
+  }
+
+  /////////////////////////////////////////////////////////////////
+  /// texture /////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////
+  virtual void draw_vertex_array_texture(inlib::gl::mode_t,
+                                         size_t,
+                                         const float*,
+                                         gstoid,
+                                         const float*) {
+    m_out << "exlib::sg::DirectX_action::draw_vertex_array_texture : dummy." << std::endl;
+  }
+
+  virtual void draw_vertex_normal_array_texture(inlib::gl::mode_t a_mode,
+                                         size_t a_xyzn,
+                                         const float* a_xyzs,
+                                         const float* /*a_nms*/,
+                                         gstoid a_id,
+                                         const float* a_tcs) {
+    draw_vertex_array_texture(a_mode,a_xyzn,a_xyzs,a_id,a_tcs);
+  }
+
+  /////////////////////////////////////////////////////////////////
+  /// VBO /////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////
+  virtual void begin_gsto(gstoid) {}
+  typedef inlib::sg::bufpos bufpos;
+  virtual void draw_gsto_v(inlib::gl::mode_t,size_t,bufpos){
+    m_out << "exlib::Windows::DirectX_action::draw_gsto_v : dummy." << std::endl;
+  }
+  virtual void draw_gsto_vc(inlib::gl::mode_t,size_t,bufpos,bufpos) {
+    m_out << "exlib::Windows::DirectX_action::draw_gsto_vc : dummy." << std::endl;
+  }
+  virtual void draw_gsto_vn(inlib::gl::mode_t,size_t,bufpos,bufpos) {
+    m_out << "exlib::Windows::DirectX_action::draw_gsto_vn : dummy." << std::endl;
+  }
+  virtual void draw_gsto_vcn(inlib::gl::mode_t,size_t,bufpos,bufpos,bufpos) {
+    m_out << "exlib::Windows::DirectX_action::draw_gsto_vcn : dummy." << std::endl;
+  }
+  virtual void end_gsto() {
+    m_out << "exlib::Windows::DirectX_action::end_gsto : dummy." << std::endl;
+  }
+  /////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////
+  virtual inlib::sg::render_manager& render_manager() {return m_mgr;}
+public:
+  DirectX_action(DirectX_manager& a_mgr,
+                 std::ostream& a_out,
+                 unsigned int a_ww,unsigned int a_wh)
+  :parent(a_out,a_ww,a_wh)
+  ,m_mgr(a_mgr)
+  ,m_light_color(inlib::colorf_white())
+  ,m_light_direction(inlib::vec3f(0,0,-1))
+
+  ,m_ccw(true)
+  ,m_POLYGON_OFFSET_FILL(false)
+  ,m_CULL_FACE(true)
+  ,m_POINT_SMOOTH(false)
+  ,m_LINE_SMOOTH(false)
+  ,m_point_size(1)
+  ,m_line_width(1)
+  ,m_light_on(false)
+  ,m_DEPTH_TEST(true)
+  {}
+  virtual ~DirectX_action(){}
+protected:
+  DirectX_action(const DirectX_action& a_from)
+  :parent(a_from)
+  ,m_mgr(a_from.m_mgr)
+
+  ,m_light_color(a_from.m_light_color)
+  ,m_light_direction(a_from.m_light_direction)
+  ,m_normal(a_from.m_normal)
+
+  ,m_proj(a_from.m_proj)
+  ,m_model(a_from.m_model)
+  ,m_color(a_from.m_color)
+  ,m_ccw(a_from.m_ccw)
+  ,m_POLYGON_OFFSET_FILL(a_from.m_POLYGON_OFFSET_FILL)
+  ,m_CULL_FACE(a_from.m_CULL_FACE)
+  ,m_POINT_SMOOTH(a_from.m_POINT_SMOOTH)
+  ,m_LINE_SMOOTH(a_from.m_LINE_SMOOTH)
+  ,m_point_size(a_from.m_point_size)
+  ,m_line_width(a_from.m_line_width)
+  ,m_light_on(a_from.m_light_on)
+  ,m_DEPTH_TEST(a_from.m_DEPTH_TEST)
+  {}
+  DirectX_action& operator=(const DirectX_action& a_from){
+    parent::operator=(a_from);
+    if(&a_from==this) return *this;
+    m_mgr = a_from.m_mgr;
+    
+    m_light_color = a_from.m_light_color;
+    m_light_direction = a_from.m_light_direction;
+    m_normal = a_from.m_normal;
+
+    m_proj = a_from.m_proj;
+    m_model = a_from.m_model;
+    m_color = a_from.m_color;
+    m_ccw = a_from.m_ccw;
+    m_POLYGON_OFFSET_FILL = a_from.m_POLYGON_OFFSET_FILL;
+    m_CULL_FACE = a_from.m_CULL_FACE;
+    m_POINT_SMOOTH = a_from.m_POINT_SMOOTH;
+    m_LINE_SMOOTH = a_from.m_LINE_SMOOTH;
+    m_point_size = a_from.m_point_size;
+    m_line_width = a_from.m_line_width;
+    m_light_on = a_from.m_light_on;
+    m_DEPTH_TEST = a_from.m_DEPTH_TEST;
+    return *this;
+  }
+protected:
+  bool project_point(float& a_x,float& a_y,float& a_z,float& a_w) {
+    a_w = 1;
+    m_model.mul_4f(a_x,a_y,a_z,a_w);
+    m_proj.mul_4f(a_x,a_y,a_z,a_w);
+    if(a_w==0) return false;
+    a_x /= a_w;
+    a_y /= a_w;
+    a_z /= a_w;
+    return true;
+  }
+  bool project_xyz_rgbas(size_t a_num,float* a_xyz_rgbas) {
+    float w;
+    float* mpos = a_xyz_rgbas;    
+    for(size_t index=0;index<a_num;index++,mpos+=7) { //WARNING : 7 and not 3.
+      if(!project_point(*(mpos+0),*(mpos+1),*(mpos+2),w)) {}
+    }
+    return true;
+  }    
+protected:
+  DirectX_manager& m_mgr;
+
+  inlib::colorf m_light_color;
+  inlib::vec3f m_light_direction;
+  inlib::vec3f m_normal;
+
+  // to be restored in restore_state() :
+  inlib::mat4f m_proj;
+  inlib::mat4f m_model;
+  inlib::colorf m_color;  
+  bool m_ccw;
+  bool m_POLYGON_OFFSET_FILL;	
+  bool m_CULL_FACE;
+  bool m_POINT_SMOOTH;
+  bool m_LINE_SMOOTH;
+  float m_point_size;  
+  float m_line_width;
+  bool m_light_on;
+  bool m_DEPTH_TEST;
+  // optimisation :
+  D3D11_BUFFER_DESC m_bd;
+  D3D11_MAPPED_SUBRESOURCE m_ms;
+};
+
+}}
+
+//exlib_build_use inlib Windows DirectX
+
+#endif

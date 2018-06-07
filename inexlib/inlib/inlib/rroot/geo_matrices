@@ -1,0 +1,499 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_matrices
+#define inlib_rroot_geo_matrices
+
+#include "geo_matrix"
+
+namespace inlib {
+namespace rroot {
+
+class geo_identity : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoIdentity");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_identity");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_identity>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_identity(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+    if(!geo_matrix::stream(a_buffer)) return false;
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_identity_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_identity>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_identity(ifac& a_fac):geo_matrix(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_identity(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_identity(const geo_identity& a_from):iro(a_from),geo_matrix(a_from){}
+  geo_identity& operator=(const geo_identity&){return *this;}
+};
+
+class geo_translation : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTranslation");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_translation");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_translation>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_translation(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_matrix::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_trans,3)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_translation_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_translation>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_translation(ifac& a_fac)
+  :geo_matrix(a_fac)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<3;i++) m_trans[i] = 0;
+  }
+  virtual ~geo_translation(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_translation(const geo_translation& a_from)
+  :iro(a_from)
+  ,geo_matrix(a_from)
+  {
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+  }
+  geo_translation& operator=(const geo_translation& a_from){
+    geo_matrix::operator=(a_from);
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+    return *this;
+  }
+public:
+  const double* trans() const {return m_trans;}
+protected:
+  double m_trans[3];
+};
+
+class geo_scale : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoScale");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_scale");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_scale>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_scale(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_matrix::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_scale,3)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_scale_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_scale>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_scale(ifac& a_fac)
+  :geo_matrix(a_fac)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<3;i++) m_scale[i] = 1;
+  }
+  virtual ~geo_scale(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_scale(const geo_scale& a_from)
+  :iro(a_from)
+  ,geo_matrix(a_from){
+    for(unsigned int i=0;i<3;i++) m_scale[i] = a_from.m_scale[i];
+  }
+  geo_scale& operator=(const geo_scale& a_from){
+    geo_matrix::operator=(a_from);
+    for(unsigned int i=0;i<3;i++) m_scale[i] = a_from.m_scale[i];
+    return *this;
+  }
+public:
+  const double* scale() const {return m_scale;}
+protected:
+  double m_scale[3];
+};
+
+class geo_rotation : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoRotation");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_rotation");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_rotation>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_rotation(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_matrix::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_matrix,9)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_rotation_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_rotation>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_rotation(ifac& a_fac)
+  :geo_matrix(a_fac)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    m_matrix[0] = 1;m_matrix[1] = 0;m_matrix[2] = 0;
+    m_matrix[3] = 0;m_matrix[4] = 1;m_matrix[5] = 0;
+    m_matrix[6] = 0;m_matrix[7] = 0;m_matrix[8] = 1;
+  }
+  virtual ~geo_rotation(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_rotation(const geo_rotation& a_from)
+  :iro(a_from)
+  ,geo_matrix(a_from)
+  {
+    for(unsigned int i=0;i<9;i++) m_matrix[i] = a_from.m_matrix[i];
+  }
+  geo_rotation& operator=(const geo_rotation& a_from){
+    geo_matrix::operator=(a_from);
+    for(unsigned int i=0;i<9;i++) m_matrix[i] = a_from.m_matrix[i];
+    return *this;
+  }
+public:
+/*
+  void multiply(const geo_rotation& a_from) {
+    //m_matrix[C + R * 3];
+    const double* fv = a_from.m_matrix;
+    double* tv = m_matrix;
+    //vec[0] = 00;vec[1] = 01;vec[2] = 02;
+    //vec[3] = 10;vec[4] = 11;vec[5] = 12;
+    //vec[6] = 20;vec[7] = 21;vec[8] = 22;
+    
+    float v00 = tv[0]*fv[0]+tv[1]*fv[3]+tv[2]*fv[6];
+    float v10 = tv[3]*fv[0]+tv[4]*fv[3]+tv[5]*fv[6];
+    float v20 = tv[6]*fv[0]+tv[7]*fv[3]+tv[8]*fv[6];
+
+    float v01 = tv[0]*fv[1]+tv[1]*fv[4]+tv[2]*fv[7];
+    float v11 = tv[3]*fv[1]+tv[4]*fv[4]+tv[5]*fv[7];
+    float v21 = tv[6]*fv[1]+tv[7]*fv[4]+tv[8]*fv[7];
+
+    float v02 = tv[0]*fv[2]+tv[1]*fv[5]+tv[2]*fv[8];
+    float v12 = tv[3]*fv[2]+tv[4]*fv[5]+tv[5]*fv[8];
+    float v22 = tv[6]*fv[2]+tv[7]*fv[5]+tv[8]*fv[8];
+
+    tv[0] = v00;tv[1] = v01;tv[2] = v02;
+    tv[3] = v10;tv[4] = v11;tv[5] = v12;
+    tv[6] = v20;tv[7] = v21;tv[8] = v22;
+  }
+  void setup(double a_x,double a_y,double a_z,double a_angle) {
+    //WARNING : (a_x,a_y,a_z) must be a normalized vector.
+    double c = ::cos(a_angle);    
+    double s = ::sin(a_angle);    
+    double x = a_x;
+    double y = a_y;
+    double z = a_z;
+    double x2 = x*x;
+    double y2 = y*y;
+    double z2 = z*z;
+    double xy = x*y;
+    double xz = x*z;
+    double yz = y*z;
+    double* v = m_matrix;
+    v[0] =  x2+(1-x2)*c;v[1] = xy*(1-c)-z*s;v[2] = xz*(1-c)+y*s;
+    v[3] = xy*(1-c)+z*s;v[4] =  y2+(1-y2)*c;v[5] = yz*(1-c)-x*s;
+    v[6] = xz*(1-c)-y*s;v[7] = yz*(1-c)+x*s;v[8] =  z2+(1-z2)*c;
+  }
+  void multiply(float a_x,float a_y,float a_z,float a_angle) {
+    geo_rotation tmp(m_fac);
+    tmp.setup(a_x,a_y,a_z,a_angle);
+    multiply(tmp);
+  }
+*/
+public:
+  const double* matrix() const {return m_matrix;}
+protected:
+  //NOTE : m_matrix is transposed compared to inlib::mat4f::m_vector.
+  double m_matrix[9];
+};
+
+class geo_hmatrix : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoHMatrix");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_hmatrix");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_hmatrix>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_hmatrix(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_matrix::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_trans,3)) return false;
+    if(!a_buffer.read_fast_array(m_matrix,9)) return false;
+    if(!a_buffer.read_fast_array(m_scale,3)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_hmatrix_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_hmatrix>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_hmatrix(ifac& a_fac):geo_matrix(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<3;i++) m_trans[i] = 0;
+
+    //rotation :
+    m_matrix[0] = 1;m_matrix[1] = 0;m_matrix[2] = 0;
+    m_matrix[3] = 0;m_matrix[4] = 1;m_matrix[5] = 0;
+    m_matrix[6] = 0;m_matrix[7] = 0;m_matrix[8] = 1;
+
+    for(unsigned int i=0;i<3;i++) m_scale[i] = 1;
+  }
+  virtual ~geo_hmatrix(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_hmatrix(const geo_hmatrix& a_from)
+  :iro(a_from)
+  ,geo_matrix(a_from){
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+    for(unsigned int i=0;i<9;i++) m_matrix[i] = a_from.m_matrix[i];
+    for(unsigned int i=0;i<3;i++) m_scale[i] = a_from.m_scale[i];
+  }
+  geo_hmatrix& operator=(const geo_hmatrix& a_from){
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+    for(unsigned int i=0;i<9;i++) m_matrix[i] = a_from.m_matrix[i];
+    for(unsigned int i=0;i<3;i++) m_scale[i] = a_from.m_scale[i];
+    return *this;
+  }
+public:
+  const double* trans() const {return m_trans;}
+  const double* matrix() const {return m_matrix;}
+  const double* scale() const {return m_scale;}
+protected:
+  double m_trans[3];  // translation vector
+  double m_matrix[9]; // rotation matrix
+  double m_scale[3];  // scale component
+};
+
+class geo_combi_trans : public geo_matrix {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoCombiTrans");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_combi_trans");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_combi_trans>(this,a_class)) return p;
+    return geo_matrix::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_combi_trans(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_matrix::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_trans,3)) return false;
+
+    //a_buffer.out() << "debug :"
+    //               << " x " << fTranslation[0]
+    //               << " y " << fTranslation[1]
+    //               << " z " << fTranslation[1]
+    //               << std::endl;
+
+    //TGeoRotation* fRotation;       // rotation matrix
+    ifac::args args;
+    if(!pointer_stream(a_buffer,m_fac,args,m_rotation)) {
+      a_buffer.out() << "inlib::rroot::geo_combi_trans::stream : "
+            << "can't read fRotation."
+            << std::endl;
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_combi_trans_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_combi_trans>(this,a_class)) {return p;}
+    else return geo_matrix::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_combi_trans(ifac& a_fac)
+  :geo_matrix(a_fac)
+  ,m_rotation(0) //not owner
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<3;i++) m_trans[i] = 0;
+  }
+  virtual ~geo_combi_trans(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_combi_trans(const geo_combi_trans& a_from)
+  :iro(a_from)
+  ,geo_matrix(a_from)
+  ,m_rotation(a_from.m_rotation)
+  {
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+  }
+  geo_combi_trans& operator=(const geo_combi_trans& a_from){
+    geo_matrix::operator=(a_from);
+    for(unsigned int i=0;i<3;i++) m_trans[i] = a_from.m_trans[i];
+    m_rotation = a_from.m_rotation;
+    return *this;
+  }
+public:
+  const double* trans() const {return m_trans;}
+  const geo_rotation* rot() const {return m_rotation;}
+protected:
+  double m_trans[3];
+  geo_rotation* m_rotation;
+};
+
+}}
+
+#endif

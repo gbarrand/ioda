@@ -1,0 +1,255 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_exa_gui
+#define inlib_exa_gui
+
+#include "../sis"
+#include "../sg/bcub"
+#include "../sg/view_evd"
+
+namespace inlib {
+namespace exa {
+
+inline sg::return_action action_numeric(sg::gui_viewer& a_gv,sg::numeric& a_widget) {
+  if(a_widget.number_type.value()==sg::number_ip) {
+    const std::string& s = a_widget.value.value();
+    if(!is_ip(s)) {
+      a_gv.map_warn("not an ip number");
+    } else {
+      a_gv.map_warn(s,false);
+    }
+  } else {
+    double d;
+    if(!to<double>(a_widget.value.value(),d)) {
+      a_gv.map_warn_nan();
+    } else {
+      a_gv.map_warn(a_widget.value.value(),false);
+    }
+  }
+  return sg::return_to_render;
+}
+
+inline sg::return_action numeric(sg::gui_viewer& a_gv) {
+  sg::numeric* node = new sg::numeric(a_gv.ttf());
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_numeric);
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action ip(sg::gui_viewer& a_gv) {
+  sg::numeric* node = new sg::numeric(a_gv.ttf());
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_numeric);
+  node->number_type = sg::number_ip;
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_entry_numeric(sg::gui_viewer& a_gv,sg::numeric& a_widget) {
+  a_gv.map_warn(a_widget.value.value(),false);
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_entry(sg::gui_viewer& a_gv,sg::entry& a_widget) {
+  sg::numeric* node = new sg::numeric(a_gv.ttf());
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_entry_numeric);
+  node->back_color = a_widget.back_color;
+  node->front_color = a_widget.front_color;
+  node->border_color = a_widget.border_color;
+  node->arm_color = a_widget.arm_color;
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action entry(sg::gui_viewer& a_gv) {
+  sg::entry* node = new sg::entry(a_gv.ttf());
+  node->label = "number";
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_entry);
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_show_entries(sg::gui_viewer& a_gv,sg::entries& a_widget) {
+  a_gv.map_warn(tos(a_widget.values.values()," "),false);
+  return sg::return_to_render;
+}
+
+inline sg::return_action entries(sg::gui_viewer& a_gv) {
+  sg::entries* node = new sg::entries(a_gv.ttf());
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_show_entries);
+
+  node->add_string("text","hello");
+  node->add_uint("uint",100);
+  node->add_int("int",-10);
+  node->add_float("real",1.2f);
+  node->add_bool("bool",false);
+  node->add_color("color",colorf_red());
+
+ {std::vector<std::string> opts;
+  opts.push_back("opt_1");
+  opts.push_back("opt_2");
+  opts.push_back("opt_3");
+  node->add_opts("options","opt_1",opts);}
+
+  node->add_range("range",1.2,1,3);
+
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_show_color(sg::gui_viewer& a_gv,sg::colors& a_widget) {
+  a_gv.map_warn(a_widget.value.value(),false);
+  return sg::return_to_render;
+}
+
+inline sg::return_action colors(sg::gui_viewer& a_gv) {
+  sg::colors* node = new sg::colors(a_gv.ttf());
+  a_gv.set_style(*node);
+  sg::add_callback(a_gv,*node,action_show_color);
+  a_gv.push_list(node);
+  return sg::return_to_render;
+}
+
+inline sg::return_action vis_colors(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(2));
+  }
+  a_gv.set_plane_viewer(true);
+
+  sg::separator& dsep = _evd->detector_sg();
+
+  //dsep.clear();
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+  sg::style_default_colormap def_cmap; //costly
+
+  unsigned int index = 0;
+  size_t number = def_cmap.size();
+  
+  float y = 0.5f;    
+  for(unsigned int irow=0;irow<50;irow++) {
+    float x = -0.5f;
+    for(unsigned int icol=0;icol<2;icol++) {
+      if(index>=number) break;  
+  
+      sg::separator* _sep = new sg::separator;
+      sep->add(_sep);
+  
+      sg::style_colormap::const_iterator it = def_cmap.find(index);
+      if(it==def_cmap.end()) {
+        a_gv.out() << "inlib::exa::vis_colors :"
+                   << " index " << index
+                   << " not found in default colormap."
+                   << std::endl;
+      } else {
+
+        const sg::style_color& scolor = (*it).second;
+  
+        sg::rgba* mat = new sg::rgba();
+        mat->color = scolor.second;
+        _sep->add(mat);
+
+        _sep->add(new sg::normal);
+
+        sg::matrix* m = new sg::matrix;
+        _sep->add(m);
+        m->set_translate(x,y,0);
+
+        sg::base_freetype* tft = sg::base_freetype::create(a_gv.ttf());
+        tft->font = sg::font_arialbd_ttf();
+        tft->strings.add(scolor.first);
+        tft->height = 0.075f;
+        _sep->add(tft);
+      }
+
+      index++;
+  
+      x += 1;
+    }
+    y -= 0.1f;
+  }
+
+  a_gv.hide_main_menu();
+  return sg::return_to_render;
+}
+
+inline sg::return_action bcub(sg::gui_viewer& a_gv) {
+  sg::view_evd* _evd = cast_view_evd(a_gv);
+  if(!_evd) return sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_2D_camera(10));
+  }
+  a_gv.set_plane_viewer(true);
+
+  sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+
+  sg::separator* sep = new sg::separator;
+  dsep.add(sep);
+
+ {sg::matrix* m = new sg::matrix;
+  m->set_scale(1.2f,1.2f,1);
+  sep->add(m);}
+
+ {sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::matrix* m = new sg::matrix;
+  m->set_translate(-2,-2,0);
+  _sep->add(m);
+
+  sg::text_button* node = new sg::text_button(a_gv.ttf());   
+  node->width = 2;
+  node->height = 1;
+  a_gv.set_arconf(*node,"from");
+  _sep->add(node);}
+
+ {sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::matrix* m = new sg::matrix;
+  m->set_translate(2,2,0);
+  _sep->add(m);
+
+  sg::text_button* node = new sg::text_button(a_gv.ttf());   
+  node->width = 2;
+  node->height = 1;
+  a_gv.set_arconf(*node,"to");
+  _sep->add(node);}
+
+ {sg::separator* _sep = new sg::separator;
+  sep->add(_sep);
+
+  sg::matrix* m = new sg::matrix;
+  _sep->add(m);
+
+  sg::bcub* bc = new sg::bcub;
+  bc->p0 = vec3f(-2,-1.5f,0);  //begin
+  bc->p3 = vec3f( 2, 1.5f,0);  //end
+  bc->p1 = bc->p0.value()+vec3f(0, 1,0);  //ctrl
+  bc->p2 = bc->p3.value()+vec3f(0,-1,0);  //ctrl
+
+  _sep->add(bc);}    
+
+  a_gv.hide_main_menu();
+  return sg::return_to_render;
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

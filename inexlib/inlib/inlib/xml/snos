@@ -1,0 +1,849 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_xml_snos
+#define inlib_xml_snos
+
+#include <string>
+#include <vector>
+
+#ifdef INLIB_MEM
+#include "../mem"
+#endif
+
+namespace inlib {
+namespace xml {
+
+class volume {
+public:
+  volume(){}
+  virtual ~volume(){}
+public:
+  volume(const volume& a_from)
+  :m_name(a_from.m_name)
+  ,m_min_depth(a_from.m_min_depth)
+  ,m_max_depth(a_from.m_max_depth)
+  ,m_solid_depth(a_from.m_solid_depth)
+  ,m_colormap(a_from.m_colormap)
+  ,m_color(a_from.m_color)
+  ,m_max_time(a_from.m_max_time)
+  ,m_max_shapes(a_from.m_max_shapes)
+  {}
+  volume& operator=(const volume& a_from){
+    m_name = a_from.m_name;
+    m_min_depth = a_from.m_min_depth;
+    m_max_depth = a_from.m_max_depth;
+    m_solid_depth = a_from.m_solid_depth;
+    m_colormap = a_from.m_colormap;
+    m_color = a_from.m_color;
+    m_max_time = a_from.m_max_time;
+    m_max_shapes = a_from.m_max_shapes;
+    return *this;
+  }
+public:
+  std::string m_name;
+  std::string m_min_depth;
+  std::string m_max_depth;
+  std::string m_solid_depth;
+  std::vector<std::string> m_colormap;
+  std::string m_color;
+  std::string m_max_time;
+  std::string m_max_shapes;
+};
+
+class fog_file { //warning : and not fog since there is a name space fog.
+public:
+  fog_file(){}
+  virtual ~fog_file(){}
+public:
+  fog_file(const fog_file& a_from)
+  :m_file(a_from.m_file)
+  ,m_solid(a_from.m_solid)
+  ,m_color(a_from.m_color)
+  {}
+  fog_file& operator=(const fog_file& a_from){
+    m_file = a_from.m_file;
+    m_solid = a_from.m_solid;
+    m_color = a_from.m_color;
+    return *this;
+  }
+public:
+  std::string m_file;
+  std::string m_solid;
+  std::string m_color;
+};
+
+class item {
+public:
+  typedef std::pair<std::string,std::string> arg;
+public:
+  item(){}
+  item(const std::string& a_name,const std::vector<arg>& a_args)
+  :m_name(a_name)
+  ,m_args(a_args)
+  {}
+  virtual ~item(){}
+public:
+  item(const item& a_from)
+  :m_name(a_from.m_name)
+  ,m_args(a_from.m_args)
+  {}
+  item& operator=(const item& a_from){
+    m_name = a_from.m_name;
+    m_args = a_from.m_args;
+    return *this;
+  }
+public:
+  std::string m_name;
+  std::vector<arg> m_args;
+};
+
+class camera {
+public:
+  camera(){}
+  virtual ~camera(){}
+public:
+  camera(const camera& a_from)
+  :m_class(a_from.m_class)
+  ,m_height(a_from.m_height)
+  ,m_height_angle(a_from.m_height_angle)
+  ,m_znear(a_from.m_znear)
+  ,m_zfar(a_from.m_zfar)
+  ,m_position(a_from.m_position)
+  ,m_orientation(a_from.m_orientation)
+  ,m_dx(a_from.m_dx)
+  ,m_da(a_from.m_da)
+  ,m_ds(a_from.m_ds)
+  ,m_focal(a_from.m_focal)
+  {}
+  camera& operator=(const camera& a_from){
+    m_class = a_from.m_class;
+    m_height = a_from.m_height;
+    m_height_angle = a_from.m_height_angle;
+    m_znear = a_from.m_znear;
+    m_zfar = a_from.m_zfar;
+    m_position = a_from.m_position;
+    m_orientation = a_from.m_orientation;
+    m_dx = a_from.m_dx;
+    m_da = a_from.m_da;
+    m_ds = a_from.m_ds;
+    m_focal = a_from.m_focal;
+    return *this;
+  }
+public:
+  std::string m_class;
+  //according class :
+  std::string m_height;
+  std::string m_height_angle;
+  //base_camera :
+  std::string m_znear;
+  std::string m_zfar;
+  std::string m_position;
+  std::string m_orientation;
+  std::string m_dx;
+  std::string m_da;
+  std::string m_ds;
+  std::string m_focal;
+};
+
+class gun {
+public:
+  gun(){}
+  virtual ~gun(){}
+public:
+  gun(const gun& a_from)
+  :m_particle(a_from.m_particle)
+  ,m_momentum(a_from.m_momentum)
+  ,m_pos_x(a_from.m_pos_x)
+  ,m_pos_y(a_from.m_pos_y)
+  ,m_pos_z(a_from.m_pos_z)
+  ,m_dir_x(a_from.m_dir_x)
+  ,m_dir_y(a_from.m_dir_y)
+  ,m_dir_z(a_from.m_dir_z)
+  ,m_sigma_momentum(a_from.m_sigma_momentum)
+  ,m_sigma_angle(a_from.m_sigma_angle)
+  ,m_file(a_from.m_file)
+  ,m_select_particle(a_from.m_select_particle)
+  ,m_accept_event(a_from.m_accept_event)
+  ,m_primary_particle(a_from.m_primary_particle)
+  {}
+  gun& operator=(const gun& a_from){
+    m_particle = a_from.m_particle;
+    m_momentum = a_from.m_momentum;
+    m_pos_x = a_from.m_pos_x;
+    m_pos_y = a_from.m_pos_y;
+    m_pos_z = a_from.m_pos_z;
+    m_dir_x = a_from.m_dir_x;
+    m_dir_y = a_from.m_dir_y;
+    m_dir_z = a_from.m_dir_z;
+    m_sigma_momentum = a_from.m_sigma_momentum;
+    m_sigma_angle = a_from.m_sigma_angle;
+    m_file = a_from.m_file;
+    m_select_particle = a_from.m_select_particle;
+    m_accept_event = a_from.m_accept_event;
+    m_primary_particle = a_from.m_primary_particle;
+    return *this;
+  }
+public:
+  std::string m_particle;
+  std::string m_momentum;
+  std::string m_pos_x;
+  std::string m_pos_y;
+  std::string m_pos_z;
+  std::string m_dir_x;
+  std::string m_dir_y;
+  std::string m_dir_z;
+  std::string m_sigma_momentum;
+  std::string m_sigma_angle;
+  std::string m_file;
+  std::string m_select_particle;
+  std::string m_accept_event;
+  std::string m_primary_particle;
+};
+
+class atbs {
+public:
+  atbs(){}
+  virtual ~atbs(){}
+public:
+  atbs(const atbs& a_from)
+  :m_color(a_from.m_color)
+  ,m_show_name(a_from.m_show_name)
+  ,m_text_scale(a_from.m_text_scale)
+  ,m_at_end(a_from.m_at_end)
+  {}
+  atbs& operator=(const atbs& a_from){
+    m_color = a_from.m_color;
+    m_show_name = a_from.m_show_name;
+    m_text_scale = a_from.m_text_scale;
+    m_at_end = a_from.m_at_end;
+    return *this;
+  }
+public:
+  std::string m_color;
+  std::string m_show_name;
+  std::string m_text_scale;
+  std::string m_at_end;
+};
+
+
+/*
+class text : public std::vector<std::string> {
+public:
+  text(){}
+  virtual ~text(){}
+public:
+  text(const text& a_from)
+  :std::vector<std::string>(a_from)
+  ,m_color(a_from.m_color)
+  {}
+  text& operator=(const text& a_from){
+    std::vector<std::string>::operator=(a_from);
+    m_color = a_from.m_color;
+    return *this;
+  }
+public:
+  std::string m_color;
+};
+*/
+
+}}
+
+#include "../vmanip"
+#include "../S_STRING"
+
+namespace inlib {
+namespace xml {
+
+class scenario {
+public:
+  INLIB_SCLASS(inlib::xml::scenario)
+public:
+  scenario()
+  :m_center_adjust(true)
+  ,m_time_interval()
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~scenario(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  scenario(const scenario& a_from)
+  :m_name(a_from.m_name)
+  ,m_files(a_from.m_files)
+  ,m_vds(a_from.m_vds)
+  ,m_background(a_from.m_background)
+  ,m_light_on(a_from.m_light_on)
+  ,m_console(a_from.m_console)	
+  ,m_volumes(a_from.m_volumes)
+  ,m_fogs(a_from.m_fogs)
+  ,m_anim(a_from.m_anim)
+  ,m_camera(a_from.m_camera)
+  ,m_gun(a_from.m_gun)
+  ,m_trajectories(a_from.m_trajectories)
+  ,m_primaries(a_from.m_primaries)
+  ,m_text(a_from.m_text)
+  ,m_title(a_from.m_title)
+  ,m_center_adjust(a_from.m_center_adjust)
+  ,m_time_interval(a_from.m_time_interval)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  scenario& operator=(const scenario& a_from){
+    m_name = a_from.m_name;
+    m_files = a_from.m_files;
+    m_vds = a_from.m_vds;
+    m_background = a_from.m_background;
+    m_light_on = a_from.m_light_on;
+    m_console = a_from.m_console;
+    m_volumes = a_from.m_volumes;
+    m_fogs = a_from.m_fogs;
+    m_anim = a_from.m_anim;
+    m_camera = a_from.m_camera;
+    m_gun = a_from.m_gun;
+    m_trajectories = a_from.m_trajectories;
+    m_primaries = a_from.m_primaries;
+    m_text = a_from.m_text;
+    m_title = a_from.m_title;
+    m_center_adjust = a_from.m_center_adjust;
+    m_time_interval = a_from.m_time_interval;
+    return *this;
+  }
+public:
+  const std::string& name() const {return m_name;} //for find_named().
+public:
+  std::string m_name;
+  std::vector<item> m_files;
+  std::string m_vds;
+  std::string m_background;
+  std::string m_light_on;
+  std::string m_console;
+  std::vector<volume> m_volumes;
+  std::vector<fog_file> m_fogs;
+  item m_anim;
+  camera m_camera;
+  gun m_gun;
+
+  typedef std::vector< std::pair<std::string,atbs> > named_atbs_t;
+
+  std::vector<named_atbs_t> m_trajectories;
+  std::vector<named_atbs_t> m_primaries;
+
+  named_atbs_t m_text;
+  named_atbs_t m_title;
+
+  bool m_center_adjust;
+  std::string m_time_interval;
+};
+
+class scenarios : public std::vector<scenario*> {
+public:
+  INLIB_SCLASS(inlib::xml::scenarios)
+public:
+  scenarios(){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~scenarios(){
+    raw_clear(*this);
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  scenarios(const scenarios& a_from)
+  :std::vector<scenario*>(a_from)
+  ,m_time_interval(a_from.m_time_interval)
+  ,m_background(a_from.m_background)
+  ,m_light_on(a_from.m_light_on)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  scenarios& operator=(const scenarios& a_from){
+    std::vector<scenario*>::operator=(a_from);
+    m_time_interval = a_from.m_time_interval;
+    m_background = a_from.m_background;
+    m_light_on = a_from.m_light_on;
+    return *this;
+  }
+public:
+  std::string m_time_interval;
+  std::string m_background;
+  std::string m_light_on;
+};
+
+}}
+
+#include "../S_STRING"
+#include "tree"
+
+namespace inlib {
+namespace xml {
+
+INLIB_GLOBAL_STRING(time_interval)
+INLIB_GLOBAL_STRING(color)
+INLIB_GLOBAL_STRING(name)
+INLIB_GLOBAL_STRING(min_depth)
+INLIB_GLOBAL_STRING(max_depth)
+INLIB_GLOBAL_STRING(solid_depth)
+INLIB_GLOBAL_STRING(max_time)
+INLIB_GLOBAL_STRING(max_shapes)
+INLIB_GLOBAL_STRING(colormap)
+INLIB_GLOBAL_STRING(file)
+INLIB_GLOBAL_STRING(anim)
+INLIB_GLOBAL_STRING(solid)
+INLIB_GLOBAL_STRING(class)
+INLIB_GLOBAL_STRING(height)
+INLIB_GLOBAL_STRING(height_angle)
+INLIB_GLOBAL_STRING(znear)
+INLIB_GLOBAL_STRING(zfar)
+INLIB_GLOBAL_STRING(position)
+INLIB_GLOBAL_STRING(orientation)
+INLIB_GLOBAL_STRING(dx)
+INLIB_GLOBAL_STRING(da)
+INLIB_GLOBAL_STRING(ds)
+INLIB_GLOBAL_STRING(focal)
+INLIB_GLOBAL_STRING(particle)
+INLIB_GLOBAL_STRING(momentum)
+INLIB_GLOBAL_STRING(pos_x)
+INLIB_GLOBAL_STRING(pos_y)
+INLIB_GLOBAL_STRING(pos_z)
+INLIB_GLOBAL_STRING(dir_x)
+INLIB_GLOBAL_STRING(dir_y)
+INLIB_GLOBAL_STRING(dir_z)
+INLIB_GLOBAL_STRING(sigma_momentum)
+INLIB_GLOBAL_STRING(sigma_angle)
+INLIB_GLOBAL_STRING(vds)
+INLIB_GLOBAL_STRING(background)
+INLIB_GLOBAL_STRING(light_on)
+INLIB_GLOBAL_STRING(console)
+INLIB_GLOBAL_STRING(volume)
+INLIB_GLOBAL_STRING(fog)
+INLIB_GLOBAL_STRING(camera)
+INLIB_GLOBAL_STRING(gun)
+INLIB_GLOBAL_STRING(trajectories)
+INLIB_GLOBAL_STRING(primaries)
+INLIB_GLOBAL_STRING(select_particle)
+INLIB_GLOBAL_STRING(accept_event)
+INLIB_GLOBAL_STRING(primary_particle)
+INLIB_GLOBAL_STRING(show_name)
+INLIB_GLOBAL_STRING(text_scale)
+INLIB_GLOBAL_STRING(at_end)
+INLIB_GLOBAL_STRING(text)
+INLIB_GLOBAL_STRING(line)
+INLIB_GLOBAL_STRING(value)
+//INLIB_GLOBAL_STRING(image)
+INLIB_GLOBAL_STRING(title)
+
+INLIB_GLOBAL_STRING(scenarios)
+INLIB_GLOBAL_STRING(scenario)
+
+INLIB_GLOBAL_STRING(slides)
+INLIB_GLOBAL_STRING(slide)
+
+INLIB_GLOBAL_STRING(false)
+INLIB_GLOBAL_STRING(true)
+
+inline bool load_colormap(std::ostream& a_out,const tree& a_tree,std::vector<std::string>& a_colormap) {
+  a_colormap.clear();
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_color()) {
+      a_colormap.push_back(_elem->value());
+    } else {
+      a_out << "exlib::xml::load_colormap :"
+            << " unknown property " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }}  
+
+  return true;
+}
+
+inline bool load_volume(std::ostream& a_out,const tree& a_tree,scenario& a_sno) {
+
+  a_sno.m_volumes.push_back(volume());
+  volume& vol = a_sno.m_volumes.back();
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_name()) {
+      vol.m_name = _elem->value();
+    } else if(_elem->name()==s_min_depth()) {
+      vol.m_min_depth = _elem->value();
+    } else if(_elem->name()==s_max_depth()) {
+      vol.m_max_depth = _elem->value();
+    } else if(_elem->name()==s_solid_depth()) {
+      vol.m_solid_depth = _elem->value();
+    } else if(_elem->name()==s_color()) {
+      vol.m_color = _elem->value();
+    } else if(_elem->name()==s_max_time()) {
+      vol.m_max_time = _elem->value();
+    } else if(_elem->name()==s_max_shapes()) {
+      vol.m_max_shapes = _elem->value();
+    } else {
+      a_out << "exlib::xml::load_volume :"
+            << " unknown property " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }}  
+
+  // look for a colormap :
+ {looper _for(a_tree);
+  while(tree* _tree = _for.next_tree()) {
+
+    const std::string& tag = _tree->tag_name();
+    if(tag==s_colormap()) {   
+      if(!load_colormap(a_out,*_tree,vol.m_colormap)) return false;
+    }
+
+  }}
+
+  return true;
+}
+
+inline bool load_fog(std::ostream& a_out,const tree& a_tree,scenario& a_sno) {
+
+  a_sno.m_fogs.push_back(fog_file());
+  fog_file& fog = a_sno.m_fogs.back();
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_file()) {
+      fog.m_file = _elem->value();
+    } else if(_elem->name()==s_solid()) {
+      fog.m_solid = _elem->value();
+    } else if(_elem->name()==s_color()) {
+      fog.m_color = _elem->value();
+    } else {
+      a_out << "exlib::xml::load_fog :"
+            << " unknown property " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }}  
+
+  return true;
+}
+
+inline bool load_camera(std::ostream& a_out,const tree& a_tree,scenario& a_sno) {
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_class()) {
+      a_sno.m_camera.m_class = _elem->value();
+
+    } else if(_elem->name()==s_height()) {
+      a_sno.m_camera.m_height = _elem->value();
+    } else if(_elem->name()==s_height_angle()) {
+      a_sno.m_camera.m_height_angle = _elem->value();
+
+    } else if(_elem->name()==s_znear()) {
+      a_sno.m_camera.m_znear = _elem->value();
+    } else if(_elem->name()==s_zfar()) {
+      a_sno.m_camera.m_zfar = _elem->value();
+    } else if(_elem->name()==s_position()) {
+      a_sno.m_camera.m_position = _elem->value();
+    } else if(_elem->name()==s_orientation()) {
+      a_sno.m_camera.m_orientation = _elem->value();
+    } else if(_elem->name()==s_dx()) {
+      a_sno.m_camera.m_dx = _elem->value();
+    } else if(_elem->name()==s_da()) {
+      a_sno.m_camera.m_da = _elem->value();
+    } else if(_elem->name()==s_ds()) {
+      a_sno.m_camera.m_ds = _elem->value();
+    } else if(_elem->name()==s_focal()) {
+      a_sno.m_camera.m_focal = _elem->value();
+
+    } else {
+      a_out << "exlib::xml::load_camera :"
+            << " unknown field " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }} 
+
+  return true;
+}
+
+inline bool load_gun(std::ostream& a_out,const tree& a_tree,scenario& a_sno) {
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_particle()) {
+      a_sno.m_gun.m_particle = _elem->value();
+
+    } else if(_elem->name()==s_momentum()) {
+      a_sno.m_gun.m_momentum = _elem->value();
+
+    } else if(_elem->name()==s_pos_x()) {
+      a_sno.m_gun.m_pos_x = _elem->value();
+    } else if(_elem->name()==s_pos_y()) {
+      a_sno.m_gun.m_pos_y = _elem->value();
+    } else if(_elem->name()==s_pos_z()) {
+      a_sno.m_gun.m_pos_z = _elem->value();
+
+    } else if(_elem->name()==s_dir_x()) {
+      a_sno.m_gun.m_dir_x = _elem->value();
+    } else if(_elem->name()==s_dir_y()) {
+      a_sno.m_gun.m_dir_y = _elem->value();
+    } else if(_elem->name()==s_dir_z()) {
+      a_sno.m_gun.m_dir_z = _elem->value();
+
+    } else if(_elem->name()==s_sigma_momentum()) {
+      a_sno.m_gun.m_sigma_momentum = _elem->value();
+    } else if(_elem->name()==s_sigma_angle()) {
+      a_sno.m_gun.m_sigma_angle = _elem->value();
+
+    } else if(_elem->name()==s_file()) {
+      a_sno.m_gun.m_file = _elem->value();
+    } else if(_elem->name()==s_select_particle()) {
+      a_sno.m_gun.m_select_particle = _elem->value();
+    } else if(_elem->name()==s_accept_event()) {
+      a_sno.m_gun.m_accept_event = _elem->value();
+    } else if(_elem->name()==s_primary_particle()) {
+      a_sno.m_gun.m_primary_particle = _elem->value();
+
+    } else {
+      a_out << "exlib::xml::load_gun :"
+            << " unknown field " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }} 
+
+  return true;
+}
+
+typedef scenario::named_atbs_t named_atbs_t;
+
+inline bool load_named_atbs(std::ostream& a_out,const tree& a_tree,named_atbs_t& a_natbs) {
+  a_natbs.clear();
+
+/*
+  if(!a_tree.attribute_value(s_name(),a_natbs.m_name)) {
+    a_out << "exlib::xml::load_named_atbs :"
+          << " attribute name not found."
+          << std::endl; 
+    return false;
+  }
+*/
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_particle()) {
+
+      std::string particle;
+      if(!_elem->attribute_value(s_name(),particle)) {
+        a_out << "exlib::xml::load_named_atbs :"
+              << " name attribute not found for <particle>."
+              << std::endl; 
+        return false;
+      }
+
+      typedef atbs atbs_t;
+      atbs_t atb;
+
+      if(!_elem->attribute_value(s_color(),atb.m_color)) {
+        a_out << "exlib::xml::load_named_atb :"
+              << " color attribute not found."
+              << std::endl; 
+        return false;
+      }
+
+      if(!_elem->attribute_value(s_show_name(),atb.m_show_name)) {
+        atb.m_show_name = s_false();
+      }
+      if(!_elem->attribute_value(s_text_scale(),atb.m_text_scale)) {
+        atb.m_text_scale = "1";
+      }
+      if(!_elem->attribute_value(s_at_end(),atb.m_at_end)) {
+        atb.m_at_end = s_true();
+      }
+
+      a_natbs.push_back(std::pair<std::string,atbs_t>(particle,atb));
+
+    } else if(_elem->name()==s_line()) {
+
+      std::string v;
+      if(!_elem->attribute_value(s_value(),v)) {
+        a_out << "exlib::xml::load_named_atbs :"
+              << " value attribute not found."
+              << std::endl; 
+        return false;
+      }
+
+      typedef atbs atbs_t;
+      atbs_t atb;
+
+      if(!_elem->attribute_value(s_color(),atb.m_color)) {
+        a_out << "exlib::xml::load_named_atb :"
+              << " color attribute not found."
+              << std::endl; 
+        return false;
+      }
+
+      a_natbs.push_back(std::pair<std::string,atbs_t>(v,atb));
+
+    } else {
+      a_out << "exlib::xml::load_named_atbs :"
+            << " unknown property " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+/*
+    if(_elem->name()==s_particle()) {
+      dp.m_particle = _elem->value();
+    } else if(_elem->name()==s_color()) {
+      dp.m_color = _elem->value();
+    } else {
+      a_out << "exlib::xml::load_named_atbs :"
+            << " unknown property " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+*/
+
+  }}  
+
+  return true;
+}
+
+inline bool load_scenario(std::ostream& a_out,const tree& a_tree,scenario& a_sno) {
+
+  a_tree.attribute_value(s_name(),a_sno.m_name);
+
+  a_sno.m_fogs.clear();
+  a_sno.m_files.clear();
+
+ {looper _for(a_tree);
+  while(element* _elem = _for.next_element()) {
+
+    if(_elem->name()==s_file()) {
+      a_sno.m_files.push_back
+        (item(_elem->value(),_elem->attributes()));
+
+    } else if(_elem->name()==s_anim()) {
+      a_sno.m_anim = item(_elem->value(),_elem->attributes());
+
+    } else if(_elem->name()==s_vds()) {
+      a_sno.m_vds = _elem->value();
+    } else if(_elem->name()==s_background()) {
+      a_sno.m_background = _elem->value();
+    } else if(_elem->name()==s_light_on()) {
+      a_sno.m_light_on = _elem->value();
+    } else if(_elem->name()==s_time_interval()) {
+      a_sno.m_time_interval = _elem->value();
+    } else if(_elem->name()==s_console()) {
+      a_sno.m_console = _elem->value();
+//  } else if(_elem->name()==s_image()) {
+//    a_sno.m_image = _elem->value();
+    } else {
+      a_out << "exlib::xml::load_scenario :"
+            << " unknown field " << sout(_elem->name()) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }}  
+
+  // scan children :
+ {looper _for(a_tree);
+  while(tree* _tree = _for.next_tree()) {
+
+    const std::string& tag = _tree->tag_name();
+    if(tag==s_volume()) {   
+      if(!load_volume(a_out,*_tree,a_sno)) return false;
+
+    } else if(tag==s_fog()) {   
+      if(!load_fog(a_out,*_tree,a_sno)) return false;
+
+    } else if(tag==s_camera()) {   
+      if(!load_camera(a_out,*_tree,a_sno)) return false;
+
+    } else if(tag==s_gun()) {   
+      if(!load_gun(a_out,*_tree,a_sno)) return false;
+
+    } else if(tag==s_trajectories()) {   
+      a_sno.m_trajectories.push_back(named_atbs_t());
+      if(!load_named_atbs(a_out,*_tree,a_sno.m_trajectories.back()))
+        return false;
+
+    } else if(tag==s_primaries()) {   
+      a_sno.m_primaries.push_back(named_atbs_t());
+      if(!load_named_atbs(a_out,*_tree,a_sno.m_primaries.back()))
+        return false;
+
+    } else if(tag==s_text()) {   
+      //a_sno.m_texts.push_back(named_atbs_t());
+      //if(!load_named_atbs(a_out,*_tree,a_sno.m_texts.back()))
+      if(!load_named_atbs(a_out,*_tree,a_sno.m_text))
+        return false;
+
+    } else if(tag==s_title()) {   
+      if(!load_named_atbs(a_out,*_tree,a_sno.m_title))
+        return false;
+
+    } else {
+      a_out << "exlib::xml::load_scenario :"
+            << " unknown tag " << sout(tag) << "."
+            << std::endl; 
+      return false;
+    }
+
+  }}
+
+  return true;
+}
+
+inline bool scan_tree(std::ostream& a_out,const tree& a_tree,std::vector<scenario*>& a_snos) {
+
+  const std::string& tag = a_tree.tag_name();
+  if( (tag==s_scenarios()) ||
+      (tag==s_slides())    ){
+
+    looper _for(a_tree);
+    while(tree* _tree = _for.next_tree()) {
+
+      if(!scan_tree(a_out,*_tree,a_snos)) return false;
+
+    }
+
+  } else if( (tag==s_scenario()) ||
+             (tag==s_slide())    ){
+    scenario* sno = new scenario();
+    if(!load_scenario(a_out,a_tree,*sno)) {delete sno;return false;}
+    a_snos.push_back(sno);
+  }
+
+  return true;
+}
+
+}}
+
+#endif

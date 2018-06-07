@@ -1,0 +1,36 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_exa_gopaw
+#define inlib_exa_gopaw
+
+#include <inlib/system>
+#include <inlib/sg/gui_viewer>
+
+namespace inlib {
+namespace exa {
+
+INLIB_GLOBAL_STRING(IODA_paw_py_root)
+
+inline inlib::sg::return_action paw_py_root_all_kumac(inlib::sg::gui_viewer& a_gv) {
+  std::string IODA_paw_py_root;
+  if(!inlib::getenv(s_IODA_paw_py_root(),IODA_paw_py_root)) {}
+  std::string file = IODA_paw_py_root+inlib::sep()+"all.kumac";
+  bool done;
+  a_gv.opener().open(file,inlib::file::s_format_kumac(),inlib::args(),done);
+  return inlib::sg::return_to_render;
+}
+
+inline inlib::sg::return_action paw_py_root_debug_kumac(inlib::sg::gui_viewer& a_gv) {
+  std::string IODA_paw_py_root;
+  if(!inlib::getenv(s_IODA_paw_py_root(),IODA_paw_py_root)) {}
+  std::string file = IODA_paw_py_root+inlib::sep()+"debug.kumac";
+  bool done;
+  a_gv.opener().open(file,inlib::file::s_format_kumac(),inlib::args(),done);
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+#endif
+

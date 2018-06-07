@@ -1,0 +1,107 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_scenarios_opener
+#define exlib_scenarios_opener
+
+#include <inlib/sg/iopener>
+#include <inlib/cbk/scenario>
+
+#include "xml/xml_sno"
+
+namespace exlib {
+
+class scenarios_opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::scenarios_opener)
+private:
+  typedef inlib::xml::scenarios snos_t;
+public:
+  virtual parent* copy() const {return new scenarios_opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {return inlib::file::is_scenarios(a_path,a_is);}
+
+  virtual bool open(const std::string& a_path,inlib::sg::viewer& a_viewer,
+                    const inlib::args& a_args,bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    //popup :
+    bool popup;
+    if(!a_args.find(inlib::sg::s_popup(),popup,false)) {}
+    int ex;
+    if(!a_args.find<int>(inlib::sg::s_ex(),ex)) {}
+    int ey;
+    if(!a_args.find<int>(inlib::sg::s_ey(),ey)) {}
+
+    std::ostream& out = a_gv.out();
+
+    snos_t snos;
+    if(!xml::load_file(out,a_path,snos)) return false;
+
+    inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+    a_gv.set_style(*list);
+  
+    inlib_vforit(inlib::xml::scenario*,snos,it) {
+      //NOTE : there are still gui_viewer.map_warn() in the below callback.
+      list->add((*it)->m_name,new inlib::cbk::scenario_cp(a_gv,m_openers,a_args,*(*it)));
+    }
+
+    a_gv.show_widget(list,popup,ex,ey);
+
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+
+  virtual bool open(const std::string&,
+                    inlib::sg::viewer&,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  typedef std::pair<std::string,parent*> named_opener_t;
+  scenarios_opener(const std::vector<named_opener_t>& a_openers):m_openers(a_openers) {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~scenarios_opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  scenarios_opener(const scenarios_opener& a_from):parent(a_from),m_openers(a_from.m_openers) {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  scenarios_opener& operator=(const scenarios_opener&){return *this;}  
+protected:
+  const std::vector<named_opener_t>& m_openers;
+};
+
+}
+
+#endif
+
+//exlib_build_use inlib expat kernel

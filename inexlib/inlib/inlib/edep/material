@@ -1,0 +1,367 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_edep_material
+#define inlib_edep_material
+
+/// Materials are used to define the composition of volumes.
+/// A material is always made of elements.
+/// It can be defined directly from scratch (defined by an implicit,
+/// single element), specifying : its name, density, state (solid,etc...)
+/// and Z,A of the underlying element.
+/// It can also be defined in terms of a collection of constituent
+/// elements with specified weights (composition specified either
+/// by fractional mass or atom counts).
+/// Quantities, with physical meaning or not, which are constant in a given 
+/// material are computed and stored here as Derived data members.
+
+#include "element"
+
+#include "../vmanip"
+//#include "../vdata" //for Geant4 API.
+#include "best_units"
+#include "ionisation_material"
+
+#ifdef INLIB_MEM
+#include "../mem"
+#endif
+
+namespace inlib {
+namespace edep {
+
+class material {
+#ifdef INLIB_MEM
+  INLIB_SCLASS(inlib::edep::material)
+#endif
+protected:
+  material(){}
+public:
+  enum state_e {undefined,solid,liquid,gas};
+  material(std::ostream& a_err,
+           const std::string& a_name,
+           double a_density,
+           state_e a_state,
+           double a_temperature,
+           double a_pressure,
+           double a_Z,double a_A)
+  :m_name(a_name)
+  ,m_density(a_density)
+  ,m_state(a_state)
+  ,m_temperature(a_temperature)
+  ,m_pressure(a_pressure)
+  ,m_tot_atoms_per_volume(0)
+  ,m_tot_electrons_per_volume(0)
+  ,m_radiation_length(0)
+  ,m_nuclear_interaction_length(0)
+  ,m_ionisation(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+
+    if(m_density<universe_mean_density) { 
+      a_err << "inlib::edep::material::material :"
+            << " warning :"
+            << " defining a material with density=0 is not allowed."
+            << std::endl
+            << " The material " << m_name << " will be constructed with the"
+            << " default minimal density " 
+            << universe_mean_density/(g/cm3) << "g/cm3"
+            << std::endl;
+      m_density = universe_mean_density;
+    } 
+  
+    if(m_state==undefined){
+      if(m_density > gas_threshold) m_state = solid;
+      else                          m_state = gas;
+    }
+  
+    m_elements.push_back(new element(a_err,a_name," ",a_Z,a_A));
+    m_mass_fractions.push_back(1);
+
+    init();
+  }
+
+  material(std::ostream& a_err,
+           const std::string& a_name,
+           double a_density,
+           state_e a_state,
+           double a_temperature,
+           double a_pressure,
+           const std::vector< std::pair<material*,double> >& a_mat_fracs,
+           const std::vector< std::pair<element*,double> >& a_elem_fracs,
+           const std::vector< std::pair<element*,int> >& a_elem_ns)
+  :m_name(a_name)
+  ,m_density(a_density)
+  ,m_state(a_state)
+  ,m_temperature(a_temperature)
+  ,m_pressure(a_pressure)
+  ,m_tot_atoms_per_volume(0)
+  ,m_tot_electrons_per_volume(0)
+  ,m_radiation_length(0)
+  ,m_nuclear_interaction_length(0)
+  ,m_ionisation(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+
+    if(m_density<universe_mean_density) { 
+      a_err << "inlib::edep::material::material :"
+            << " warning :"
+            << " defining a material with density=0 is not allowed."
+            << std::endl
+            << " The material " << m_name << " will be constructed with the"
+            << " default minimal density " 
+            << universe_mean_density/(g/cm3) << "g/cm3"
+            << std::endl;
+      m_density = universe_mean_density;
+    } 
+  
+    if(m_state==undefined){
+      if(m_density > gas_threshold) m_state = solid;
+      else                          m_state = gas;
+    }
+  
+/*
+   {std::vector< std::pair<G4Material*,double> >::const_iterator it;
+    for(it=a_mat_fracs.begin();it!=a_mat_fracs.end();++it){
+      material->AddMaterial((*it).first,(*it).second);
+    }}
+*/
+   {std::vector< std::pair<element*,double> >::const_iterator it;
+    for(it=a_elem_fracs.begin();it!=a_elem_fracs.end();++it){
+      const element* elem = (*it).first;
+      double fraction = (*it).second;
+      if((fraction<0.0)||(fraction>1.0)) {
+        a_err << "inlib::edep::material::material :"
+              << " for " << a_name << " and " 
+              << elem->name() << "  mass fraction= " << fraction 
+              << " is wrong "
+              << std::endl;
+        continue;
+      }
+      m_elements.push_back(new element(*elem));
+      m_mass_fractions.push_back(fraction);
+    }}
+/*
+   {std::vector< std::pair<G4Element*,int> >::const_iterator it;
+    for(it=a_elem_ns.begin();it!=a_elem_ns.end();++it){
+      material->AddElement((*it).first,(*it).second);
+    }}
+*/
+
+    m_mass_fractions.push_back(1);
+
+    init();
+  }
+
+  virtual ~material(){
+    delete m_ionisation;
+    safe_clear<element>(m_elements);
+    m_mass_fractions.clear();
+    m_atoms_per_volume.clear();
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+  
+public:
+  material(const material& a_from)
+  :m_mass_fractions(a_from.m_mass_fractions)
+  ,m_name(a_from.m_name)
+  ,m_density(a_from.m_density)
+  ,m_state(a_from.m_state)
+  ,m_temperature(a_from.m_temperature)
+  ,m_pressure(a_from.m_pressure)
+
+  ,m_atoms_per_volume(a_from.m_atoms_per_volume)
+  ,m_tot_atoms_per_volume(a_from.m_tot_atoms_per_volume)
+  ,m_tot_electrons_per_volume(a_from.m_tot_electrons_per_volume)
+  ,m_radiation_length(a_from.m_radiation_length)
+  ,m_nuclear_interaction_length(a_from.m_nuclear_interaction_length)
+  ,m_ionisation(0)
+  { 
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    vcopy<element>(m_elements,a_from.m_elements);
+    m_ionisation = new ionisation_material(m_elements,m_atoms_per_volume);
+  }
+
+  material& operator=(const material& a_from){
+    vcopy<element>(m_elements,a_from.m_elements);
+
+    m_mass_fractions = a_from.m_mass_fractions;
+    m_name = a_from.m_name;
+    m_density = a_from.m_density;
+    m_state = a_from.m_state;
+    m_temperature = a_from.m_temperature;
+    m_pressure = a_from.m_pressure;
+
+    m_atoms_per_volume = a_from.m_atoms_per_volume;
+    m_tot_atoms_per_volume = a_from.m_tot_atoms_per_volume;
+    m_tot_electrons_per_volume = a_from.m_tot_electrons_per_volume;
+    m_radiation_length = a_from.m_radiation_length;
+    m_nuclear_interaction_length = a_from.m_nuclear_interaction_length;
+
+    delete m_ionisation;
+    m_ionisation = new ionisation_material(m_elements,m_atoms_per_volume);
+    return *this;
+  }
+
+public:
+  material* copy() const {return new material(*this);}
+  const ionisation_material* ionisation() const {return m_ionisation;}
+public:
+  const std::string& name() const {return m_name;}
+  double density() const {return m_density;}
+  material::state_e state() const {return m_state;}
+  double temperature() const {return m_temperature;}
+  double pressure() const {return m_pressure;}
+public:
+  const std::vector<double>& mass_fractions() const {return m_mass_fractions;}
+  const std::vector<element*>& elements() const {return m_elements;}
+  const std::vector<double>& atoms_per_volume() const {return m_atoms_per_volume;}
+  double tot_atoms_per_volume() const {return m_tot_atoms_per_volume;}
+  double tot_electrons_per_volume() const {return m_tot_electrons_per_volume;}
+  double radiation_length() const {return m_radiation_length;}
+  double nuclear_interaction_length() const {return m_nuclear_interaction_length;}
+
+public: //Geant4 API:
+  double GetDensity() const {return m_density;}
+  double GetRadlen() const {return m_radiation_length;}
+/*
+  int GetNumberOfElements() const {return (int)m_elements.size();}
+  const std::vector<element*>* GetElementVector() const {return &m_elements;}
+  const double* GetVecNbOfAtomsPerVolume() const {return vec_data(m_atoms_per_volume);}
+  double GetTotNbOfAtomsPerVolume() const {return m_tot_atoms_per_volume;}
+*/
+  const ionisation_material* GetIonisation() const {return m_ionisation;}
+public:
+  void out(best_units& a_out) const {
+    std::ios::fmtflags old_flags = a_out.flags();
+    std::streamsize old_prec = a_out.precision(3);
+    
+    a_out.setf(std::ios::fixed,std::ios::floatfield);
+
+    a_out
+      << " material: "         << std::setw(8) <<  m_name
+      //<< " " << m_chemical_formula << " "
+      << "  density: "         << std::setw(6) << std::setprecision(3)
+      << value_unit(m_density,"Volumic Mass") 
+      << "  RadL: "            << std::setw(7)  << std::setprecision(3)
+      << value_unit(m_radiation_length,"Length")
+      << "  Nucl.Int.Length: " << std::setw(7)  << std::setprecision(3)
+      << value_unit(m_nuclear_interaction_length,"Length")    
+      //<< "  Imean: "           << std::setw(7)  << std::setprecision(3)  
+      //<< value_unit(GetIonisation()->GetMeanExcitationEnergy(),"Energy")
+      ;
+      
+    if(m_state==gas) {
+      a_out
+        << "  temperature: " << std::setw(6) << std::setprecision(2)  
+        << m_temperature/kelvin << " K"
+        << "  pressure: "    << std::setw(6) << std::setprecision(2)   
+        << m_pressure/atmosphere << " atm";
+    }
+  
+   {std::vector<element*>::const_iterator it = m_elements.begin();
+    std::vector<double>::const_iterator itm = m_mass_fractions.begin();
+    std::vector<double>::const_iterator ita = m_atoms_per_volume.begin();
+    for(;it!=m_elements.end();++it,++itm,++ita) {
+      a_out
+        << std::endl
+        << "   ---> " << *(*it)
+        << "  ElmMassFraction: " << std::setw(6)<< std::setprecision(2) 
+        << (*itm)/per_cent << " %" 
+        << "  ElmAbundance "     << std::setw(6)<< std::setprecision(2) 
+        << 100*(*ita)/m_tot_atoms_per_volume
+        << " %";
+    }}
+
+    a_out.precision(old_prec);    
+    a_out.flags(old_flags);
+  }
+  
+protected:
+  void init() {
+  
+    // Number of atoms per volume (per element), 
+    // total nb of electrons per volume :
+  
+    m_atoms_per_volume.resize(m_elements.size());
+  
+    m_tot_atoms_per_volume = 0;
+    m_tot_electrons_per_volume = 0;
+  
+   {std::vector<element*>::iterator it = m_elements.begin();
+    std::vector<double>::iterator itm = m_mass_fractions.begin();
+    std::vector<double>::iterator ita = m_atoms_per_volume.begin();
+    for(;it!=m_elements.end();++it,++itm,++ita) {
+       (*ita) = avogadro*m_density*(*itm)/(*it)->A();
+       m_tot_atoms_per_volume += (*ita);
+       m_tot_electrons_per_volume += (*ita)*(*it)->Z();
+    }}
+          
+    init_radiation_length();
+    init_nuclear_interaction_length();
+  
+    delete m_ionisation;
+    m_ionisation = new ionisation_material(m_elements,m_atoms_per_volume);  
+    
+    //if (fSandiaTable) delete fSandiaTable;
+    //fSandiaTable = new G4SandiaTable(this);
+  }
+  
+  void init_radiation_length(){
+    double radinv = 0;
+   {std::vector<element*>::iterator it = m_elements.begin();
+    std::vector<double>::iterator ita = m_atoms_per_volume.begin();
+    for(;it!=m_elements.end();++it,++ita) {
+      radinv += (*ita) * (*it)->rad_tsai();
+    }}
+    m_radiation_length = (radinv <= 0.0 ? DBL_MAX : 1./radinv);
+  }
+  
+  void init_nuclear_interaction_length(){
+    const double lambda0 = 35*g/cm2;
+    double NILinv = 0.0;
+  
+   {std::vector<element*>::iterator it = m_elements.begin();
+    std::vector<double>::iterator ita = m_atoms_per_volume.begin();
+    for(;it!=m_elements.end();++it,++ita) {
+       NILinv += (*ita) * ::pow((*it)->N(),0.6666667); 
+    }}
+  
+    NILinv *= amu/lambda0; 
+    m_nuclear_interaction_length = (NILinv <= 0.0 ? DBL_MAX : 1./NILinv);
+  }
+  
+protected:
+  std::vector<element*> m_elements;
+  std::vector<double> m_mass_fractions;
+protected:
+  std::string m_name;
+  double m_density;
+  state_e  m_state;
+  double m_temperature;
+  double m_pressure;
+  // derived :
+  std::vector<double> m_atoms_per_volume;
+  double m_tot_atoms_per_volume;
+  double m_tot_electrons_per_volume;
+  double m_radiation_length;
+  double m_nuclear_interaction_length;
+  ionisation_material* m_ionisation;
+};
+
+}}
+
+// Visual wants the below outside the inlib name space.
+inline inlib::edep::best_units& operator<<(inlib::edep::best_units& a_out,const inlib::edep::material& a_material){
+  a_material.out(a_out);
+  return a_out;
+}
+
+#endif

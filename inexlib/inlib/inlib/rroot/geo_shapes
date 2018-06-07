@@ -1,0 +1,1770 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_rroot_geo_shapes
+#define inlib_rroot_geo_shapes
+
+#include "geo_bbox"
+#include "../carray"
+
+namespace inlib {
+namespace rroot {
+
+class geo_tube : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTube");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_tube");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_tube>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_tube(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_rmin)) return false;
+    if(!a_buffer.read(m_rmax)) return false;
+    if(!a_buffer.read(m_dz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_tube_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_tube>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_tube(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_rmin(0)
+  ,m_rmax(0)
+  ,m_dz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_tube(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_tube(const geo_tube& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_rmin(a_from.m_rmin)
+  ,m_rmax(a_from.m_rmax)
+  ,m_dz(a_from.m_dz)
+  {}
+  geo_tube& operator=(const geo_tube& a_from){
+    geo_bbox::operator=(a_from);
+    m_rmin = a_from.m_rmin;
+    m_rmax = a_from.m_rmax;
+    m_dz = a_from.m_dz;
+    return *this;
+  }
+public:
+  double rmin() const {return m_rmin;}
+  double rmax() const {return m_rmax;}
+  double dz() const {return m_dz;}
+
+  void set_rmin(double a_v) {m_rmin = a_v;}
+  void set_rmax(double a_v) {m_rmax = a_v;}
+  void set_dz(double a_v) {m_dz = a_v;}
+
+  virtual void dump(std::ostream& a_out) const {
+    a_out << " rmin=" << m_rmin
+          << " rmax=" << m_rmax
+          << " dz=" << m_dz
+          << std::endl;
+  }
+protected:
+  double m_rmin;
+  double m_rmax;
+  double m_dz;
+};
+
+class geo_tube_seg : public geo_tube {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTubeSeg");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_tube_seg");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_tube_seg>(this,a_class)) return p;
+    return geo_tube::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_tube_seg(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_tube::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_phi1)) return false;
+    if(!a_buffer.read(m_phi2)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_tube_seg_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_tube_seg>(this,a_class)) {return p;}
+    else return geo_tube::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_tube_seg(ifac& a_fac)
+  :geo_tube(a_fac)
+  ,m_phi1(0)
+  ,m_phi2(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_tube_seg(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_tube_seg(const geo_tube_seg& a_from)
+  :iro(a_from)
+  ,geo_tube(a_from)
+  ,m_phi1(a_from.m_phi1)
+  ,m_phi2(a_from.m_phi2)
+  {
+  }
+  geo_tube_seg& operator=(const geo_tube_seg& a_from){
+    geo_tube::operator=(a_from);
+    m_phi1 = a_from.m_phi1;
+    m_phi2 = a_from.m_phi2;
+    return *this;
+  }
+public:
+  double phi1() const {return m_phi1;}
+  double phi2() const {return m_phi2;}
+
+  void set_phi1(double a_v) {m_phi1 = a_v;}
+  void set_phi2(double a_v) {m_phi2 = a_v;}
+protected:
+  double m_phi1;  // first phi limit 
+  double m_phi2;  // second phi limit 
+};
+
+class geo_hype : public geo_tube {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoHype");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_hype");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_hype>(this,a_class)) return p;
+    return geo_tube::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_hype(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_tube::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_st_in)) return false;
+    if(!a_buffer.read(m_st_out)) return false;
+    if(!a_buffer.read(m_tin)) return false;
+    if(!a_buffer.read(m_tout)) return false;
+    if(!a_buffer.read(m_tinsq)) return false;
+    if(!a_buffer.read(m_toutsq)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_hype_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_hype>(this,a_class)) {return p;}
+    else return geo_tube::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_hype(ifac& a_fac)
+  :geo_tube(a_fac)
+  ,m_st_in(0)
+  ,m_st_out(0)
+  ,m_tin(0)
+  ,m_tout(0)
+  ,m_tinsq(0)
+  ,m_toutsq(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_hype(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_hype(const geo_hype& a_from)
+  :iro(a_from)
+  ,geo_tube(a_from)
+  ,m_st_in(a_from.m_st_in)
+  ,m_st_out(a_from.m_st_out)
+  ,m_tin(a_from.m_tin)
+  ,m_tout(a_from.m_tout)
+  ,m_tinsq(a_from.m_tinsq)
+  ,m_toutsq(a_from.m_toutsq)
+  {}
+  geo_hype& operator=(const geo_hype& a_from){
+    geo_tube::operator=(a_from);
+    m_st_in = a_from.m_st_in;
+    m_st_out = a_from.m_st_out;
+    m_tin = a_from.m_tin;
+    m_tout = a_from.m_tout;
+    m_tinsq = a_from.m_tinsq;
+    m_toutsq = a_from.m_toutsq;
+    return *this;
+  }
+public:
+  double st_in() const {return m_st_in;}
+  double st_out() const {return m_st_out;}
+  double tin() const {return m_tin;}
+  double tout() const {return m_tout;}
+  double tinsq() const {return m_tinsq;}
+  double toutsq() const {return m_toutsq;}
+
+  void set_st_in(double a_v) {m_st_in = a_v;}
+  void set_st_out(double a_v) {m_st_out = a_v;}
+  void set_tin(double a_v) {m_tin = a_v;}
+  void set_tout(double a_v) {m_tout = a_v;}
+  void set_tinsq(double a_v) {m_tinsq = a_v;}
+  void set_toutsq(double a_v) {m_toutsq = a_v;}
+protected:
+  double m_st_in;  // Stereo angle for inner surface
+  double m_st_out; // Stereo angle for inner surface
+  double m_tin;    // Tangent of stereo angle for inner surface
+  double m_tout;   // Tangent of stereo angle for outer surface
+  double m_tinsq;  // Squared tangent of stereo angle for inner surface
+  double m_toutsq; // Squared tangent of stereo angle for outer surface
+///////////////////////////////////////////////////////////////////////////////
+//                                                                        
+// TGeoHype - Hyperboloid class defined by 5 parameters. Bounded by:
+//            - Two z planes at z=+/-dz
+//            - Inner and outer lateral surfaces. These represent the surfaces 
+//              described by the revolution of 2 hyperbolas about the Z axis:
+//               r^2 - (t*z)^2 = a^2
+//
+//            r = distance between hyperbola and Z axis at coordinate z
+//            t = tangent of the stereo angle (angle made by hyperbola
+//                asimptotic lines and Z axis). t=0 means cylindrical surface.
+//            a = distance between hyperbola and Z axis at z=0
+//
+//          The inner hyperbolic surface is described by:
+//              r^2 - (tin*z)^2 = rin^2 
+//           - absence of the inner surface (filled hyperboloid can be forced 
+//             by rin=0 and sin=0
+//          The outer hyperbolic surface is described by:
+//              r^2 - (tout*z)^2 = rout^2
+//  TGeoHype parameters: dz[cm], rin[cm], sin[deg], rout[cm], sout[deg].
+//    MANDATORY conditions:
+//           - rin < rout
+//           - rout > 0
+//           - rin^2 + (tin*dz)^2 > rout^2 + (tout*dz)^2
+//                                                                        
+///////////////////////////////////////////////////////////////////////////////
+};
+
+class geo_eltu : public geo_tube {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoEltu");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_eltu");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_eltu>(this,a_class)) return p;
+    return geo_tube::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_eltu(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_tube::stream(a_buffer)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_eltu_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_eltu>(this,a_class)) {return p;}
+    else return geo_tube::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_eltu(ifac& a_fac):geo_tube(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_eltu(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  double a() const {return m_rmin;}
+  double b() const {return m_rmax;}
+  double dz() const {return m_dz;}
+
+  void set_a(double a_v) {m_rmin = a_v;}
+  void set_b(double a_v) {m_rmax = a_v;}
+  void set_dz(double a_v) {m_dz = a_v;}
+protected:
+  geo_eltu(const geo_eltu& a_from):iro(a_from),geo_tube(a_from){}
+  geo_eltu& operator=(const geo_eltu&){return *this;}
+};
+
+class geo_ctub : public geo_tube_seg {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoCtub");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_ctub");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_ctub>(this,a_class)) return p;
+    return geo_tube_seg::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_ctub(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_tube_seg::stream(a_buffer)) return false;
+
+    if(!a_buffer.read_fast_array(m_low,3)) return false;
+    if(!a_buffer.read_fast_array(m_high,3)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_ctub_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_ctub>(this,a_class)) {return p;}
+    else return geo_tube_seg::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_ctub(ifac& a_fac)
+  :geo_tube_seg(a_fac)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    m_low[0] =  0;
+    m_low[1] =  0;
+    m_low[2] = -1;
+
+    m_high[0] = 0;
+    m_high[1] = 0;
+    m_high[2] = 1;
+  }
+  virtual ~geo_ctub(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_ctub(const geo_ctub& a_from)
+  :iro(a_from)
+  ,geo_tube_seg(a_from)
+  {
+    for(unsigned int i=0;i<3;i++) {
+      m_low[i] = a_from.m_low[i];
+      m_high[i] = a_from.m_high[i];
+    }
+  }
+  geo_ctub& operator=(const geo_ctub& a_from){
+    geo_tube_seg::operator=(a_from);
+    for(unsigned int i=0;i<3;i++) {
+      m_low[i] = a_from.m_low[i];
+      m_high[i] = a_from.m_high[i];
+    }
+    return *this;
+  }
+public:
+  const double* low() const {return m_low;}
+  double* low() {return m_low;}
+  const double* high() const {return m_high;}
+  double* high() {return m_high;}
+
+  void set_low(const double a_v[3]) {
+    m_low[0] = a_v[0];
+    m_low[1] = a_v[1];
+    m_low[2] = a_v[2];
+  }
+  void set_high(const double a_v[3]) {
+    m_high[0] = a_v[0];
+    m_high[1] = a_v[1];
+    m_high[2] = a_v[2];
+  }
+protected:
+  // - x,y,z components of the normal to the -dZ cut plane in    //
+  //   point (0,0,-dZ)                                           //
+  // -  x,y,z components of the normal to the +dZ cut plane in   //
+  //   point (0,0,dZ)                                            //
+  double m_low[3];  // normal to lower cut plane 
+  double m_high[3]; // normal to highet cut plane 
+};
+
+class geo_cone : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoCone");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_cone");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_cone>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_cone(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_dz)) return false;
+    if(!a_buffer.read(m_rmin1)) return false;
+    if(!a_buffer.read(m_rmax1)) return false;
+    if(!a_buffer.read(m_rmin2)) return false;
+    if(!a_buffer.read(m_rmax2)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_cone_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_cone>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_cone(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_dz(0)
+  ,m_rmin1(0)
+  ,m_rmax1(0)
+  ,m_rmin2(0)
+  ,m_rmax2(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_cone(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_cone(const geo_cone& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_dz(a_from.m_dz)
+  ,m_rmin1(a_from.m_rmin1)
+  ,m_rmax1(a_from.m_rmax1)
+  ,m_rmin2(a_from.m_rmin2)
+  ,m_rmax2(a_from.m_rmax2)
+  {}
+  geo_cone& operator=(const geo_cone& a_from){
+    geo_bbox::operator=(a_from);
+    m_dz = a_from.m_dz;
+    m_rmin1 = a_from.m_rmin1;
+    m_rmax1 = a_from.m_rmax1;
+    m_rmin2 = a_from.m_rmin2;
+    m_rmax2 = a_from.m_rmax2;
+    return *this;
+  }
+public:
+  double dz() const {return m_dz;}
+  double rmin1() const {return m_rmin1;}
+  double rmax1() const {return m_rmax1;}
+  double rmin2() const {return m_rmin2;}
+  double rmax2() const {return m_rmax2;}
+
+  void set_dz(double a_v) {m_dz = a_v;}
+  void set_rmin1(double a_v) {m_rmin1 = a_v;}
+  void set_rmax1(double a_v) {m_rmax1 = a_v;}
+  void set_rmin2(double a_v) {m_rmin2 = a_v;}
+  void set_rmax2(double a_v) {m_rmax2 = a_v;}
+protected:
+  double m_dz;    // half length
+  double m_rmin1; // inner radius at -dz
+  double m_rmax1; // outer radius at -dz
+  double m_rmin2; // inner radius at +dz
+  double m_rmax2; // outer radius at +dz
+};
+
+class geo_cone_seg : public geo_cone {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoConeSeg");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_cone_seg");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_cone_seg>(this,a_class)) return p;
+    return geo_cone::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_cone_seg(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_cone::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_phi1)) return false;
+    if(!a_buffer.read(m_phi2)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_cone_seg_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_cone_seg>(this,a_class)) {return p;}
+    else return geo_cone::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_cone_seg(ifac& a_fac)
+  :geo_cone(a_fac)
+  ,m_phi1(0)
+  ,m_phi2(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_cone_seg(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_cone_seg(const geo_cone_seg& a_from)
+  :iro(a_from)
+  ,geo_cone(a_from)
+  ,m_phi1(a_from.m_phi1)
+  ,m_phi2(a_from.m_phi2)
+  {}
+  geo_cone_seg& operator=(const geo_cone_seg& a_from){
+    geo_cone::operator=(a_from);
+    m_phi1 = a_from.m_phi1;
+    m_phi2 = a_from.m_phi2;
+    return *this;
+  }
+public:
+  double phi1() const {return m_phi1;}
+  double phi2() const {return m_phi2;}
+
+  void set_phi1(double a_v) {m_phi1 = a_v;}
+  void set_phi2(double a_v) {m_phi2 = a_v;}
+protected:
+  double m_phi1;  // first phi limit 
+  double m_phi2;  // second phi limit 
+};
+
+class geo_trd1 : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTrd1");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_trd1");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_trd1>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_trd1(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_dx1)) return false;
+    if(!a_buffer.read(m_dx2)) return false;
+    if(!a_buffer.read(m_dy)) return false;
+    if(!a_buffer.read(m_dz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_trd1_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_trd1>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_trd1(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_dx1(0)
+  ,m_dx2(0)
+  ,m_dy(0)
+  ,m_dz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_trd1(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_trd1(const geo_trd1& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_dx1(a_from.m_dx1)
+  ,m_dx2(a_from.m_dx2)
+  ,m_dy(a_from.m_dy)
+  ,m_dz(a_from.m_dz)
+  {}
+  geo_trd1& operator=(const geo_trd1& a_from){
+    geo_bbox::operator=(a_from);
+    m_dx1 = a_from.m_dx1;
+    m_dx2 = a_from.m_dx2;
+    m_dy = a_from.m_dy;
+    m_dz = a_from.m_dz;
+    return *this;
+  }
+public:
+  double dx1() const {return m_dx1;}
+  double dx2() const {return m_dx2;}
+  double dy() const {return m_dy;}
+  double dz() const {return m_dz;}
+
+  void set_dx1(double a_v) {m_dx1 = a_v;}
+  void set_dx2(double a_v) {m_dx2 = a_v;}
+  void set_dy(double a_v) {m_dy = a_v;}
+  void set_dz(double a_v) {m_dz = a_v;}
+protected:
+  double m_dx1; // half length in X at lower Z surface (-dz)
+  double m_dx2; // half length in X at higher Z surface (+dz)
+  double m_dy;  // half length in Y
+  double m_dz;  // half length in Z
+};
+
+class geo_trd2 : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTrd2");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_trd2");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_trd2>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_trd2(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_dx1)) return false;
+    if(!a_buffer.read(m_dx2)) return false;
+    if(!a_buffer.read(m_dy1)) return false;
+    if(!a_buffer.read(m_dy2)) return false;
+    if(!a_buffer.read(m_dz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_trd2_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_trd2>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_trd2(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_dx1(0)
+  ,m_dx2(0)
+  ,m_dy1(0)
+  ,m_dy2(0)
+  ,m_dz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_trd2(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_trd2(const geo_trd2& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_dx1(a_from.m_dx1)
+  ,m_dx2(a_from.m_dx2)
+  ,m_dy1(a_from.m_dy1)
+  ,m_dy2(a_from.m_dy2)
+  ,m_dz(a_from.m_dz)
+  {}
+  geo_trd2& operator=(const geo_trd2& a_from){
+    geo_bbox::operator=(a_from);
+    m_dx1 = a_from.m_dx1;
+    m_dx2 = a_from.m_dx2;
+    m_dy1 = a_from.m_dy1;
+    m_dy2 = a_from.m_dy2;
+    m_dz = a_from.m_dz;
+    return *this;
+  }
+public:
+  double dx1() const {return m_dx1;}
+  double dx2() const {return m_dx2;}
+  double dy1() const {return m_dy1;}
+  double dy2() const {return m_dy2;}
+  double dz() const {return m_dz;}
+
+  void set_dx1(double a_v) {m_dx1 = a_v;}
+  void set_dx2(double a_v) {m_dx2 = a_v;}
+  void set_dy1(double a_v) {m_dy1 = a_v;}
+  void set_dy2(double a_v) {m_dy2 = a_v;}
+  void set_dz(double a_v) {m_dz = a_v;}
+protected:
+  double m_dx1; // half length in X at lower Z surface (-dz)
+  double m_dx2; // half length in X at higher Z surface (+dz)
+  double m_dy1; // half length in Y at lower Z surface (-dz)
+  double m_dy2; // half length in Y at higher Z surface (+dz)
+  double m_dz;  // half length in Z
+};
+
+class geo_sphere : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoSphere");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_sphere");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_sphere>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_sphere(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_nz)) return false;
+    if(!a_buffer.read(m_nseg)) return false;
+    if(!a_buffer.read(m_rmin)) return false;
+    if(!a_buffer.read(m_rmax)) return false;
+    if(!a_buffer.read(m_theta1)) return false;
+    if(!a_buffer.read(m_theta2)) return false;
+    if(!a_buffer.read(m_phi1)) return false;
+    if(!a_buffer.read(m_phi2)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_sphere_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_sphere>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_sphere(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_nz(0)
+  ,m_nseg(0)
+  ,m_rmin(0)
+  ,m_rmax(0)
+  ,m_theta1(0)
+  ,m_theta2(0)
+  ,m_phi1(0)
+  ,m_phi2(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_sphere(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_sphere(const geo_sphere& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_nz(a_from.m_nz)
+  ,m_nseg(a_from.m_nseg)
+  ,m_rmin(a_from.m_rmin)
+  ,m_rmax(a_from.m_rmax)
+  ,m_theta1(a_from.m_theta1)
+  ,m_theta2(a_from.m_theta2)
+  ,m_phi1(a_from.m_phi1)
+  ,m_phi2(a_from.m_phi2)
+  {}
+  geo_sphere& operator=(const geo_sphere& a_from){
+    geo_bbox::operator=(a_from); 
+    m_nz = a_from.m_nz;
+    m_nseg = a_from.m_nseg;
+    m_rmin = a_from.m_rmin;
+    m_rmax = a_from.m_rmax;
+    m_theta1 = a_from.m_theta1;
+    m_theta2 = a_from.m_theta2;
+    m_phi1 = a_from.m_phi1;
+    m_phi2 = a_from.m_phi2;
+    return *this;
+  }
+public:
+  int nz() const {return m_nz;}
+  int nseg() const {return m_nseg;}
+  double rmin() const {return m_rmin;}
+  double rmax() const {return m_rmax;}
+  double theta1() const {return m_theta1;}
+  double theta2() const {return m_theta2;}
+  double phi1() const {return m_phi1;}
+  double phi2() const {return m_phi2;}
+
+  void set_nz(int a_v) {m_nz = a_v;}
+  void set_nseg(int a_v) {m_nseg = a_v;}
+  void set_rmin(double a_v) {m_rmin = a_v;}
+  void set_rmax(double a_v) {m_rmax = a_v;}
+  void set_theta1(double a_v) {m_theta1 = a_v;}
+  void set_theta2(double a_v) {m_theta2 = a_v;}
+  void set_phi1(double a_v) {m_phi1 = a_v;}
+  void set_phi2(double a_v) {m_phi2 = a_v;}
+protected:
+  int m_nz;     // number of z planes for drawing
+  int m_nseg;   // number of segments for drawing
+  double m_rmin;   // inner radius
+  double m_rmax;   // outer radius
+  double m_theta1; // lower theta limit
+  double m_theta2; // higher theta limit
+  double m_phi1;   // lower phi limit
+  double m_phi2;   // higher phi limit
+};
+
+class geo_pcon : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPcon");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pcon");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pcon>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pcon(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_nz)) return false;
+    if(!a_buffer.read(m_phi1)) return false;
+    if(!a_buffer.read(m_dphi)) return false;
+    if(!fixed_array_stream<double>(a_buffer,m_nz,m_rmin)) return false;
+    if(!fixed_array_stream<double>(a_buffer,m_nz,m_rmax)) return false;
+    if(!fixed_array_stream<double>(a_buffer,m_nz,m_z)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pcon_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pcon>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pcon(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_nz(0)
+  ,m_phi1(0)
+  ,m_dphi(0)
+  ,m_rmin(0)
+  ,m_rmax(0)
+  ,m_z(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pcon(){
+    destroy(m_rmin);
+    destroy(m_rmax);
+    destroy(m_z);
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pcon(const geo_pcon& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_nz(a_from.m_nz)
+  ,m_phi1(a_from.m_phi1)
+  ,m_dphi(a_from.m_dphi)
+  ,m_rmin(0)
+  ,m_rmax(0)
+  ,m_z(0)
+  {
+    carray_copy(m_rmin,m_nz,a_from.m_rmin);
+    carray_copy(m_rmax,m_nz,a_from.m_rmax);
+    carray_copy(m_z,m_nz,a_from.m_z);
+  }
+  geo_pcon& operator=(const geo_pcon& a_from){
+    geo_bbox::operator=(a_from);
+
+    if(&a_from==this) return *this;
+
+    m_nz = a_from.m_nz;
+    m_phi1 = a_from.m_phi1;
+    m_dphi = a_from.m_dphi;
+
+    carray_copy(m_rmin,m_nz,a_from.m_rmin);
+    carray_copy(m_rmax,m_nz,a_from.m_rmax);
+    carray_copy(m_z,m_nz,a_from.m_z);
+
+    return *this;
+  }
+public:
+  int nz() const {return m_nz;}
+  double phi1() const {return m_phi1;}
+  double dphi() const {return m_dphi;}
+  double* rmin() const {return m_rmin;}
+  double* rmax() const {return m_rmax;}
+  double* z() const {return m_z;}
+public:
+  int m_nz;    // number of z planes (at least two)
+  double m_phi1;  // lower phi limit
+  double m_dphi;  // phi range
+  double* m_rmin;  //[fNz] pointer to array of inner radii 
+  double* m_rmax;  //[fNz] pointer to array of outer radii
+  double* m_z;     //[fNz] pointer to array of Z planes positions
+};
+
+class geo_pgon : public geo_pcon {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPgon");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_pgon");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_pgon>(this,a_class)) return p;
+    return geo_pcon::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_pgon(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_pcon::stream(a_buffer)) return false;
+
+    int fNedges;    // number of edges (at least one)
+    if(!a_buffer.read(fNedges)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_pgon_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_pgon>(this,a_class)) {return p;}
+    else return geo_pcon::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_pgon(ifac& a_fac):geo_pcon(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_pgon(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_pgon(const geo_pgon& a_from):iro(a_from),geo_pcon(a_from){}
+  geo_pgon& operator=(const geo_pgon&){return *this;}
+};
+
+class geo_arb8 : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoArb8");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_arb8");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_arb8>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_arb8(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_dz)) return false;
+    if(!a_buffer.read_fast_array(m_xy,16)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_arb8_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_arb8>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_arb8(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_dz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif 
+    for(unsigned int i=0;i<16;i++) m_xy[i] = 0;
+  }
+  virtual ~geo_arb8(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_arb8(const geo_arb8& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_dz(a_from.m_dz)
+  {
+    for(unsigned int i=0;i<16;i++) m_xy[i] = a_from.m_xy[i];
+  }
+  geo_arb8& operator=(const geo_arb8& a_from){
+    geo_bbox::operator=(a_from);
+    m_dz = a_from.m_dz;
+    for(unsigned int i=0;i<16;i++) m_xy[i] = a_from.m_xy[i];
+    return *this;
+  }
+public:
+  double dz() const {return m_dz;}
+  const double* xy() const {return m_xy;}
+  double* xy() {return m_xy;}
+protected:
+  double m_dz;        // half length in Z
+  // xy as if xy[8][2]
+  // then xy[i][j] = xy[i*2+j]
+  double m_xy[16];    // list of vertices
+};
+
+class geo_trap : public geo_arb8 {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTrap");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_trap");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_trap>(this,a_class)) return p;
+    return geo_arb8::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_trap(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_arb8::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_theta)) return false;
+    if(!a_buffer.read(m_phi)) return false;
+    if(!a_buffer.read(m_h1)) return false;
+    if(!a_buffer.read(m_bl1)) return false;
+    if(!a_buffer.read(m_tl1)) return false;
+    if(!a_buffer.read(m_alpha1)) return false;
+    if(!a_buffer.read(m_h2)) return false;
+    if(!a_buffer.read(m_bl2)) return false;
+    if(!a_buffer.read(m_tl2)) return false;
+    if(!a_buffer.read(m_alpha2)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_trap_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_trap>(this,a_class)) {return p;}
+    else return geo_arb8::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_trap(ifac& a_fac)
+  :geo_arb8(a_fac)
+  ,m_theta(0)
+  ,m_phi(0)
+  ,m_h1(0)
+  ,m_bl1(0)
+  ,m_tl1(0)
+  ,m_alpha1(0)
+  ,m_h2(0)
+  ,m_bl2(0)
+  ,m_tl2(0)
+  ,m_alpha2(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_trap(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_trap(const geo_trap& a_from)
+  :iro(a_from)
+  ,geo_arb8(a_from)
+  ,m_theta(a_from.m_theta)
+  ,m_phi(a_from.m_phi)
+  ,m_h1(a_from.m_h1)
+  ,m_bl1(a_from.m_bl1)
+  ,m_tl1(a_from.m_tl1)
+  ,m_alpha1(a_from.m_alpha1)
+  ,m_h2(a_from.m_h2)
+  ,m_bl2(a_from.m_bl2)
+  ,m_tl2(a_from.m_tl2)
+  ,m_alpha2(a_from.m_alpha2)
+  {}
+  geo_trap& operator=(const geo_trap& a_from){
+    geo_arb8::operator=(a_from);
+    m_theta = a_from.m_theta;
+    m_phi = a_from.m_phi;
+    m_h1 = a_from.m_h1;
+    m_bl1 = a_from.m_bl1;
+    m_tl1 = a_from.m_tl1;
+    m_alpha1 = a_from.m_alpha1;
+    m_h2 = a_from.m_h2;
+    m_bl2 = a_from.m_bl2;
+    m_tl2 = a_from.m_tl2;
+    m_alpha2 = a_from.m_alpha2;
+    return *this;
+  }
+public:
+  double theta() const {return m_theta;}
+  double phi() const {return m_phi;}
+  double h1() const {return m_h1;}
+  double bl1() const {return m_bl1;}
+  double tl1() const {return m_tl1;}
+  double alpha1() const {return m_alpha1;}
+  double h2() const {return m_h2;}
+  double bl2() const {return m_bl2;}
+  double tl2() const {return m_tl2;}
+  double alpha2() const {return m_alpha2;}
+
+  void set_theta(double a_v) {m_theta = a_v;}
+  void set_phi(double a_v) {m_phi = a_v;}
+  void set_h1(double a_v) {m_h1 = a_v;}
+  void set_bl1(double a_v) {m_bl1 = a_v;}
+  void set_tl1(double a_v) {m_tl1 = a_v;}
+  void set_alpha1(double a_v) {m_alpha1 = a_v;}
+  void set_h2(double a_v) {m_h2 = a_v;}
+  void set_bl2(double a_v) {m_bl2 = a_v;}
+  void set_tl2(double a_v) {m_tl2 = a_v;}
+  void set_alpha2(double a_v) {m_alpha2 = a_v;}
+protected:
+  double m_theta; // theta angle
+  double m_phi;   // phi angle
+  double m_h1;    // half length in y at low z
+  double m_bl1;   // half length in x at low z and y low edge
+  double m_tl1;   // half length in x at low z and y high edge
+  double m_alpha1;// angle between centers of x edges an y axis at low z
+  double m_h2;    // half length in y at high z
+  double m_bl2;   // half length in x at high z and y low edge
+  double m_tl2;   // half length in x at high z and y high edge
+  double m_alpha2;// angle between centers of x edges an y axis at low z
+};
+
+class geo_gtra : public geo_trap {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoGtra");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_gtra");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_gtra>(this,a_class)) return p;
+    return geo_trap::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_gtra(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_trap::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_twist_angle)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_gtra_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_gtra>(this,a_class)) {return p;}
+    else return geo_trap::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_gtra(ifac& a_fac)
+  :geo_trap(a_fac)
+  ,m_twist_angle(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_gtra(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_gtra(const geo_gtra& a_from)
+  :iro(a_from)
+  ,geo_trap(a_from)
+  ,m_twist_angle(a_from.m_twist_angle)
+  {}
+  geo_gtra& operator=(const geo_gtra& a_from){
+    geo_trap::operator=(a_from);
+    m_twist_angle = a_from.m_twist_angle;
+    return *this;
+  }
+public:
+  double twist_angle() const {return m_twist_angle;}
+protected:
+  double m_twist_angle; // twist angle in degrees
+};
+
+class geo_para : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoPara");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_para");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_para>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_para(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_dx)) return false;
+    if(!a_buffer.read(m_dy)) return false;
+    if(!a_buffer.read(m_dz)) return false;
+    if(!a_buffer.read(m_alpha)) return false;
+    if(!a_buffer.read(m_theta)) return false;
+    if(!a_buffer.read(m_phi)) return false;
+    if(!a_buffer.read(m_txy)) return false;
+    if(!a_buffer.read(m_txz)) return false;
+    if(!a_buffer.read(m_tyz)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_para_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_para>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_para(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_dx(0)
+  ,m_dy(0)
+  ,m_dz(0)
+  ,m_alpha(0)
+  ,m_theta(0)
+  ,m_phi(0)
+  ,m_txy(0)
+  ,m_txz(0)
+  ,m_tyz(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_para(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  geo_para(const geo_para& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_dx(a_from.m_dx)
+  ,m_dy(a_from.m_dy)
+  ,m_dz(a_from.m_dz)
+  ,m_alpha(a_from.m_alpha)
+  ,m_theta(a_from.m_theta)
+  ,m_phi(a_from.m_phi)
+  ,m_txy(a_from.m_txy)
+  ,m_txz(a_from.m_txz)
+  ,m_tyz(a_from.m_tyz)
+  {}
+  geo_para& operator=(const geo_para& a_from){
+    geo_bbox::operator=(a_from);
+    m_dx = a_from.m_dx;
+    m_dy = a_from.m_dy;
+    m_dz = a_from.m_dz;
+    m_alpha = a_from.m_alpha;
+    m_theta = a_from.m_theta;
+    m_phi = a_from.m_phi;
+    m_txy = a_from.m_txy;
+    m_txz = a_from.m_txz;
+    m_tyz = a_from.m_tyz;
+    return *this;
+  }
+public:
+  double dx() const { return m_dx;}
+  double dy() const { return m_dy;}
+  double dz() const { return m_dz;}
+  double alpha() const { return m_alpha;}
+  double theta() const { return m_theta;}
+  double phi() const { return m_phi;}
+  double txy() const { return m_txy;}
+  double txz() const { return m_txz;}
+  double tyz() const { return m_tyz;}
+
+  void set_dx(double a_v) { m_dx = a_v;}
+  void set_dy(double a_v) { m_dy = a_v;}
+  void set_dz(double a_v) { m_dz = a_v;}
+  void set_alpha(double a_v) { m_alpha = a_v;}
+  void set_theta(double a_v) { m_theta = a_v;}
+  void set_phi(double a_v) { m_phi = a_v;}
+  void set_txy(double a_v) { m_txy = a_v;}
+  void set_txz(double a_v) { m_txz = a_v;}
+  void set_tyz(double a_v) { m_tyz = a_v;}
+protected:
+  double m_dx;        // X half-length
+  double m_dy;        // Y half-length
+  double m_dz;        // Z half-length
+  double m_alpha;  // angle w.r.t Y from the center of low Y to the hihg Y
+  double m_theta;  // polar angle of segment between low and hi Z surfaces    
+  double m_phi;  // azimuthal angle of segment between low and hi Z surfaces 
+  double m_txy;       // tangent of XY section angle
+  double m_txz;       // tangent of XZ section angle
+  double m_tyz;       // tangent of XZ section angle
+};
+
+class geo_torus : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoTorus");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_torus");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_torus>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_torus(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    if(!a_buffer.read(m_r)) return false;
+    if(!a_buffer.read(m_rmin)) return false;
+    if(!a_buffer.read(m_rmax)) return false;
+    if(!a_buffer.read(m_phi)) return false;
+    if(!a_buffer.read(m_dphi)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_torus_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_torus>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_torus(ifac& a_fac)
+  :geo_bbox(a_fac)
+  ,m_r(0)
+  ,m_rmin(0)
+  ,m_rmax(0)
+  ,m_phi(0)
+  ,m_dphi(0)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_torus(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_torus(const geo_torus& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  ,m_r(a_from.m_r)
+  ,m_rmin(a_from.m_rmin)
+  ,m_rmax(a_from.m_rmax)
+  ,m_phi(a_from.m_phi)
+  ,m_dphi(a_from.m_dphi)
+  {}
+  geo_torus& operator=(const geo_torus& a_from){
+    geo_bbox::operator=(a_from);
+    m_r = a_from.m_r;
+    m_rmin = a_from.m_rmin;
+    m_rmax = a_from.m_rmax;
+    m_phi = a_from.m_phi;
+    m_dphi = a_from.m_dphi;
+    return *this;
+  }
+public:
+  double r() const {return m_r;}
+  double rmin() const {return m_rmin;}
+  double rmax() const {return m_rmax;}
+  double phi() const {return m_phi;}
+  double dphi() const {return m_dphi;}
+
+  void set_r(double a_v) {m_r = a_v;}
+  void set_rmin(double a_v) {m_rmin = a_v;}
+  void set_rmax(double a_v) {m_rmax = a_v;}
+  void set_phi(double a_v) {m_phi = a_v;}
+  void set_dphi(double a_v) {m_dphi = a_v;}
+protected:
+  double m_r;    // axial radius
+  double m_rmin; // inner radius
+  double m_rmax; // outer radius
+  double m_phi; // starting phi
+  double m_dphi; // phi extent
+};
+
+class geo_half_space : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoHalfSpace");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_half_space");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_half_space>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_half_space(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    double fP[3];
+    if(!a_buffer.read_fast_array(fP,3)) return false;
+
+    double fN[3];
+    if(!a_buffer.read_fast_array(fN,3)) return false;
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_half_space_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_half_space>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_half_space(ifac& a_fac):geo_bbox(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_half_space(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_half_space(const geo_half_space& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  {}
+  geo_half_space& operator=(const geo_half_space&){
+    return *this;
+  }
+};
+
+class geo_shape_assembly : public geo_bbox {
+  static const std::string& s_store_class() {
+    static const std::string s_v("TGeoShapeAssembly");
+    return s_v;
+  }
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("inlib::rroot::geo_shape_assembly");
+    return s_v;
+  }
+public: //iro
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<geo_shape_assembly>(this,a_class)) return p;
+    return geo_bbox::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual iro* copy() const {return new geo_shape_assembly(*this);}
+  virtual bool stream(buffer& a_buffer) {
+    unsigned int s, c;
+    short v;
+    if(!a_buffer.read_version(v,s,c)) return false;
+
+    if(!geo_bbox::stream(a_buffer)) return false;
+
+    //TGeoVolumeAssembly   *fVolume;   // assembly volume
+    if(!dummy_TXxx_pointer_stream(a_buffer,m_fac,false)) {
+      a_buffer.out() << "inlib::rroot::geo_shape_assembly::stream : "
+                     << "can't read fVolume."
+                     << std::endl;
+      return false;
+    }
+
+    if(!a_buffer.check_byte_count(s,c,s_store_class())) return false;
+    return true;
+  }
+
+public:
+  static cid id_class() {return geo_shape_assembly_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<geo_shape_assembly>(this,a_class)) {return p;}
+    else return geo_bbox::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+
+public:
+  geo_shape_assembly(ifac& a_fac):geo_bbox(a_fac){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~geo_shape_assembly(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  geo_shape_assembly(const geo_shape_assembly& a_from)
+  :iro(a_from)
+  ,geo_bbox(a_from)
+  {}
+  geo_shape_assembly& operator=(const geo_shape_assembly&){
+    return *this;
+  }
+};
+
+}}
+
+#endif

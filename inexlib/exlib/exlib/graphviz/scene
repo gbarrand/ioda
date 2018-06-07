@@ -1,0 +1,1369 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_graphviz_scene
+#define exlib_graphviz_scene
+
+#include <inlib/bcub>
+
+#include <inlib/sg/strings>
+#include <inlib/sg/vertices>
+#include <inlib/sg/separator>
+#include <inlib/sg/matrix>
+#include <inlib/sg/rgba>
+#include <inlib/sg/nodekit>
+#include <inlib/sg/noderef>
+#include <inlib/sg/mnmx>
+
+#include <inlib/sg/sf_img>
+#include <inlib/sg/tessellate>
+
+#include <inlib/mathf>
+
+#include "../sg/text_freetype"
+
+#define EXLIB_GRAPHVIZ_COMPRESS    
+
+#ifdef EXLIB_GRAPHVIZ_COMPRESS    
+#include "../zlib"
+#endif
+
+// from : graphviz-2.28.0/plugin/core/gvrender_core_ps.c
+
+#include <gvc.h>
+#include <color.h>
+#include <gvcjob.h>
+#include <gvplugin_render.h>
+
+#include "gvcint.h"
+
+extern "C" {
+  boolean gvplugin_install(GVC_t*,api_t,const char*,int,gvplugin_package_t*,gvplugin_installed_t*);
+  gvplugin_available_t* gvplugin_load(GVC_t*,api_t,const char*);
+}
+#include <cstdlib> //malloc
+#include <inlib/cstr>
+
+#ifdef EXLIB_USE_NATIVE_GRAPHVIZ
+#else
+extern "C" {
+  extern gvplugin_installed_t gvdevice_dot_types[];
+  extern gvplugin_installed_t gvlayout_dot_layout[];
+  extern gvplugin_installed_t gvrender_dot_types[];
+}
+#endif
+
+namespace exlib {
+namespace graphviz {
+
+class scene : public inlib::sg::node {
+  INLIB_NODE(scene,exlib::graphviz::scene,inlib::sg::node)
+public:
+  inlib::sg::sf_img<inlib::byte> dot;
+  inlib::sg::sf<unsigned int> ucsz; //not compressed.
+  inlib::sg::sf_string tmp_dir;
+  inlib::sg::sf<float> zback;
+  inlib::sg::sf<float> scale;
+public:
+  virtual const inlib::sg::desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(exlib::graphviz::scene)
+    static const inlib::sg::desc_fields s_v(parent::node_desc_fields(),5, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(dot),
+      INLIB_ARG_FIELD_DESC(ucsz),
+      INLIB_ARG_FIELD_DESC(tmp_dir),
+      INLIB_ARG_FIELD_DESC(zback),
+      INLIB_ARG_FIELD_DESC(scale)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&dot);
+    add_field(&ucsz);
+    add_field(&tmp_dir);
+    add_field(&zback);
+    add_field(&scale);
+  }
+public: //node
+  virtual void render(inlib::sg::render_action& a_action) {
+    if(touched()){
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    m_sep.render(a_action);
+  }
+
+  virtual void search(inlib::sg::search_action& a_action) { 
+    node::search(a_action);
+    if(a_action.done()) return;
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    m_sep.search(a_action);
+  }
+  virtual void bbox(inlib::sg::bbox_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    m_sep.bbox(a_action);
+  }
+
+  virtual bool write(inlib::sg::write_action& a_action) {
+    if(!inlib::sg::node::write(a_action)) return false;
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    return m_sep.write(a_action);
+  }
+
+  virtual void pick(inlib::sg::pick_action& a_action) {
+    if(touched()) {
+      update_sg(a_action.out());
+      reset_touched();
+    }
+    nodekit_pick(a_action,m_sep,this);
+  }
+public:
+  scene()
+  :parent()
+  ,dot()
+  ,ucsz()
+  ,tmp_dir()
+  ,zback(-0.01f) //ok for abstract.dot sz 1250*612
+  ,scale(1)
+  { 
+    add_fields();
+  }
+  virtual ~scene(){}
+public:
+  scene(const scene& a_from)
+  :parent(a_from)
+  ,dot(a_from.dot)
+  ,ucsz(a_from.ucsz)
+  ,tmp_dir(a_from.tmp_dir)
+  ,zback(a_from.zback)
+  ,scale(a_from.scale)
+  {
+    add_fields();
+  }
+  scene& operator=(const scene& a_from){
+    parent::operator=(a_from);
+    dot = a_from.dot;
+    ucsz = a_from.ucsz;
+    tmp_dir = a_from.tmp_dir;
+    zback = a_from.zback;
+    scale = a_from.scale;
+    return *this;
+  }
+
+public:
+  //inlib::sg::matrix& tsf() {return m_tsf;}
+
+  bool set_dot(std::ostream& a_out,int a_level,const std::string& a_path){
+    dot.value().make_empty();
+    ucsz = 0;
+
+    char* buffer;
+    long sz;
+    if(!inlib::file::read_bytes(a_path,buffer,sz)) return false;
+    if(!sz) {
+      a_out << "exlib::graphviz::scene::set_dot :"
+            << " read_bytes get zero bytes."
+            << std::endl;
+      delete [] buffer;
+#ifdef INLIB_MEM
+      inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+      return false;
+    }
+
+#ifdef EXLIB_GRAPHVIZ_COMPRESS    
+    char* ob = new char[sz];
+
+    unsigned int rsz;
+    if(!compress_buffer(a_out,a_level,sz,buffer,sz,ob,rsz)){
+      a_out << "exlib::graphviz::scene::set_dot :"
+            << " compress_buffer() failed."
+            << std::endl;
+      delete [] ob;
+      delete [] buffer;
+#ifdef INLIB_MEM
+      inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+      return false;
+    }
+    if(!rsz) {
+      a_out << "exlib::graphviz::scene::set_dot :"
+            << " zero compression size."
+            << std::endl;
+      delete [] ob;
+      delete [] buffer;
+#ifdef INLIB_MEM
+      inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+      return false;
+    }
+
+    //a_out << "exlib::graphviz::scene::set_dot :"
+    //      << " sz " << sz << " compressed " << rsz
+    //      << std::endl;
+
+    dot.value().set((unsigned int)rsz,1,1,(unsigned char*)ob,true);
+
+    delete [] buffer;
+#ifdef INLIB_MEM
+    inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+#else
+    dot.value().set((unsigned int)sz,1,1,(unsigned char*)buffer,true);
+#endif
+
+    ucsz = sz;
+
+    return true;
+  }
+
+public:
+  static bool set_tsf(std::ostream& a_out,
+                      scene& a_node,inlib::sg::matrix& a_tsf,
+                      unsigned int a_ww,unsigned int a_wh,
+                      float a_height) {
+    float dx,dy,dz;
+    if(!inlib::center_adjust
+          (a_out,a_node,a_tsf,a_ww,a_wh,a_height,
+           dx,dy,dz)) return false;
+    a_node.zback = -::sqrtf(dx*dx+dy*dy)/100.0f; //default is -0.01f    
+    return true;
+  }
+
+  void update_sg(std::ostream& a_out) {
+    //a_out << "debug : exlib::graphviz::scene::update_sg" << std::endl;
+    m_sep.clear();
+    m_sep.add(new inlib::sg::noderef(m_tsf));
+    m_tsf.set_identity();
+    m_cur_sep = 0;
+
+    std::vector<void*> to_free;
+    GVC_t* gvc = create_context(a_out,to_free);
+    if(!gvc) return;
+
+    gvc->job->display = this;
+    gvc->job->context = &a_out;
+
+    Agraph_t* graph = 0;
+    if(dot.value().is_empty()) {
+      graph = create_test_graph();
+    } else {
+      const inlib::img_byte& img = dot.value();
+
+#ifdef EXLIB_GRAPHVIZ_COMPRESS    
+      unsigned int sz = 0;
+      const char* stream = 0;
+      bool stream_delete = false;
+      if(img.width()<ucsz.value()) {
+        char* b = new char[ucsz.value()];
+        unsigned int rsz;
+        if(!decompress_buffer(a_out,img.width(),(const char*)img.buffer(),ucsz.value(),b,rsz)){
+          a_out << "exlib::graphviz::scene::update_sg :"
+                << " decompress_buffer() failed."
+                << std::endl;
+          delete [] b;
+          ::gvFreeContext(gvc);
+          free(to_free);
+          return;
+        }    
+        if(rsz!=ucsz.value()) {
+          a_out << "exlib::graphviz::scene::update_sg :"
+                << " decompress_buffer() size mismatch."
+                << std::endl;
+          delete [] b;
+          ::gvFreeContext(gvc);
+          free(to_free);
+          return;
+        }
+        sz = rsz;
+        stream = (const char*)b;
+        stream_delete = true;
+      } else {
+        sz = img.width();
+        stream = (const char*)img.buffer();
+      }    
+#else
+      unsigned int sz = img.width();
+      const char* stream = (const char*)img.buffer();
+#endif
+
+      graph = ag_read(stream,sz);
+
+#ifdef EXLIB_GRAPHVIZ_COMPRESS    
+      if(stream_delete) delete [] stream;
+#endif
+
+    }
+
+    if(!graph) {
+      a_out << "exlib::graphviz::scene::update_sg :"
+            << " no graph given."
+            << std::endl;
+    } else {
+      if(::gvLayoutJobs(gvc,graph)){
+        a_out << "exlib::graphviz::scene::update_sg :"
+              << " gvLayoutJobs() failed."
+              << std::endl;
+      } else {
+
+        if(::gvRenderJobs(gvc,graph)) {
+          a_out << "exlib::graphviz::scene::update_sg :"
+                << " gvRenderJobs() failed."
+                << std::endl;
+        }
+        ::gvFreeLayout(gvc,graph);
+
+        inlib::sg::bbox_action _action(a_out);
+        m_sep.bbox(_action);
+        float dx,dy,dz;
+        if(_action.box().get_size(dx,dy,dz) && dx && dy) {
+          float _scale = scale.value()/dy;
+          m_tsf.set_scale(_scale,_scale,1);
+          inlib::vec3f c;
+          if(_action.box().center(c)) {
+            m_tsf.mul_translate(-c.x(),-c.y(),0);
+          }
+        }
+
+      }
+
+      ::agclose(graph);
+    }
+
+    ::gvFreeContext(gvc);
+    free(to_free);
+  }
+protected:
+  static bool verbose() {return false;}
+  //static bool verbose() {return true;}
+
+  static void begin_job(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_job :" << std::endl;
+      //_out << "  display " << (unsigned long)a_job->display << std::endl;
+    }
+  }
+
+  static void end_job(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_job :" << std::endl;
+    }
+  }
+
+  static void begin_graph(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_graph :" << std::endl;
+/*
+      ::printf("  view : %g %g\n",a_job->view.x,a_job->view.y);
+      ::printf("  boundingBox : LL : %d %d : UR : %d %d\n",
+          a_job->boundingBox.LL.x,a_job->boundingBox.LL.y,
+          a_job->boundingBox.UR.x,a_job->boundingBox.UR.y);
+      ::printf("  canvasBox : LL : %g %g : UR : %g %g\n",
+          a_job->canvasBox.LL.x,a_job->canvasBox.LL.y,
+          a_job->canvasBox.UR.x,a_job->canvasBox.UR.y);
+      ::printf("  pageBoundingBox : LL : %d %d : UR : %d %d\n",
+          a_job->pageBoundingBox.LL.x,a_job->pageBoundingBox.LL.y,
+          a_job->pageBoundingBox.UR.x,a_job->pageBoundingBox.UR.y);
+*/
+    }
+  }
+
+  static void end_graph(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_graph :" << std::endl;
+    }
+  }
+
+  static void begin_layer(GVJ_t* a_job,char*,int,int) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_layer :" << std::endl;
+    }
+  }
+
+  static void end_layer(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_layer :" << std::endl;
+    }
+  }
+
+  static void begin_page(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_page :" << std::endl;
+/*
+      ::printf("  view : %g %g\n",a_job->view.x,a_job->view.y);
+      ::printf("  canvasBox : LL : %g %g : UR : %g %g\n",
+          a_job->canvasBox.LL.x,a_job->canvasBox.LL.y,
+          a_job->canvasBox.UR.x,a_job->canvasBox.UR.y);
+*/
+    }
+  }
+
+  static void end_page(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_page :" << std::endl;
+    }
+  }
+
+  static void begin_node(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_node :" << std::endl;
+    }
+    scene& _this = *((scene*)a_job->display);
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_sep.add(sep);
+    _this.m_cur_sep = sep;
+  }
+
+  static void end_node(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_node :" << std::endl;
+    }
+    scene& _this = *((scene*)a_job->display);
+    _this.m_cur_sep = 0;
+  }
+
+  static void begin_cluster(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_cluster :" << std::endl;
+    }
+  }
+
+  static void end_cluster(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_cluster :" << std::endl;
+    }
+  }
+
+  static void begin_nodes(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_nodes :" << std::endl;
+    }
+  }
+
+  static void end_nodes(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_nodes :" << std::endl;
+    }
+  }
+
+  static void begin_edges(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_cluster :" << std::endl;
+    }
+  }
+
+  static void end_edges(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_cluster :" << std::endl;
+    }
+  }
+
+  static void begin_anchor(GVJ_t* a_job,
+                           char* /*a_href*/,char* /*a_tooltip*/,
+                           char* /*a_target*/,char* /*a_id*/){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_anchor :" << std::endl;
+    }
+  }
+
+  static void end_anchor(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_anchor :" << std::endl;
+    }
+  }
+
+  static void begin_label(GVJ_t* a_job,label_type){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_label :" << std::endl;
+    }
+  }
+
+  static void end_label(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_label :" << std::endl;
+    }
+  }
+
+  static void begin_edge(GVJ_t* a_job){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "begin_edge :" << std::endl;
+    }
+    scene& _this = *((scene*)a_job->display);
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_sep.add(sep);
+    _this.m_cur_sep = sep;
+  }
+
+  static void end_edge(GVJ_t* a_job) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "end_edge :" << std::endl;
+    }
+    scene& _this = *((scene*)a_job->display);
+    _this.m_cur_sep = 0;
+  }
+
+/*
+  static void resolve_color(GVJ_t* a_job,gvcolor_t* color) {
+    if(color->type==HSVA_DOUBLE) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "resolve_color : HSVA" << std::endl;
+      _out << " " << color->u.HSVA[0]
+           << " " << color->u.HSVA[1]
+           << " " << color->u.HSVA[2]
+           << " " << color->u.HSVA[3]
+           << std::endl;
+    } else if(color->type==RGBA_DOUBLE) {
+      if(verbose()) {
+        std::ostream& _out = *((std::ostream*)a_job->context);
+        _out << "resolve_color : RGBA" << std::endl;
+        _out << " " << color->u.RGBA[0]
+             << " " << color->u.RGBA[1]
+             << " " << color->u.RGBA[2]
+             << " " << color->u.RGBA[3]
+             << std::endl;
+      }
+      scene& _this = *((scene*)a_job->display);
+      if(_this.m_cur_sep) {
+        inlib::sg::rgba* node = new inlib::sg::rgba;
+        node->color.value().set_value
+         (float(color->u.RGBA[0]),
+          float(color->u.RGBA[1]),
+          float(color->u.RGBA[2]),
+          float(color->u.RGBA[3]));
+        _this.m_cur_sep->add(node);
+      }
+    } else {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "resolve_color : type " << color->type << std::endl;
+    }
+  }
+*/
+
+  static void textpara(GVJ_t* a_job,pointf a_p,textpara_t* a_txt){
+    // See textpara.h.
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "textpara :" << std::endl;
+/*
+      ::printf("textpara : %g %g : %s\n",p.x,p.y,txt->str);
+      ::printf("  font : %s\n",txt->fontname);
+      ::printf("  fontsize : %g\n",txt->fontsize);
+      ::printf("  size : %g\n",txt->size);
+      ::printf("  yoffset_layout : %g\n",txt->yoffset_layout);
+      ::printf("  yoffset_centerline : %g\n",txt->yoffset_centerline);
+      ::printf("  width, height : %g %g\n",txt->width,txt->height);
+      ::printf("  just : %c\n",txt->just);
+*/
+    }
+	
+    scene& _this = *((scene*)a_job->display);
+
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_cur_sep->add(sep);
+
+    add_color(*a_job,*sep,a_job->obj->pencolor);
+
+    inlib::sg::matrix* tsf = new inlib::sg::matrix;
+    tsf->mul_translate(float(a_p.x),float(a_p.y),0);
+    //font_size 14
+    //tsf->mul_scale(10,10,1);
+    tsf->mul_scale(7.5f,7.5f,1);
+    sep->add(tsf);    
+
+    sg::text_freetype* text = new sg::text_freetype;
+    sep->add(text);
+    text->strings.add(a_txt->str);
+    //text->height = a_txt->fontsize;
+    if(!::strcmp(a_txt->fontname,"Helvetica")) {
+      text->font = inlib::sg::font_helvetica_ttf();
+    } else if(!::strcmp(a_txt->fontname,"Times-Roman")) {
+      text->font = inlib::sg::font_helvetica_ttf();
+    } else { //set to Times-Roman.
+      ::printf("debug : exlib::graphviz::scene : %s\n",a_txt->fontname);
+      text->font = inlib::sg::font_times_roman_ttf();
+    }
+    //text.vjust.value(a_vjust);
+    if(a_txt->just=='l') {
+      text->hjust = inlib::sg::left;
+    } else if(a_txt->just=='n') {
+      text->hjust = inlib::sg::center;
+    } else if(a_txt->just=='r') {
+      text->hjust = inlib::sg::right;
+    }
+  }
+
+  static void beziercurve(GVJ_t* a_job,pointf* A,int n,
+                          int /*arrow_at_start*/,int /*arrow_at_end*/,
+                          int /*filled*/){
+    if(n<=0) return;
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "beziercurve :" << std::endl;
+//      if(arrow_at_start||arrow_at_end) {
+//        ::printf("beziercurve : not handled arrow args\n");
+//      }  
+    }
+
+    scene& _this = *((scene*)a_job->display);
+
+    inlib::vec3f p0,p1,p2,p3;
+    unsigned int number = 10;
+    float dt = 1.0f/float(number-1);
+    inlib::vec3f v;
+    inlib::bcub<float,inlib::vec3f> bz(p0,p1,p2,p3);
+
+    int nbcub = (n-1)/3;
+    for(int ibcub=0;ibcub<nbcub;ibcub++){
+      // n = 10
+      // 0 1 2 3 : first bcub
+      // 3 4 5 6 : second bcub
+      // 6 7 8 9 : third bcub
+      int pos = ibcub*3;
+      p0.set_value(float(A[pos+0].x),float(A[pos+0].y),0);
+      p1.set_value(float(A[pos+1].x),float(A[pos+1].y),0);
+      p2.set_value(float(A[pos+2].x),float(A[pos+2].y),0);
+      p3.set_value(float(A[pos+3].x),float(A[pos+3].y),0);
+      bz.set(p0,p1,p2,p3);
+
+      inlib::sg::separator* sep = new inlib::sg::separator;
+      _this.m_cur_sep->add(sep);
+
+      add_color(*a_job,*sep,a_job->obj->pencolor);
+
+      inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+      sep->add(vtcs);
+      vtcs->mode = inlib::gl::line_strip();
+
+     {float t = 0;
+      for(unsigned int i=0;i<number;i++,t+=dt) {
+        bz.value(t,v);
+        vtcs->add(v.x(),v.y(),v.z());
+      }}
+ 
+    }
+
+/*
+    // polyline :
+   {inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_cur_sep->add(sep);
+    inlib::sg::rgba* node = new inlib::sg::rgba;
+    node->color.value() = inlib::colorf_red();
+    sep->add(node);
+
+    inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+    sep->add(vtcs);
+    vtcs->mode = inlib::gl::line_strip();
+    for (int i=0;i<n;i++) vtcs->add(A[i].x,A[i].y,0);}
+*/
+
+  }
+
+  static void polygon(GVJ_t* a_job,pointf* A,int n,int filled) {
+    if(n<=0) return;
+
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "polygon : filled " << filled << std::endl;
+/*
+      ::printf("polygon : %d : filled %d\n",n,filled);
+      for (int i=0;i<n;i++) {
+        ::printf("  %g %g\n",A[i].x, A[i].y);
+      }
+*/
+    }
+
+    scene& _this = *((scene*)a_job->display);
+
+    //dump_color(*a_job,a_job->obj->pencolor);
+    //dump_color(*a_job,a_job->obj->fillcolor);
+
+    if(filled) {    
+
+      float Z = _this.zback.value();
+      //::printf("debug : polygon Z : %g\n",Z);
+
+      /* if(n<=4) */ {
+        inlib::sg::separator* sep = new inlib::sg::separator;
+        _this.m_cur_sep->add(sep);
+
+        add_color(*a_job,*sep,a_job->obj->fillcolor);
+
+        inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+        sep->add(vtcs);
+        vtcs->mode = inlib::gl::triangle_fan();
+
+        inlib::vec3f v01(float(A[1].x-A[0].x),float(A[1].y-A[0].y),Z);
+        inlib::vec3f v12(float(A[2].x-A[1].x),float(A[2].y-A[1].y),Z);
+        inlib::vec3f vcross;v01.cross(v12,vcross);
+        if(vcross.z()>=0) {
+          for (int i=0;i<n;i++) vtcs->add(float(A[i].x),float(A[i].y),Z);
+        } else {
+          for (int i=(n-1);i>=0;i--) vtcs->add(float(A[i].x),float(A[i].y),Z);
+        }
+
+      } /* else { //triangulate :
+
+        std::ostream& _out = *((std::ostream*)a_job->context);
+        _out << "polygon : have to triangulate." << std::endl;
+
+        std::ostream& _out = *((std::ostream*)a_job->context);
+
+        double* xyzs = new double[n*3];
+        double* pos = xyzs;
+        //for (int i=0;i<n;i++) {
+        for (int i=(n-1);i>=0;i--) {
+          *pos = A[i].x;pos++;
+          *pos = A[i].y;pos++;
+          *pos = Z;pos++;
+        }
+    
+        inlib::sg::tessellate tess(_out);
+    
+        typedef inlib::sg::tessellate::prims_t prims_t; 
+        prims_t prims;
+        tess.do_it(n,xyzs,prims);
+        tess.clear();
+    
+       {inlib_vforcit(inlib::tess_prim*,prims,it) {
+          const inlib::tess_prim& item = *(*it);
+          const std::vector<float>& coords = item.m_coords;
+          if(coords.empty()) continue;  
+          const std::vector<float>& norms = item.m_norms;
+          if(norms.size()!=coords.size()) continue;
+          inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+          _this.m_cur_sep->add(vtcs);
+          vtcs->mode = item.m_mode;
+          if(!vtcs->add(coords)) continue;
+          //action.draw_vertex_normal_array(item.m_mode,coords,norms);
+        }}
+    
+        delete [] xyzs;
+
+      } */
+
+    } else { //polyline
+
+    }
+
+    // border :
+   {inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_cur_sep->add(sep);
+
+    add_color(*a_job,*sep,a_job->obj->pencolor);
+/*
+    inlib::sg::rgba* node = new inlib::sg::rgba;
+    node->color.value() = inlib::colorf_black();
+    sep->add(node);
+*/
+    inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+    sep->add(vtcs);
+    vtcs->mode = inlib::gl::line_loop();
+    for (int i=0;i<n;i++) vtcs->add(float(A[i].x),float(A[i].y),0);}
+
+  }
+
+  static void ellipse(GVJ_t* a_job,pointf* A, int filled) {
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "ellipse :" << std::endl;
+      //::printf("ellipse : %d\n",filled);
+    }
+    // should receive two points : center and ur corner.
+    pointf p = A[0];
+    pointf ur = A[1];
+    float rx = float(ur.x-p.x);
+    float ry = float(ur.y-p.y);
+
+    scene& _this = *((scene*)a_job->display);
+
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_cur_sep->add(sep);
+
+    if(filled) {
+      add_color(*a_job,*sep,a_job->obj->fillcolor);
+      inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+      sep->add(vtcs);
+      vtcs->mode = inlib::gl::triangle_fan();
+      unsigned int ntri = 40;
+      float da = 2.0f*inlib::fpi()/float(ntri);
+      vtcs->add(float(p.x),float(p.y),0);
+      for (unsigned int i=0;i<=ntri;i++) {
+        vtcs->add(float(p.x) + rx*::cosf(da*i),
+                  float(p.y) + ry*::sinf(da*i),0);
+      }
+    } else {
+      add_color(*a_job,*sep,a_job->obj->pencolor);
+      inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+      sep->add(vtcs);
+      vtcs->mode = inlib::gl::line_loop();
+      unsigned int ntri = 40;
+      float da = 2.0f*inlib::fpi()/float(ntri);
+      for (unsigned int i=0;i<ntri;i++) {
+        vtcs->add(float(p.x) + rx*::cosf(da*i),
+                  float(p.y) + ry*::sinf(da*i),0);
+      }
+    }
+  }
+
+  static void polyline(GVJ_t* a_job,pointf* A,int n){
+    if(n<=0) return;
+
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "polyline :" << std::endl;
+/*
+      ::printf("polyline : %d\n",n);
+      for (int i=0;i<n;i++) {
+        ::printf(" %g %g\n",A[i].x, A[i].y);
+      }
+*/
+    }
+
+    scene& _this = *((scene*)a_job->display);
+
+    inlib::sg::separator* sep = new inlib::sg::separator;
+    _this.m_cur_sep->add(sep);
+
+    add_color(*a_job,*sep,a_job->obj->pencolor);
+
+    inlib::sg::vertices* vtcs = new inlib::sg::vertices;
+    sep->add(vtcs);
+
+    for (int i=0;i<n;i++) {
+      vtcs->add(float(A[i].x),float(A[i].y),0);
+    }
+  }
+
+  static void library_shape(GVJ_t* a_job,char*,pointf*,int,int){
+    //if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "library_shape :" << std::endl;
+/*
+      ::printf("library_shape : %s : %d : %d\n",name,n,filled);
+      for (int i=0;i<n;i++) {
+        ::printf(" %g %g\n",A[i].x, A[i].y);
+      }
+*/
+    //}
+  }
+
+  static void comment(GVJ_t* a_job,char*){
+    if(verbose()) {
+      std::ostream& _out = *((std::ostream*)a_job->context);
+      _out << "comment :" << std::endl;
+    }
+  }
+
+  static gvrender_engine_t* get_engine(){
+    // See gvplugin_render.h for the gvrender_engine_s definition.
+    static gvrender_engine_t s_engine = {
+      begin_job,
+      end_job,
+      begin_graph,
+      end_graph,
+      begin_layer,
+      end_layer,
+      begin_page,
+      end_page,
+      begin_cluster,
+      end_cluster,
+      begin_nodes,
+      end_nodes,
+      begin_edges,
+      end_edges,
+      begin_node,
+      end_node,
+      begin_edge,
+      end_edge,
+      begin_anchor,
+      end_anchor,
+      begin_label,
+      end_label,
+      textpara,
+      0/*resolve_color*/,
+      ellipse,
+      polygon,
+      beziercurve,
+      polyline,
+      comment,
+      library_shape
+    };
+    return &s_engine;
+  }
+
+  static void add_color(GVJ_t& a_job,
+                        inlib::sg::separator& a_sep,
+                        const gvcolor_t& a_color) {
+/*
+    switch (job->obj->type) {
+    case ROOTGRAPH_OBJTYPE:
+    case CLUSTER_OBJTYPE:
+      break;
+    case NODE_OBJTYPE:
+      break;
+    case EDGE_OBJTYPE:
+      break;
+    default:
+      break;
+    }
+*/
+    if(a_color.type==HSVA_DOUBLE) {
+      std::ostream& _out = *((std::ostream*)a_job.context);
+      _out << "add_color : HSVA" << std::endl;
+      _out << " " << a_color.u.HSVA[0]
+           << " " << a_color.u.HSVA[1]
+           << " " << a_color.u.HSVA[2]
+           << " " << a_color.u.HSVA[3]
+           << std::endl;
+    } else if(a_color.type==RGBA_DOUBLE) {
+      if(verbose()) {
+        std::ostream& _out = *((std::ostream*)a_job.context);
+        _out << "add_color : RGBA" << std::endl;
+        _out << " " << a_color.u.RGBA[0]
+             << " " << a_color.u.RGBA[1]
+             << " " << a_color.u.RGBA[2]
+             << " " << a_color.u.RGBA[3]
+             << std::endl;
+      }
+      inlib::sg::rgba* node = new inlib::sg::rgba;
+      node->color.value().set_value
+       (float(a_color.u.RGBA[0]),
+        float(a_color.u.RGBA[1]),
+        float(a_color.u.RGBA[2]),
+        float(a_color.u.RGBA[3]));
+      a_sep.add(node);
+
+    } else {
+      std::ostream& _out = *((std::ostream*)a_job.context);
+      _out << "add_color : type " << a_color.type << std::endl;
+    }
+  }
+
+  static void dump_color(GVJ_t& a_job,const gvcolor_t& a_color) {
+    if(a_color.type==HSVA_DOUBLE) {
+      std::ostream& _out = *((std::ostream*)a_job.context);
+      _out << "dump_color : HSVA" << std::endl;
+      _out << " " << a_color.u.HSVA[0]
+           << " " << a_color.u.HSVA[1]
+           << " " << a_color.u.HSVA[2]
+           << " " << a_color.u.HSVA[3]
+           << std::endl;
+
+    } else if(a_color.type==RGBA_DOUBLE) {
+      std::ostream& _out = *((std::ostream*)a_job.context);
+      _out << "dump_color : RGBA" << std::endl;
+      _out << " " << a_color.u.RGBA[0]
+           << " " << a_color.u.RGBA[1]
+           << " " << a_color.u.RGBA[2]
+           << " " << a_color.u.RGBA[3]
+           << std::endl;
+
+    } else {
+      std::ostream& _out = *((std::ostream*)a_job.context);
+      _out << "dump_color : type " << a_color.type << std::endl;
+    }
+  }
+
+#ifdef EXLIB_USE_NATIVE_GRAPHVIZ
+#else
+  static bool install_dot(std::ostream& a_out,GVC_t* a_gvc,
+                          std::vector<void*>& a_to_free) {
+
+/*
+    gvplugin_package_t* pack =
+      (gvplugin_package_t*)::malloc(sizeof(gvplugin_package_t));
+    pack->path = NULL;
+    pack->name = inlib::str_dup("dot");
+    pack->next = a_gvc->packages;
+    a_gvc->packages = pack;
+*/  
+
+    gvplugin_package_t* pack = 0;
+    int quality = 1;
+  
+   {if(!::gvplugin_install(a_gvc,API_device,s_dot().c_str(),
+                           quality,pack,gvdevice_dot_types)){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't install device plugin."
+            << std::endl;
+      return false;
+    }
+
+   {gvplugin_available_t* pnext = a_gvc->apis[API_device];
+    while(pnext) {
+      gvplugin_available_t* plugin = pnext;
+      if(plugin->typeptr==gvdevice_dot_types){
+#ifdef INLIB_MEM
+        inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+        a_to_free.push_back(plugin);
+      }
+      pnext = pnext->next;
+    }}
+
+    if(!::gvplugin_load(a_gvc,API_device,s_dot().c_str())){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't load device plugin."
+            << std::endl;
+      return false;
+    }}
+  
+   {if(!::gvplugin_install(a_gvc,API_layout,s_dot().c_str(),
+                         quality,pack,gvlayout_dot_layout)){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't install layout plugin."
+            << std::endl;
+      return false;
+    }
+
+   {gvplugin_available_t* pnext = a_gvc->apis[API_layout];
+    while(pnext) {
+      gvplugin_available_t* plugin = pnext;
+      if(plugin->typeptr==gvlayout_dot_layout){
+#ifdef INLIB_MEM
+        inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+        a_to_free.push_back(plugin);
+      }
+      pnext = pnext->next;
+    }}
+
+    if(!::gvplugin_load(a_gvc,API_layout,s_dot().c_str())){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't load layout plugin."
+            << std::endl;
+      return false;
+    }}
+  
+   {if(!::gvplugin_install(a_gvc,API_render,s_dot().c_str(),
+                         quality,pack,gvrender_dot_types)){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't install render plugin."
+            << std::endl;
+      return false;
+    }
+
+   {gvplugin_available_t* pnext = a_gvc->apis[API_render];
+    while(pnext) {
+      gvplugin_available_t* plugin = pnext;
+      if(plugin->typeptr==gvrender_dot_types){
+#ifdef INLIB_MEM
+        inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+        a_to_free.push_back(plugin);
+      }
+      pnext = pnext->next;
+    }}
+
+    if(!::gvplugin_load(a_gvc,API_render,s_dot().c_str())){
+      a_out << "exlib::graphviz::install_dot :"
+            << " can't load render plugin."
+            << std::endl;
+      return false;
+    }}
+  
+    //a_out << "exlib::graphviz::install_dot :"
+    //      << " load layout plugin ok."
+    //      << std::endl;
+  
+    return true;
+  }
+#endif
+
+  INLIB_CLASS_STRING(exlib)
+  INLIB_CLASS_STRING(dot)
+
+  static GVC_t* create_context(std::ostream& a_out,
+                               std::vector<void*>& a_to_free) {
+
+    a_to_free.clear();
+
+    GVC_t* gvc = ::gvContext();
+    if(!gvc) return 0;
+
+#ifdef EXLIB_USE_NATIVE_GRAPHVIZ
+#else
+    if(!install_dot(a_out,gvc,a_to_free)) {
+      ::gvFreeContext(gvc);
+      free(a_to_free);
+      return 0;
+    }
+#endif
+
+    int _argc = 3;
+    char _arg0[12];
+    char _arg1[6];
+    char _arg2[17];
+    ::strcpy(_arg0,"dummy_arg_0");
+    ::strcpy(_arg1,"-Kdot");
+    ::strcpy(_arg2,"-Gcharset=latin1");  
+    char* _argv[4];
+    _argv[0] = _arg0;
+    _argv[1] = _arg1;
+    _argv[2] = _arg2;
+    _argv[3] = 0;
+    ::gvParseArgs(gvc,_argc,_argv);
+  
+    gvplugin_package_t* pack =
+      (gvplugin_package_t*)::malloc(sizeof(gvplugin_package_t));
+    pack->path = NULL;
+#ifdef INLIB_MEM
+    pack->name = inlib::str_dup(s_exlib().c_str(),false);
+#else
+    pack->name = inlib::str_dup(s_exlib().c_str());
+#endif    
+    pack->next = gvc->packages;
+    gvc->packages = pack;
+
+    ////////////////////////////////////
+    /// install the device plugin : ////
+    ////////////////////////////////////
+   {gvdevice_features_t* features = (gvdevice_features_t*)::malloc(sizeof(gvdevice_features_t));
+    a_to_free.push_back(features);
+#ifdef INLIB_MEM
+    inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+    features->flags = GVDEVICE_DOES_PAGES | GVDEVICE_DOES_LAYERS;
+    features->default_margin.x = 36;
+    features->default_margin.y = 36;
+    features->default_pagesize.x = 612;
+    features->default_pagesize.y = 792;
+    features->default_dpi.x = 72;
+    features->default_dpi.y = 72;
+
+    int quality = 1;
+    gvplugin_installed_t* pi =
+      (gvplugin_installed_t*)::malloc(sizeof(gvplugin_installed_t));
+    a_to_free.push_back(pi);
+#ifdef INLIB_MEM
+    inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+    pi->id = 0; //FORMAT_EXLIB_SG;
+    pi->type = s_exlib().c_str();
+    pi->quality = quality;
+    //pi->engine = exlib::graphviz::dump_get_device_engine();
+    pi->engine = NULL;
+    pi->features = features;
+  
+    if(!gvplugin_install(gvc,API_device,(char*)"exlib",quality,pack,pi)){
+      a_out << "can't install device plugin." << std::endl;
+      ::gvFreeContext(gvc);
+      free(a_to_free);
+      return 0;
+    }
+
+   {gvplugin_available_t* pnext = gvc->apis[API_device];
+    while(pnext) {
+      gvplugin_available_t* plugin = pnext;
+      if(plugin->typeptr==pi){
+#ifdef INLIB_MEM
+        inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+        a_to_free.push_back(plugin);
+      }
+      pnext = pnext->next;
+    }}
+
+    if(!gvplugin_load(gvc,API_device,(char*)"exlib")){
+      a_out << "can't load device plugin." << std::endl;
+      ::gvFreeContext(gvc);
+      free(a_to_free);
+      return 0;
+    }}
+  
+    ////////////////////////////////////
+    /// install the render plugin : ////
+    ////////////////////////////////////
+   {gvrender_features_t* features =
+      (gvrender_features_t*)::malloc(sizeof(gvrender_features_t));
+    a_to_free.push_back(features);
+#ifdef INLIB_MEM
+    inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+    features->flags = GVRENDER_DOES_TRANSFORM
+                    | GVRENDER_DOES_MAPS
+                    | GVRENDER_NO_WHITE_BG
+                    | GVRENDER_DOES_MAP_RECTANGLE,
+    features->default_pad = 4.;
+    features->knowncolors = NULL;
+    features->sz_knowncolors = 0;
+    features->color_type = RGBA_DOUBLE;
+  
+    int quality = 1;
+    gvplugin_installed_t* pi =
+      (gvplugin_installed_t*)::malloc(sizeof(gvplugin_installed_t));
+    a_to_free.push_back(pi);
+#ifdef INLIB_MEM
+    inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+    pi->id = 0; //FORMAT_EXLIB_SG;
+    pi->type = s_exlib().c_str();
+    pi->quality = quality;
+    pi->engine = get_engine();
+    pi->features = features;
+  
+    if(!gvplugin_install(gvc,API_render,(char*)"exlib",quality,pack,pi)){
+      a_out << "can't install render plugin." << std::endl;
+      ::gvFreeContext(gvc);
+      free(a_to_free);
+      return 0;
+    }
+
+   {gvplugin_available_t* pnext = gvc->apis[API_render];
+    while(pnext) {
+      gvplugin_available_t* plugin = pnext;
+      if(plugin->typeptr==pi){
+#ifdef INLIB_MEM
+        inlib::mem::increment(inlib::s_malloc().c_str());
+#endif
+        a_to_free.push_back(plugin);
+      }
+      pnext = pnext->next;
+    }}
+
+    if(!gvplugin_load(gvc,API_render,(char*)"exlib")){
+      a_out << "can't load render plugin." << std::endl;
+      ::gvFreeContext(gvc);
+      free(a_to_free);
+      return 0;
+    }}
+  
+/*
+   {int sz;
+    char** pgs = ::gvPluginList(gvc,(char*)"render",&sz,NULL);
+    ::printf("pluginn : %d\n",sz);
+    for(int i=0;i<sz;i++){
+      ::printf("  %s\n",pgs[i]);
+    }}
+*/
+  
+    gvc->jobs->output_langname = (char*)"exlib";
+  
+    return gvc;
+  }  
+
+  static void free(std::vector<void*>& a_to_free) {
+    inlib_vforit(void*,a_to_free,it){
+      ::free(*it);
+#ifdef INLIB_MEM
+      inlib::mem::decrement(inlib::s_malloc().c_str());
+#endif
+    }
+    a_to_free.clear();
+  }
+
+  static Agraph_t* create_test_graph() {
+    Agraph_t* graph = ::agopen((char*)"test", AGDIGRAPH);
+    Agnode_t* n = ::agnode(graph, (char*)"long string");
+    Agnode_t* n1 = ::agnode(graph, (char*)"n1");
+    Agnode_t* n2 = ::agnode(graph, (char*)"n2");
+    Agnode_t* n3 = ::agnode(graph, (char*)"n3");
+    Agnode_t* m = ::agnode(graph, (char*)"m");
+    ::agedge(graph, n, m);
+    ::agedge(graph, n3, n);
+    ::agedge(graph, n1, m);
+    ::agedge(graph, n2, m);
+    ::agedge(graph, n3, m);
+    ::agedge(graph, n3, n2);
+    ::agedge(graph, n, n2);
+    ::agedge(graph, n, n1);
+    ::agedge(graph, n2, n1);
+    ::agedge(graph, n3, n1);
+    // Set an attribute - in this case one that affects the visible rendering :
+    ::agsafeset(n, (char*)"color", (char*)"red", (char*)"");
+    return graph;
+  }
+
+protected:
+
+  class membuf {
+  public:
+    const char* m_buffer;
+    inlib::uint64 m_length;
+  };
+
+  static char* mem_gets(char* a_ubuf,int a_n,FILE* a_tag) {
+    static membuf* s_membuf = 0;
+    static char* bpos = 0;
+    static unsigned int ipos = 0;
+
+    if(!a_n) {  // a call with n==0 (from aglexinit) resets.
+      s_membuf = (membuf*)a_tag;
+      bpos = (char*)s_membuf->m_buffer;
+      ipos = 0;
+    }
+
+    char* to = a_ubuf;
+
+    for(int i = 0;i<(a_n-1);i++) { // leave room for terminator.
+      if(ipos>=s_membuf->m_length) {
+        if(i) { // if s_membuf->m_buffer doesn't end in \n, provide one.
+          *to++ = '\n';
+          *to++ = '\0';
+          return a_ubuf;
+        } else { // all done.
+          *to++ = '\0';
+          bpos = NULL;
+          return NULL;
+        }
+      }
+      if((*bpos)=='\n') {
+        *to++ = *bpos++;
+        *to++ = '\0';
+        return a_ubuf;
+      }
+      *to++ = *bpos++;
+      ipos++;
+    }
+    *to++ = '\0'; // place terminator in a_ubuf.
+    return a_ubuf;
+  }
+
+  static Agraph_t* ag_read(const char* a_stream,unsigned int a_sz) {
+    membuf _membuf;
+    _membuf.m_buffer = a_stream;
+    _membuf.m_length = a_sz;
+    return ::agread_usergets((FILE*)&_membuf,mem_gets);
+  }
+protected:
+  inlib::sg::separator m_sep;
+  inlib::sg::matrix m_tsf;
+  inlib::sg::separator* m_cur_sep;
+};
+
+}}
+
+#endif
+
+//exlib_build_use graphviz inlib inlib_glutess freetype zlib

@@ -1,0 +1,157 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_cbk_out
+#define exlib_cbk_out
+
+#include <inlib/sg/out>
+
+#include "../sg/gl2ps_action"
+
+namespace exlib {
+namespace out {
+
+inline inlib::sg::return_action action_gl2ps(inlib::sg::gui_viewer& a_gv) {
+  a_gv.hide_console();
+
+  inlib::sg::render_manager* _mgr = a_gv.find_render_manager(sg::gl2ps_manager::s_class());
+  if(!_mgr) {
+    a_gv.map_warn("can't find gl2ps_manager.");
+    return inlib::sg::return_to_render;
+  }
+  sg::gl2ps_manager* gl2ps_mgr = inlib::safe_cast<inlib::sg::render_manager,sg::gl2ps_manager>(*_mgr);
+  if(!gl2ps_mgr) {
+    a_gv.map_warn("can't cast to gl2ps_manager.");
+    return inlib::sg::return_to_render;
+  }
+
+  std::string file;
+  if(a_gv.out_dir().size()) {
+    if(!check_out_dir(a_gv)) return inlib::sg::return_to_render;
+    file = a_gv.out_dir()+inlib::sep();
+  }
+  file += "out.ps";
+
+  sg::gl2ps_action _action(*gl2ps_mgr,a_gv.out(),a_gv.width(),a_gv.height());
+
+  const inlib::colorf& bg = a_gv.m_params.m_scene_screen_color;
+  _action.set_background(bg[0],bg[1],bg[2]); //must be before the below open().
+
+  if(!_action.open(file)) {
+    a_gv.map_warn("can't open output file.");
+    return inlib::sg::return_to_render;
+  }
+
+  a_gv.scene().render(_action);
+  _action.close();
+
+  std::string s;
+  s += file;
+  s += " produced.";
+  a_gv.show_console(s);
+
+  return inlib::sg::return_to_render;     
+}
+
+inline inlib::sg::return_action action_main(inlib::sg::gui_viewer& a_gv,const inlib::sg::pos_data& a_data) {
+  inlib::sg::list* list = new inlib::sg::list(a_gv.ttf());
+  a_gv.set_style(*list);
+  inlib::sg::add_item(a_gv,*list,"out.jpg",inlib::sg::action_jpg);
+  inlib::sg::add_item(a_gv,*list,"out.png",inlib::sg::action_png);
+  inlib::sg::add_item(a_gv,*list,"zb/out.ps",inlib::sg::action_zbps);
+  inlib::sg::add_item(a_gv,*list,"gl2ps/out.ps",action_gl2ps);
+#if defined(IODA_DEV) || defined(G4VIEW_DEV)
+  inlib::sg::add_item(a_gv,*list,"out.exsg",inlib::sg::action_exsg);
+#endif
+  inlib::sg::add_item(a_gv,*list,"out.bsg",inlib::sg::action_bsg);
+  if(a_gv.has_mail_panel()) {
+    inlib::sg::add_item(a_gv,*list,"mail...",inlib::sg::action_mail,a_data);
+  }
+  a_gv.show_widget(a_data,list);
+  return inlib::sg::return_to_render;     
+}
+
+}}
+
+//exlib_build_use inlib png gl2ps zlib kernel
+
+#endif
+
+/*
+    } else if(m_action==action_png2mail()) {
+
+      if(!check_out_dir(m_gv)) return inlib::sg::return_to_render;     
+
+      std::string _path;
+      if(m_gv.out_dir().size()) _path = m_gv.out_dir()+inlib::sep();
+      _path += "out.png";
+
+      png2mail(m_gv,_path,def_subject(m_gv),def_msg(m_gv));
+      return inlib::sg::return_to_render;     
+
+    } else if(m_action==action_mail_png2()) {
+      //produce out.png without OpenGL and map mail panel.
+
+      m_gv.hide_console();
+
+      std::string file("out.png");
+      std::string _path;
+      if(m_gv.out_dir().size()) {
+        if(!check_out_dir(m_gv)) return inlib::sg::return_to_render;     
+        _path = m_gv.out_dir()+inlib::sep();
+      }
+      _path += file;
+
+      //unsigned int fac = 10;
+      unsigned int fac = 2;
+      unsigned int width = m_gv.width()*fac;
+      unsigned int height = m_gv.height()*fac;
+      inlib::sg::zb_manager zb_mgr;
+      inlib::sg::zb_action _action(m_gv.zb_mgr,m_gv.out(),width,height);
+
+      const inlib::colorf& clear_color = m_gv.m_params.m_scene_screen_color;
+      _action.zbuffer().clear_color_buffer(0);
+      _action.add_color(clear_color.r(),clear_color.g(),clear_color.b());
+      _action.zbuffer().clear_depth_buffer();  
+
+      m_gv.scene().render(_action);
+
+      typedef unsigned char uchar;
+      unsigned bpp = 3;
+      uchar* buffer = new uchar[width*height*bpp];
+      if(!buffer) {
+        m_gv.map_warn_failed();
+        return inlib::sg::return_to_render;     
+      }
+     {uchar* pos = buffer;
+      for(int irow=(height-1);irow>=0;irow--) {
+        for(unsigned int icol=0;icol<width;icol++) {
+          float r,g,b;
+          if(inlib::sg::zb_action::get_rgb(&_action,icol,irow,r,g,b)) {
+            *pos = uchar(r*255.0f);pos++;
+            *pos = uchar(g*255.0f);pos++;
+            *pos = uchar(b*255.0f);pos++;
+          } else {         
+            *pos = uchar(clear_color.r()*255.0f);pos++;
+            *pos = uchar(clear_color.g()*255.0f);pos++;
+            *pos = uchar(clear_color.b()*255.0f);pos++;
+          }
+        }
+      }}
+
+      if(!exlib::png::write(m_gv.out(),_path,buffer,width,height,bpp)) {
+        delete [] buffer;      
+        return inlib::sg::return_to_render;
+      }
+      delete [] buffer;      
+
+      std::string s;
+      s += file;
+      s += " produced.";
+      m_gv.show_console(s);
+
+      png2mail(m_gv,_path,def_subject(m_gv),def_msg(m_gv));
+      return inlib::sg::return_to_render;     
+  
+}
+*/

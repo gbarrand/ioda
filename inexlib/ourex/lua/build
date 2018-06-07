@@ -1,0 +1,36 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+if [ ${build_compile} = "yes" ] ; then
+
+find ./src -name '*.c' -print >> c_tmp
+
+. ${bush_home}/compile
+
+fi # end build_compile
+ 
+if [ ${build_archive} = "yes" ] ; then . ${bush_home}/archive; fi
+
+if [ ${build_app} = "yes" ] ; then
+
+  ccflags="${ccflags} -I./src"
+
+  use_archive=yes
+  . ${bush_home}/preplib
+
+  app_exe=lua
+  app_src=./apps/lua.c
+  . ${bush_home}/application
+
+  objs=
+  app_exe=luac
+  app_src=./apps/luac.c
+  . ${bush_home}/application
+
+fi
+
+. ${bush_home}/clean

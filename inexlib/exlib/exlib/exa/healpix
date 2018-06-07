@@ -1,0 +1,137 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_exa_healpix
+#define exlib_exa_healpix
+
+#include <inlib/sg/view_evd>
+#include <inlib/sg/separator>
+#include <inlib/sg/rgba>
+#include <inlib/sg/matrix>
+#include <inlib/sg/healpix>
+
+#include "../fits_image"
+
+namespace exlib {
+namespace exa {
+
+inline inlib::sg::return_action healpix(inlib::sg::gui_viewer& a_gv) {
+  std::string path = a_gv.res_dir();
+  path += inlib::sep();
+  path += "syncmap.fits";
+
+  // use the evd_detector sg so that "wall send detector" works.
+  inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_gv);
+  if(!_evd) return inlib::sg::return_none;
+
+  if(!_evd->is_evd()) {
+    _evd->create_sg_evd();
+    _evd->replace_camera(a_gv.create_3D_camera(2));
+  }
+  //a_gv.set_plane_viewer(true);
+
+  unsigned int hdu = 2;
+  unsigned int column = 0;
+
+  float _mn,_mx; //before applying lut.
+  unsigned int NSIDE;
+  bool ORDERING_RING;
+  float* hpixs = exlib::fits_image::HEALPix_BINARY_TBL_read(a_gv.out(),path,hdu,column,NSIDE,ORDERING_RING,_mn,_mx);
+  if(!hpixs) {
+    a_gv.map_warn("read failed");
+    return inlib::sg::return_none;
+  }
+
+  inlib::sg::separator& dsep = _evd->detector_sg();
+  //dsep.clear();
+  
+  inlib::sg::separator* all_sep = new inlib::sg::separator;
+  dsep.add(all_sep);
+
+  inlib::sg::infos* infos = new inlib::sg::infos;
+  infos->add_title("HEALPix visualization of the CMB");
+  all_sep->add(infos);
+
+  //inlib::SOPI::midas_heat _cmap;
+  inlib::SOPI::col16 _cmap;
+  
+  inlib::lut<float> lut(10,100,_cmap.size());
+
+  //////////////////////////////////////////////////////////
+  /// create scene graph ///////////////////////////////////
+  //////////////////////////////////////////////////////////
+ {inlib::sg::separator* sep = new inlib::sg::separator;
+  all_sep->add(sep);
+
+  inlib::sg::rgba* mat = new inlib::sg::rgba();
+  mat->color = inlib::colorf_white();
+  sep->add(mat);
+
+  inlib::sg::matrix* tsf = new inlib::sg::matrix();
+  tsf->set_translate(1.2f,0,0);
+  sep->add(tsf);
+
+  inlib::sg::healpix* _sphere = new inlib::sg::healpix();
+  _sphere->support = inlib::sg::healpix::support_sphere;
+  _sphere->bin_modeling = inlib::sg::bin_lego;
+  //_sphere->radius = 1;
+  _sphere->hmax = 0.2f;
+  _sphere->order = 5; //vis_NSIDE 256 <-> order 8.
+  _sphere->healpixs.setValues(0,12*NSIDE*NSIDE,hpixs);
+  _sphere->ordering = ORDERING_RING?inlib::sg::healpix::ordering_ring:inlib::sg::healpix::ordering_nested;
+  _sphere->lut = lut;
+  _sphere->colors.clear();
+ {for(unsigned int index=0;index<_cmap.size();index++) {
+    const inlib::SOPI::color& _col = _cmap.get_color(index);
+    _sphere->colors.add(inlib::colorf(_col.r(),_col.g(),_col.b()));
+  }}
+
+  //_sphere->zcut = 0.8f;
+  //_sphere->dynamic = true;
+
+  sep->add(_sphere);}
+
+ {inlib::sg::separator* sep = new inlib::sg::separator;
+  all_sep->add(sep);
+
+  inlib::sg::rgba* mat = new inlib::sg::rgba();
+  mat->color = inlib::colorf_white();
+  sep->add(mat);
+
+  inlib::sg::matrix* tsf = new inlib::sg::matrix();
+  tsf->set_translate(-1.2f,0,0);
+  sep->add(tsf);
+
+  inlib::sg::healpix* _moll = new inlib::sg::healpix();
+  _moll->support = inlib::sg::healpix::support_moll_image;
+  _moll->bin_modeling = inlib::sg::bin_flat_line;
+//_moll->bin_modeling = inlib::sg::bin_flat_triangle;
+  _moll->order = 5; //vis_NSIDE 256 <-> order 8.
+  _moll->back_color = inlib::colorf_white();
+  _moll->expand = true;
+  _moll->height = 1;
+  _moll->healpixs.setValues(0,12*NSIDE*NSIDE,hpixs);
+  _moll->ordering = ORDERING_RING?inlib::sg::healpix::ordering_ring:inlib::sg::healpix::ordering_nested;
+  _moll->lut = lut;
+  _moll->colors.clear();
+ {for(unsigned int index=0;index<_cmap.size();index++) {
+    const inlib::SOPI::color& _col = _cmap.get_color(index);
+    _moll->colors.add(inlib::colorf(_col.r(),_col.g(),_col.b()));
+  }}
+  //_moll->dynamic = true;
+
+  sep->add(_moll);}
+
+  delete [] hpixs;
+
+  a_gv.hide_main_menu();
+
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+//exlib_build_use kernel inlib cfitsio freetype
+
+#endif
+

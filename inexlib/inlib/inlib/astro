@@ -1,0 +1,206 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_astro
+#define inlib_astro
+
+#include <cstdio>
+#include <string>
+
+namespace inlib {
+
+inline bool deg_sex_to_deg_10(const std::string& a_s,double& a_deg_10) {
+  // <degree:60th_of_degree:3600_th_of_degree> to base 10 degree.
+  // <degree:arcmin:arcsec> to base 10 degree.
+  // <d:am:as> to base 10 degree.
+ {int w1;
+  int w2;
+  double w3;
+  if(::sscanf(a_s.c_str(),"%d:%d:%lg",&w1,&w2,&w3)==3) {
+    //::printf("%d|%d|%g\n",w1,w2,w3);
+    if(w1>=0) {
+      a_deg_10 = w1+w2/60.0+w3/3600.0;
+    } else {
+      a_deg_10 = -(-w1+w2/60.0+w3/3600.0);
+    }
+    return true;
+  }}
+ {int w1;
+  double w2;
+  if(::sscanf(a_s.c_str(),"%d:%lg",&w1,&w2)==2) {
+    //::printf("%d|%g\n",w1,w2);
+    if(w1>=0) {
+      a_deg_10 = w1+w2/60.0;
+    } else {
+      a_deg_10 = -(-w1+w2/60.0);
+    }
+    return true;
+  }}
+  a_deg_10 = 0;
+  return false;
+}
+
+inline bool hour_sex_to_deg_10(const std::string& a_s,double& a_deg_10) {
+  // <hour:60_th_of_hour:3600_th_of_hour> to base 10 degree.
+  // <hour:minute:sec> to base 10 degree.
+  // <h:m:s> to base 10 degree.
+ {int w1;
+  int w2;
+  double w3;
+  if(::sscanf(a_s.c_str(),"%d:%d:%lg",&w1,&w2,&w3)==3) {
+    //::printf("%d|%d|%g\n",w1,w2,w3);
+    if(w1>=0) {
+      // h : 24 -> 360  1h = 15 deg
+      // m : 60 -> 1h   1m = 15/60 deg
+      // s : 60 -> 1m   1s = 15/3600 deg
+      a_deg_10 = w1*15.0+w2*15.0/60.0+w3*15.0/3600.0;
+    } else {
+      a_deg_10 = -(-w1*15.0+w2*15.0/60.0+w3*15.0/3600.0);
+    }
+    return true;
+  }}
+ {int w1;
+  double w2;
+  if(::sscanf(a_s.c_str(),"%d:%lg",&w1,&w2)==2) {
+    //::printf("%d|%g\n",w1,w2);
+    if(w1>=0) {
+      a_deg_10 = w1*15.0+w2*15.0/60.0;
+    } else {
+      a_deg_10 = -(-w1*15.0+w2*15.0/60.0);
+    }
+    return true;
+  }}
+  a_deg_10 = 0;
+  return false;
+}
+
+}
+
+#include <cmath>
+#include "num2s"
+
+namespace inlib {
+
+inline bool deg_10_to_deg_sex(double a_deg,std::string& a_s) {
+  double secs = ::fabs(a_deg)*3600;
+  int d = int(secs/3600.0);
+  double rest = secs-d*3600;
+  int m = int(rest/60.0); //arcmin
+  int s = int(rest-m*60); //arcsec
+
+  a_s = a_deg<0?"-":"+";
+  if(!numas<int>(d,a_s)) {a_s.clear();return false;}
+  a_s += ":";
+  if(!numas<int>(m,a_s)) {a_s.clear();return false;}
+  a_s += ":";
+  if(!numas<int>(s,a_s)) {a_s.clear();return false;}
+
+  return true;
+}
+
+inline bool deg_10_to_hour_sex(double a_deg,std::string& a_s) {
+  // a_deg_10 = w1*15.0+w2*15.0/60.0+w3*15.0/3600.0;
+
+  int h = int(a_deg/15.0);
+  double rest = a_deg-h*15.0;
+  int m = int(rest/(15.0/60.0));
+  rest = rest-m*(15.0/60.0);
+  double s = rest/(15.0/3600.0);
+
+  a_s = a_deg<0?"-":"+";
+  if(!numas<int>(h,a_s)) {a_s.clear();return false;}
+  a_s += ":";
+  if(!numas<int>(m,a_s)) {a_s.clear();return false;}
+  a_s += ":";
+  if(!numas<double>(s,a_s)) {a_s.clear();return false;}
+
+  return true;
+}
+
+}
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+#include "S_STRING"
+
+namespace inlib {
+
+class star {
+  INLIB_SCLASS(inlib::star)
+public:
+  star(const std::string& a_ra,const std::string& a_dec,const std::string& a_type,const std::string& a_name)
+  :m_ra(a_ra),m_dec(a_dec),m_type(a_type),m_name(a_name) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~star(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  star(const star& a_from):m_ra(a_from.m_ra),m_dec(a_from.m_dec),m_type(a_from.m_type),m_name(a_from.m_name) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  star& operator=(const star& a_from){
+    m_ra = a_from.m_ra;
+    m_dec = a_from.m_dec;
+    m_type = a_from.m_type;
+    m_name = a_from.m_name;
+    return *this;
+  }
+public:
+  bool radec(double& a_ra,double& a_dec) const {
+    if(!hour_sex_to_deg_10(m_ra,a_ra)) return false;
+    if(!deg_sex_to_deg_10(m_dec,a_dec)) return false;
+    return true;
+  }
+  const std::string& ra() const {return m_ra;}
+  const std::string& dec() const {return m_dec;}
+  const std::string& type() const {return m_type;}
+  const std::string& name() const {return m_name;}
+protected:
+  std::string m_ra;
+  std::string m_dec;
+  std::string m_type;
+  std::string m_name;
+};
+
+INLIB_GLOBAL_STRING(get_from_home)
+
+//INLIB_GLOBAL_STRING_VALUE(server_stsci,stsci)
+INLIB_GLOBAL_STRING_VALUE(host_stsci,archive.stsci.edu)
+INLIB_GLOBAL_STRING_VALUE(epoch_J2000,J2000)
+
+// repserv :
+INLIB_GLOBAL_STRING(local)
+inline unsigned int repserv_port() {return 54123;} //=Clermont port.
+inline unsigned int proxy_port() {return 54123+1;}
+
+//INLIB_GLOBAL_STRING_VALUE(Clermont,193.48.81.110)
+//INLIB_GLOBAL_STRING_VALUE(0_0_0_0,0.0.0.0)
+//INLIB_GLOBAL_STRING_VALUE(192_168_0_11,192.168.0.11)
+//INLIB_GLOBAL_STRING_VALUE(LAL_Cloud_247,134.158.75.247) //OpenStack/ubuntu
+//INLIB_GLOBAL_STRING_VALUE(arts_at_lal,134.158.76.71)
+//INLIB_GLOBAL_STRING_VALUE(mbp_barrand_LAL,134.158.91.139)
+
+// used in wall/screen_main :
+INLIB_GLOBAL_STRING_VALUE(LAL_Cloud_40,134.158.75.40)   //OpenStack/ubuntu
+inline unsigned int repserv_port_LAL_Cloud() {return 23541;}
+
+// catalogs :
+INLIB_GLOBAL_STRING(stars_none)
+INLIB_GLOBAL_STRING(stars_simbad)
+INLIB_GLOBAL_STRING(stars_stripe82)
+
+// else :
+INLIB_GLOBAL_STRING(equator)
+
+}
+
+#endif

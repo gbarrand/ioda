@@ -1,0 +1,134 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_SDSS
+#define inlib_SDSS
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+#include "S_STRING"
+#include <vector>
+
+namespace inlib {
+namespace SDSS {
+
+class star {
+  INLIB_SCLASS(inlib::SDSS::star)
+public:
+  star(const double a_vals[36]) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<36;i++) m_vals[i] = a_vals[i];
+  }
+  virtual ~star(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  star(const star& a_from) {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+    for(unsigned int i=0;i<36;i++) m_vals[i] = a_from.m_vals[i];
+  }
+  star& operator=(const star& a_from){
+    for(unsigned int i=0;i<36;i++) m_vals[i] = a_from.m_vals[i];
+    return *this;
+  }
+public:
+  void radec(double& a_ra,double& a_dec) const {
+    a_ra = m_vals[0];
+    a_dec = m_vals[1];
+  }
+protected:
+  double m_vals[36];
+};
+
+class catalog : public std::vector<star> {
+  typedef std::vector<star> parent;
+public:
+  INLIB_SCLASS(inlib::SDSS::catalog)
+public:
+  catalog():parent(){}
+  virtual ~catalog(){}
+public:
+  catalog(const catalog& a_from):parent(a_from){}
+  catalog& operator=(const catalog& a_from){
+    parent::operator=(a_from);
+    return *this;
+  }
+};
+
+}}
+
+#include "cstr"
+#include "file"
+
+namespace inlib {
+namespace SDSS {
+
+inline bool read_catalog(std::vector<star>& a_stars,const std::string& a_file) {
+  a_stars.clear();
+  FILE* file = ::fopen(a_file.c_str(),"rb");
+  if(!file) return false;
+  unsigned int BUFSIZE = 65536;
+  char* buffer = new char[BUFSIZE+1];
+  if(!buffer) {::fclose(file);return false;}
+
+  bool status = true;
+
+  char* olcn = beg_LC_NUMERIC();
+
+  char* beg;
+  char* end;
+  char* pos;
+
+  char* TYPE; //CALIBSTARS
+
+  double vals[36]; //36 = 6+5*6
+
+  while(true) {
+    size_t l;
+    if(!file::read_cstring(file,buffer,BUFSIZE,l)) break; // EOF.
+    if((buffer[0]=='#')&&(buffer[1]=='#')&&(buffer[2]=='#')) continue;
+
+    TYPE = buffer;
+   {pos = ::strchr(TYPE,' ');
+    if(!pos) {status=false;break;}
+    *pos = 0;}
+
+    for(unsigned int i=0;i<35;i++) {
+      beg = pos+1;
+      str_skip(beg,' ');
+      pos = ::strchr(beg,' ');
+      if(!pos) {status=false;break;}
+      *pos = 0;
+      vals[i] = ::strtod(beg,&end);
+      if(end==beg) {status=false;break;}
+    }
+    if(!status) break;
+
+   {beg = pos+1;
+    str_skip(beg,' ');
+    vals[35] = ::strtod(beg,&end);
+    if(end==beg) {status=false;break;}}
+
+    a_stars.push_back(star(vals));
+
+  }
+
+  end_LC_NUMERIC(olcn);
+
+  if(!status) a_stars.clear();
+  delete [] buffer;
+  ::fclose(file);
+  return status;
+}
+
+}}
+
+#endif

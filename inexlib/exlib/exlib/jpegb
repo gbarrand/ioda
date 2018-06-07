@@ -1,0 +1,379 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_jpegb
+#define exlib_jpegb
+
+#include <cstdio> //FILE,size_t
+
+extern "C" { //Needed on Windows.
+#ifdef EXLIB_USE_NATIVE_JPEG
+#include <jpeglib.h>
+#else
+#include <ourex_jpeglib.h> //enforce ourex jpeg
+#endif
+}
+
+#include <csetjmp>
+#include <cstring> //memcpy
+#include <cstddef>
+
+// for read_part :
+#include <ostream>
+#include <inlib/mnmx>
+#include <inlib/typedefs>
+
+namespace exlib {
+namespace jpegb {
+
+inline bool is(inlib::uint64 a_sz,const char* a_buffer){
+  if(a_sz<4) return false;
+  if(((unsigned char)a_buffer[0])!=255) return false;
+  if(((unsigned char)a_buffer[1])!=216) return false;
+  if(((unsigned char)a_buffer[2])!=255) return false;
+//if(((unsigned char)a_buffer[3])!=224) return false; //LRI.jpg is 225 !
+  return true;
+}
+
+struct error_mgr {
+  struct jpeg_error_mgr pub;
+  jmp_buf setjmp_buffer;
+};
+
+typedef struct error_mgr* error_ptr;
+
+extern "C" {
+inline void exlib_jpegb_error_exit(j_common_ptr cinfo){
+  error_ptr myerr = (error_ptr) cinfo->err;
+  ::longjmp(myerr->setjmp_buffer, 1);
+}
+}
+
+typedef struct {
+  struct jpeg_source_mgr pub;
+  size_t m_sz;
+  JOCTET* m_buffer;
+  size_t m_read;
+} source_mgr;
+
+typedef source_mgr* source_mgr_ptr;
+
+inline void init_source(j_decompress_ptr /*a_cinfo*/) {}
+
+inline boolean fill_input_buffer(j_decompress_ptr a_cinfo) {
+  source_mgr_ptr src = (source_mgr_ptr) a_cinfo->src;
+
+  size_t chunck = 4096;
+
+  ptrdiff_t nbytes = src->m_sz - src->m_read;
+  if(nbytes<0) {}
+
+  if(size_t(nbytes)>chunck) nbytes = chunck;
+
+  src->pub.next_input_byte = src->m_buffer+src->m_read;
+  src->pub.bytes_in_buffer = nbytes;
+  src->m_read += nbytes;
+
+  return TRUE;
+}
+
+inline void skip_input_data(j_decompress_ptr a_cinfo, long a_num_bytes) {
+  source_mgr_ptr src = (source_mgr_ptr) a_cinfo->src;
+  if (a_num_bytes > 0) {
+    while (a_num_bytes > (long) src->pub.bytes_in_buffer) {
+      a_num_bytes -= (long) src->pub.bytes_in_buffer;
+      fill_input_buffer(a_cinfo);
+    }
+    src->pub.next_input_byte += (size_t) a_num_bytes;
+    src->pub.bytes_in_buffer -= (size_t) a_num_bytes;
+  }
+}
+
+inline void term_source(j_decompress_ptr) {}
+
+inline void jpeg_buffer_src(j_decompress_ptr a_cinfo,size_t a_sz,const char* a_buffer) {
+  source_mgr_ptr src = 0;
+
+  if (a_cinfo->src == NULL) {
+    a_cinfo->src = (struct jpeg_source_mgr *)
+      (*a_cinfo->mem->alloc_small) ((j_common_ptr) a_cinfo, JPOOL_PERMANENT,
+                                    (size_t)sizeof(source_mgr));
+    src = (source_mgr_ptr) a_cinfo->src;
+  } else {
+    src = (source_mgr_ptr) a_cinfo->src;
+  }
+
+  src->pub.init_source = init_source;
+  src->pub.fill_input_buffer = fill_input_buffer;
+  src->pub.skip_input_data = skip_input_data;
+  src->pub.resync_to_restart = jpeg_resync_to_restart;
+  src->pub.term_source = term_source;
+  src->pub.bytes_in_buffer = 0;
+  src->pub.next_input_byte = NULL;
+
+  src->m_sz = a_sz;
+  src->m_buffer = (JOCTET*)a_buffer;
+  src->m_read = 0;
+}
+
+inline bool infos_buffer(size_t a_sz,const char* a_buffer,
+                         unsigned int& a_width,unsigned int& a_height,
+                         unsigned int& a_bpp) {
+  //NOTE : G.Barrand : not sure that in case of error, we cleanup properly !
+
+  struct jpeg_decompress_struct cinfo;
+  struct error_mgr jerr;
+
+  cinfo.err = ::jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = exlib_jpegb_error_exit;
+  if(::setjmp(jerr.setjmp_buffer)) {
+    //printf("debug : out of setjmp\n");
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return false;
+  }
+
+  ::jpeg_create_decompress(&cinfo);
+
+  jpeg_buffer_src(&cinfo,a_sz,a_buffer);
+
+  ::jpeg_read_header(&cinfo, TRUE);
+
+  ::jpeg_start_decompress(&cinfo);
+
+  a_width = cinfo.output_width;
+  a_height = cinfo.output_height;
+  a_bpp = cinfo.output_components;
+
+  ::jpeg_abort_decompress(&cinfo);
+  ::jpeg_destroy_decompress(&cinfo);
+
+  return true;
+}
+
+inline unsigned char* read_buffer(size_t a_sz,const char* a_buffer,
+                                  unsigned int& a_width,unsigned int& a_height,
+                                  unsigned int& a_bpp) {
+  //NOTE : G.Barrand : not sure that in case of error, we cleanup properly !
+
+  struct jpeg_decompress_struct cinfo;
+  struct error_mgr jerr;
+
+  cinfo.err = ::jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = exlib_jpegb_error_exit;
+  if(::setjmp(jerr.setjmp_buffer)) {
+#ifdef EXLIB_JPEG_OUT_ERR
+    ::printf("exlib::jpegb::read_buffer : out of setjmp\n");
+#endif
+    //NOTE : how to be sure to delete the below new if having been done ?
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  ::jpeg_create_decompress(&cinfo);
+
+  jpeg_buffer_src(&cinfo,a_sz,a_buffer);
+
+  ::jpeg_read_header(&cinfo, TRUE);
+
+  ::jpeg_start_decompress(&cinfo);
+
+  int row_stride = cinfo.output_width * cinfo.output_components;
+
+  if((!cinfo.output_width)||
+     (!cinfo.output_height)||
+     (cinfo.output_components<=0)) {
+#ifdef EXLIB_JPEG_OUT_ERR
+    ::printf("exlib::jpegb::read_buffer : bad size, w %u h %u cpnts %d\n",
+             cinfo.output_width,cinfo.output_height,cinfo.output_components);
+#endif
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }
+
+  a_width = cinfo.output_width;
+  a_height = cinfo.output_height;
+  a_bpp = cinfo.output_components;
+
+  unsigned char* image_buffer =
+    new unsigned char[row_stride * cinfo.output_height];
+  if(!image_buffer) {
+#ifdef EXLIB_JPEG_OUT_ERR
+    ::printf("exlib::jpegb::read_buffer : alloc of %d bytes failed\n",
+        row_stride * cinfo.output_height);
+#endif
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    a_width = 0;
+    a_height = 0;
+    a_bpp = 0;
+    return 0;
+  }  
+
+  //FIXME : iPad : the below crashes on LHCb_artist_16384_4096_80.jpg.
+
+ {JSAMPROW buffer[1];
+  unsigned char* pos = image_buffer + row_stride * cinfo.output_height;
+  while (cinfo.output_scanline<cinfo.output_height) {
+    pos -= row_stride;
+    buffer[0] = pos;
+    if(::jpeg_read_scanlines(&cinfo, buffer, 1)!=1) {
+#ifdef EXLIB_JPEG_OUT_ERR
+      ::printf("exlib::jpegb::read_buffer : jpeg_read_scanlines failed\n");
+#endif
+      ::jpeg_abort_decompress(&cinfo);
+      ::jpeg_destroy_decompress(&cinfo);
+      a_width = 0;
+      a_height = 0;
+      a_bpp = 0;
+      delete [] image_buffer;
+      return 0;
+    }
+  }}
+
+  if(cinfo.output_scanline<cinfo.output_height)
+    ::jpeg_abort_decompress(&cinfo);
+  else
+    ::jpeg_finish_decompress(&cinfo);
+
+  ::jpeg_destroy_decompress(&cinfo);
+
+  return image_buffer;
+}
+
+inline unsigned char* read_part(std::ostream& a_out,
+                                size_t a_sz,const char* a_buffer,
+                                unsigned int a_sx,unsigned int a_sy,
+                                unsigned int a_sw,unsigned int a_sh,
+                                unsigned int& a_rw,unsigned int& a_rh,
+                                unsigned int& a_rbpp) {
+  if(!is(a_sz,a_buffer)) {
+    a_out << "exlib::jpeg::read_part :"
+          << " buffer is not jpeg."
+          << std::endl;
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  } 
+
+  struct jpeg_decompress_struct cinfo;
+  struct error_mgr jerr;
+
+  cinfo.err = ::jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = exlib_jpegb_error_exit;
+  if(::setjmp(jerr.setjmp_buffer)) {
+    //printf("debug : out of setjmp\n");
+    //NOTE : how to be sure to delete the below news if having been done ?
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  }
+
+  ::jpeg_create_decompress(&cinfo);
+
+  jpeg_buffer_src(&cinfo,a_sz,a_buffer);
+
+  ::jpeg_read_header(&cinfo,TRUE);
+
+  ::jpeg_start_decompress(&cinfo);
+
+  int row_stride = cinfo.output_width * cinfo.output_components;
+
+  unsigned int w = cinfo.output_width;
+  unsigned int h = cinfo.output_height;
+
+  if((a_sx>=w)||(a_sy>=h)){
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  }
+
+  // 012345
+  a_rw = inlib::mn<unsigned int>(w-a_sx,a_sw); 
+  a_rh = inlib::mn<unsigned int>(h-a_sy,a_sh); 
+  a_rbpp = cinfo.output_components;
+
+  if(!a_rw||!a_rh||!a_rbpp){
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  }
+
+  unsigned char* image_buffer = new unsigned char[a_rw*a_rh*a_rbpp];
+  if(!image_buffer) {
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  }  
+
+  unsigned char* line = new unsigned char[row_stride];
+  if(!line) {
+    ::jpeg_abort_decompress(&cinfo);
+    ::jpeg_destroy_decompress(&cinfo);
+    delete [] image_buffer;
+    a_rw = 0;
+    a_rh = 0;
+    a_rbpp = 0;
+    return 0;
+  }  
+
+  //FIXME : iPad : the below crashes on LHCb_artist_16384_4096_80.jpg.
+
+  unsigned int hbeg = a_sy;
+  unsigned int hend = a_sy+a_rh;
+
+ {JSAMPROW buffer[1];
+  buffer[0] = line;
+  unsigned char* pos = image_buffer+a_rh*a_rw*a_rbpp;
+  while(cinfo.output_scanline<cinfo.output_height) {
+    if(jpeg_read_scanlines(&cinfo, buffer, 1)!=1) {
+      ::jpeg_abort_decompress(&cinfo);
+      ::jpeg_destroy_decompress(&cinfo);
+      delete [] line;
+      delete [] image_buffer;
+      a_rw = 0;
+      a_rh = 0;
+      a_rbpp = 0;
+      return 0;
+    }
+    if((hbeg<=cinfo.output_scanline)&&(cinfo.output_scanline<hend)){
+      pos -= a_rw*a_rbpp;
+      ::memcpy(pos,line+a_sx*a_rbpp,a_rw*a_rbpp);
+    }
+  }}
+
+  if(cinfo.output_scanline<cinfo.output_height)
+    ::jpeg_abort_decompress(&cinfo);
+  else
+    ::jpeg_finish_decompress(&cinfo);
+
+  ::jpeg_destroy_decompress(&cinfo);
+
+  delete [] line;
+
+  return image_buffer;  
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib jpeg

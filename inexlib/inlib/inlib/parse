@@ -1,0 +1,295 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_parse
+#define inlib_parse
+
+// used in OpenPAW and Lib/FunctionManager.
+
+#include "sto"
+#include "words"
+#include "cstr"
+#include "forit"
+#include "svar"
+#include "not_found"
+
+#include <clocale>
+
+namespace inlib {
+
+template <class T>
+inline bool to_vals_one(const std::string& a_string,std::vector<T>& a_vals){
+  std::string::size_type pos = a_string.find('*');
+  if(pos==std::string::npos){
+    T value;
+    if(!to<T>(a_string,value)) return false;
+    a_vals.push_back(value);
+  } else {
+    //3*2.4
+    //01234
+    std::string sn = a_string.substr(0,pos);
+    std::string sv = a_string.substr(pos+1,a_string.size()-(pos+1));
+    int multiplier;
+    if(!to<int>(sn,multiplier)) return false;
+    T value;
+    if(!to<T>(sv,value)) return false;
+    for(int index=0;index<multiplier;index++) a_vals.push_back(value);
+  }
+  return true;
+}
+
+template <class T>
+inline bool to_vals(const std::string& a_string,const char a_sep,std::vector<T>& a_vals){
+  // Support PAW syntax : 3*2.4 is understood as three times 2.4.
+  a_vals.clear();
+  if(a_string.empty()) return true;
+  std::string::size_type lim = 1;
+  std::string::size_type l = a_string.length();
+  std::string::size_type pos = 0;
+  while(true) {
+    std::string::size_type index = a_string.find(a_sep,pos);
+    if(index==std::string::npos){ // Last word.
+      if((l-pos)>=lim) {
+        if(!to_vals_one<T>(a_string.substr(pos,l-pos),a_vals)) {
+          a_vals.clear();
+          return false;
+        }
+      }
+      break;
+    } else {
+      //     abcxxxef
+      //     0  3  67
+      if((index-pos)>=lim) {
+        if(!to_vals_one<T>(a_string.substr(pos,index-pos),a_vals)) {
+          a_vals.clear();
+          return false;
+        }
+      }
+      pos = index + 1;
+    }
+  }
+  return true;
+}
+
+template <class T>
+inline bool to_axis(const std::string& a_string,T& a_x,T& a_y,T& a_z,const std::string& a_sep = " "){
+  std::vector<std::string> ws;
+  words(a_string,a_sep,false,ws);
+  if(ws.size()!=3) {
+    a_x = T();a_y = T();a_z = T();
+    return false;
+  }
+  if(!to<T>(ws[0],a_x)) {
+    a_x = T();a_y = T();a_z = T();
+    return false;
+  }
+  if(!to<T>(ws[1],a_y)) {
+    a_x = T();a_y = T();a_z = T();
+    return false;
+  }
+  if(!to<T>(ws[2],a_z)) {
+    a_x = T();a_y = T();a_z = T();
+    return false;
+  }
+  return true;
+}
+
+inline bool name_args(const std::string& a_string,std::string& a_name,std::vector<std::string>& a_args){
+  // Look if a_string is of the form <string>(<string>,...,<string>)
+  // return true if so.
+  // return true if <string> without args
+  // return false if any bad syntax.
+  std::string::size_type lb = a_string.find('(');
+  std::string::size_type rb = a_string.rfind(')');
+  if( (lb==std::string::npos) && (rb==std::string::npos) ) {
+    a_name = a_string;
+    a_args.clear();
+    return true;
+  } else if( (lb==std::string::npos) && (rb!=std::string::npos) ) {
+    a_name = "";
+    a_args.clear();
+    return false;
+  } else if( (lb!=std::string::npos) && (rb==std::string::npos) ) {
+    a_name = "";
+    a_args.clear();
+    return false;
+  } else if(lb>=rb) {
+    a_name = "";
+    a_args.clear();
+    return false;
+  }
+  std::string s = a_string.substr(lb+1,rb-lb-1);
+  words(s,",",true,a_args);
+  a_name = a_string.substr(0,lb);
+  return true; 
+}
+
+inline bool parse_array(const std::string& a_string,std::string& a_name,int& a_index){
+  // Look if a_name is of the form <string>(<integer>)
+  // return true if <string>(<integer>)
+  // return true if <string>. a_name = <string> and a_index = not_found (-1).
+  // return false if bad syntax or <integer> not an integer.
+  std::string::size_type lb = a_string.find('(');
+  std::string::size_type rb = a_string.rfind(')');
+  if( (lb==std::string::npos) && (rb==std::string::npos) ) {
+    a_name = a_string;
+    a_index = not_found();
+    return true;
+  } else if( (lb==std::string::npos) && (rb!=std::string::npos) ) {
+    a_name = "";
+    a_index = 0;
+    return false;
+  } else if( (lb!=std::string::npos) && (rb==std::string::npos) ) {
+    a_name = "";
+    a_index = 0;
+    return false;
+  } else if(lb>=rb) {
+    a_name = "";
+    a_index = 0;
+    return false;
+  }
+  //012345678
+  //Slash::Core::ILibraryManager(123)
+  std::string s = a_string.substr(lb+1,rb-lb-1);
+  if(!to<int>(s,a_index)) {
+    a_name = "";
+    a_index = 0;
+    return false;
+  }
+  a_name = a_string.substr(0,lb);
+  return true; 
+}
+
+inline bool to_doubles(const std::string& a_string,std::vector<double>& a_values,const std::string& a_sep){
+  // Support PAW syntax : 3*2.4 is understood as three times 2.4.
+  a_values.clear();
+  std::vector<std::string> ws;
+  words(a_string,a_sep,false,ws);
+  bool seekMultiplier = (a_sep!="*"?true:false);
+  if(!seekMultiplier) a_values.resize(ws.size());
+  int valuei = 0;
+  std::vector<std::string> subws;
+  inlib_vforit(std::string,ws,it) {
+    if(seekMultiplier) {
+      std::string::size_type pos = (*it).find('*');
+      if(pos==std::string::npos){
+        double value;
+        if(!to<double>(*it,value)) {
+          a_values.clear();
+          return false;
+        }
+        a_values.push_back(value);
+      } else {
+        //3*2.4
+        //01234
+        std::string sn = (*it).substr(0,pos);
+        std::string sv = (*it).substr(pos+1,a_string.size()-(pos+1));
+        int multiplier;
+        if(!to<int>(sn,multiplier)) {
+          a_values.clear();
+          return false;
+        }
+        double value;
+        if(!to<double>(sv,value)) {
+          a_values.clear();
+          return false;
+        }
+        for(int index=0;index<multiplier;index++) a_values.push_back(value);
+      }
+    } else {
+      double value;
+      if(!to<double>(*it,value)) {
+        a_values.clear();
+        return false;
+      }
+      a_values[valuei] = value;
+      valuei++;
+    }    
+  }
+  return true;
+}
+
+inline size_t cstring_strtods(const char* a_cstr,std::vector<double>& a_vals,bool a_fixed = false){
+  // a_fixed = false : a_vals size is adapted according to what is read.
+  // a_fixed = true : a_vals size is fixed. If less is read, then the
+  //                 rest is pad with 0.
+  // return : the number of double read.
+
+  char* _sl = ::setlocale(LC_NUMERIC,0);
+  char* old = _sl?str_dup(_sl):0;
+  ::setlocale(LC_NUMERIC,"C");
+
+  size_t n = a_vals.size();
+  char* begin = (char*)a_cstr;
+  char* end;
+  double d;
+  size_t index = 0;
+  std::vector<double>::iterator it = a_vals.begin();
+  while(true) {  
+    d = ::strtod(begin,&end);
+    if(end==begin) {
+      if(a_fixed) {
+        for(;it!=a_vals.end();++it) *it = 0;
+      } else {
+        if(index<n) a_vals.resize(index);
+      }
+      if(old) {
+        ::setlocale(LC_NUMERIC,old);
+        str_del(old);
+      }
+      return index;
+    }
+    if(index<n) {
+      *it = d;
+      it++;
+    } else {
+      if(a_fixed) {
+        if(old) {
+          ::setlocale(LC_NUMERIC,old);
+          str_del(old);
+        }
+        return index;
+      }
+      a_vals.push_back(d);
+    }
+    index++;
+    begin = end;
+  }
+}
+
+}
+
+#include "file"
+#include "vmanip"
+
+namespace inlib {
+
+inline bool read_doubles(const std::string& a_file,std::vector<double>& a_vals){
+  a_vals.clear();
+  FILE* file = ::fopen(a_file.c_str(),"rb");
+  if(!file) return false;
+  unsigned int BUFSIZE = 65536;
+  char* buffer = new char[BUFSIZE+1];
+  if(!buffer) {::fclose(file);return false;}
+  std::string sep = " ";
+  while(true) {
+    size_t l;
+    if(!file::read_cstring(file,buffer,BUFSIZE,l)) break; // EOF.
+    std::string sbuffer = buffer; //can we avoid this copy ?
+    std::vector<double> ds;
+    if(!to_doubles(sbuffer,ds,sep)) {
+      a_vals.clear();
+      delete [] buffer;
+      ::fclose(file);
+      return false;
+    }
+    append<double>(a_vals,ds);
+  }
+  delete [] buffer;
+  ::fclose(file);
+  return true;
+}
+
+}
+
+#endif

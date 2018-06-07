@@ -1,0 +1,52 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_files
+#define inlib_cbk_files
+
+#include "../sg/gui_viewer"
+
+#include "popup_data"
+
+namespace inlib {
+namespace cbk {
+
+inline sg::return_action action_open_file(sg::gui_viewer& a_gv,sg::file_chooser& a_fch,const sg::pos_data& a_data) {
+  args _args;
+ {std::string sv;
+  b2s(a_data.m_popup,sv);
+  _args.add(sg::s_popup(),sv);
+  num2s(a_data.m_ex,sv);
+  _args.add(sg::s_ex(),sv);
+  num2s(a_data.m_ey,sv);
+  _args.add(sg::s_ey(),sv);}
+
+  bool done;
+  a_gv.opener().open(a_fch.value.value(),a_fch.format.value(),_args,done);
+
+  return sg::return_to_render;
+}
+
+inline sg::return_action action_files(sg::gui_viewer& a_gv,const sg::pos_data& a_data) {
+  sg::file_chooser* fch = new sg::file_chooser(a_gv.ttf());
+  a_gv.set_style(*fch);
+
+  fch->exts.add(a_gv.opener().exts());
+
+  fch->dirs.add(a_gv.res_dir());
+  fch->dirs.add(a_gv.data_dirs());
+
+  sg::add_callback(a_gv,*fch,action_open_file,a_data);
+
+  fch->initialize(a_gv.out());
+
+  a_gv.show_widget(a_data,fch);
+
+  return sg::return_to_render;
+}
+
+}}
+
+//inlib_build_use kernel
+
+#endif

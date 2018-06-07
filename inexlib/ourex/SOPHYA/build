@@ -1,0 +1,105 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+
+. ${bush_home}/ourex_header
+
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+ccflags="${ccflags} -I./include"
+cppflags="${cppflags} -I./include"
+
+if [ ${build_visual} = "yes" ] ; then
+  cppflags="${cppflags} -I${bush_home}/visual"
+
+  cppflags="${cppflags} -wd4244"
+
+  cppflags="${cppflags} -wd4018"
+  cppflags="${cppflags} -wd4804"
+  cppflags="${cppflags} -wd4146"
+  cppflags="${cppflags} -wd4554"
+  cppflags="${cppflags} -wd4305"
+  cppflags="${cppflags} -wd4101"
+  cppflags="${cppflags} -wd4800"
+
+  ccflags="${ccflags} -wd4244"
+
+  cfiles="${cfiles} ${bush_home}/visual/stdlib.c"
+
+fi
+
+
+use_cfitsio=yes
+use_thread=yes
+use_dl=yes
+
+. ${bush_home}/use/cfitsio
+. ${bush_home}/use/thread
+. ${bush_home}/use/dl
+
+#//////////////////////////////////////////////
+#/// compile //////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_compile} = "yes" ] ; then
+
+if [ ${build_clang} = "yes" -o ${build_sdk_mac} = "yes" -o ${build_sdk_ios} = "yes" ] ; then
+  # for warning in ./src/FitsIOServer/fitsmanager.cc:64:13:
+  cppflags="${cppflags} -Wno-potentially-evaluated-expression"
+  # quiet old clang (for exa 3.4) that does not have the upper warning.
+  cppflags="${cppflags} -Wno-unknown-warning-option"
+fi
+
+if [ `uname` = "Linux" ] ; then
+  cppflags="${cppflags} -Wno-unused-result"
+fi
+
+find ./src -name '*.c' -print >> c_tmp
+find ./src -name '*.cc' -print >> cpp_tmp
+
+#cfiles=
+#cppfiles=./src/SysTools/commander.cc
+
+if [ ${build_sdk_android} = "yes" ] ; then
+  grep -v 'commander.cc' ./cpp_tmp > tmp_0;/bin/mv ./tmp_0 cpp_tmp
+  grep -v 'zthread.cc' ./cpp_tmp > tmp_0;/bin/mv ./tmp_0 cpp_tmp
+  grep -v 'pdlmgr.cc' ./cpp_tmp > tmp_0;/bin/mv ./tmp_0 cpp_tmp
+fi
+
+. ${bush_home}/compile
+cfiles=
+
+fi # end build_compile
+ 
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+#//////////////////////////////////////////////
+if [ ${build_archive} = "yes" ] ; then . ${bush_home}/archive; fi
+
+#//////////////////////////////////////////////
+#/// apps : ///////////////////////////////////
+#//////////////////////////////////////////////
+
+if [ ${build_app} = "yes" ] ; then
+
+  . ${bush_home}/preplib
+
+  apps="histo sph2lm tcmd sphg0"
+  apps="${apps} sph2asc"
+  for item in ${apps} ; do
+    objs=
+    app_exe=${item}
+    app_src=./apps/${item}.cc
+    . ${bush_home}/application
+  done
+
+fi
+
+#//////////////////////////////////////////////
+#/// end : ////////////////////////////////////
+#//////////////////////////////////////////////
+
+. ${bush_home}/clean
+

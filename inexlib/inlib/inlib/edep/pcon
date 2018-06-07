@@ -1,0 +1,92 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_edep_pcon
+#define inlib_edep_pcon
+
+#include "solid"
+#include "../amanip"
+
+namespace inlib {
+namespace edep {
+
+class pcon : public solid {
+public:
+  INLIB_SCLASS(inlib::edep::pcon)
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<pcon>(this,a_class)) return p;
+    return solid::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+public:
+  static cid id_class() {return pcon_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<pcon>(this,a_class)) return p;
+    return solid::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+public:
+  pcon(
+   double a_phi
+  ,double a_dphi
+  ,unsigned int a_nz
+  ,const double a_zs[]
+  ,const double a_rmins[]
+  ,const double a_rmaxs[]
+  )
+  :m_phi(a_phi)
+  ,m_dphi(a_dphi)
+  ,m_nz(a_nz)
+  ,m_zs(0)
+  ,m_rmins(0)
+  ,m_rmaxs(0)
+  {
+    amanip::copy(m_zs,a_nz,a_zs);
+    amanip::copy(m_rmins,a_nz,a_rmins);
+    amanip::copy(m_rmaxs,a_nz,a_rmaxs);
+  }
+  virtual ~pcon(){
+    delete [] m_zs;
+    delete [] m_rmins;
+    delete [] m_rmaxs;
+  }
+public:
+  pcon(const pcon& a_from)
+  :iobj(a_from)
+  ,solid(a_from)
+  ,m_phi(a_from.m_phi)
+  ,m_dphi(a_from.m_dphi)
+  ,m_nz(a_from.m_nz)
+  ,m_zs(a_from.m_zs)
+  ,m_rmins(a_from.m_rmins)
+  ,m_rmaxs(a_from.m_rmaxs)
+  {}
+  pcon& operator=(const pcon& a_from){
+    solid::operator=(a_from);
+    m_phi = a_from.m_phi;
+    m_dphi = a_from.m_dphi;
+    m_nz = a_from.m_nz;
+    m_zs = a_from.m_zs;
+    m_rmins = a_from.m_rmins;
+    m_rmaxs = a_from.m_rmaxs;
+    return *this;
+  }
+public:
+  double phi() const {return m_phi;}
+  double dphi() const {return m_dphi;}
+  unsigned int nz() const {return m_nz;}
+  double* zs() const {return m_zs;}
+  double* rmins() const {return m_rmins;}
+  double* rmaxs() const {return m_rmaxs;}
+protected:
+  double m_phi;
+  double m_dphi;
+  unsigned int m_nz;
+  double* m_zs;
+  double* m_rmins;
+  double* m_rmaxs;
+};
+
+}}
+
+#endif

@@ -1,0 +1,117 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_iv_opener
+#define exlib_iv_opener
+
+#include <inlib/sg/iopener>
+
+#include "hepvis" //to read LHCb .hiv files.
+#include "../gzip"
+
+#include <inlib/sg/view_evd>
+
+#include "so_2sg_action.h"
+
+//#include "file"
+#include "so2sg"
+
+#include <Inventor/SoDB.h>
+#include <Inventor/SoInteraction.h>
+#include <Inventor/nodekits/SoNodeKit.h>
+
+namespace exlib {
+namespace iv {
+
+class opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::iv::opener)
+public:
+  virtual parent* copy() const {return new opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {return gzip_is_iv(a_path,a_is);}
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_viewer);
+    if(!_evd) return false;
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    
+    //a_gv.m_params.m_light_on = true;
+    //bool solid = a_gv.m_params.m_solid;
+  
+    if(!_evd->is_evd()) _evd->create_sg_evd();
+
+    inlib::sg::separator& dsep = _evd->detector_sg();
+    //dsep.clear();
+
+    inlib::sg::separator* _sep = new inlib::sg::separator;
+    dsep.add(_sep);
+
+    inlib::sg::matrix* _mtx = new inlib::sg::matrix;
+    _sep->add(_mtx);
+
+    _sep->add(new inlib::sg::sep4axes); //add after the upper matrix so that axes be at iv scene center.
+
+    //iv::file* node = new iv::file; //rendering needs GL-1 which is not available on iOS and Android.
+    iv::so2sg* node = new iv::so2sg;
+    node->name = a_path;
+    node->center_scene = true; //so that cube manip be centered on the model coming from iv.
+    node->update_sg(_gv->out(),_gv->width(),_gv->height());
+    node->reset_touched(); //to not load file twice.
+    const inlib::vec3f& center = node->read_center();
+    _sep->add(node);
+
+    _mtx->set_translate(center);
+
+    _gv->hide_main_menu();
+
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,inlib::sg::viewer&,const inlib::args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+
+  virtual bool open(const std::string&,inlib::sg::viewer&,const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,const inlib::args&,bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+public:
+  opener(){
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  opener(const opener& a_from)
+  :parent(a_from)
+  {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  opener& operator=(const opener& a_from) {return *this;}  
+};
+
+}}
+
+//exlib_build_use inlib CoinGL HEPVis zlib kernel
+
+#endif

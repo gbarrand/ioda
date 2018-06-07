@@ -1,0 +1,180 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_spinor_dirac_anim
+#define inlib_sg_spinor_dirac_anim
+
+#include "base_anim"
+#include "spinor_dirac"
+
+#include "sf_vec3f"
+
+namespace inlib {
+namespace sg {
+
+class spinor_dirac_anim : public base_anim, public spinor_dirac {
+  INLIB_NODE_NO_CAST(spinor_dirac_anim,inlib::sg::spinor_dirac_anim,spinor_dirac)
+public:
+  virtual void* cast(const std::string& a_class) const {
+    {if(void* p = cmp_cast<spinor_dirac_anim>(this,a_class)) return p;}
+    {if(void* p = base_anim::cast(a_class)) return p;}
+    return parent::cast(a_class);
+  }
+public:
+  virtual bool action(std::ostream&,const atime& a_now) {
+    vec3f _axis(axis.value());
+    if(!_axis.normalize()) return true;
+    
+    float t = float(atime::diff(a_now,m_start).value());
+    float tp = float(atime::diff(m_prev,m_start).value());
+    float angle = (t-tp)*omega.value();
+    //float angle = 0.01f*omega.value();
+    //m_angle += angle;
+    //::printf("debug : angle %g\n",m_angle*frad2deg());
+    float _phi_u_x = parent::phi_u_x.value();
+    float _phi_u_y = parent::phi_u_y.value();
+    float _xi_u_x = parent::xi_u_x.value();
+    float _xi_u_y = parent::xi_u_y.value();
+    float _phi_d_x = parent::phi_d_x.value();
+    float _phi_d_y = parent::phi_d_y.value();
+    float _xi_d_x = parent::xi_d_x.value();
+    float _xi_d_y = parent::xi_d_y.value();
+    if(rotation.value()) {
+      rotate(_axis.x(),_axis.y(),_axis.z(),angle,
+             _phi_u_x,_phi_u_y,_xi_u_x,_xi_u_y,
+             _phi_d_x,_phi_d_y,_xi_d_x,_xi_d_y);
+    } else {
+      boost(_axis.x(),_axis.y(),_axis.z(),angle,
+            _phi_u_x,_phi_u_y,_xi_u_x,_xi_u_y,
+            _phi_d_x,_phi_d_y,_xi_d_x,_xi_d_y);
+    }
+    parent::phi_u_x = _phi_u_x;
+    parent::phi_u_y = _phi_u_y;
+    parent::xi_u_x = _xi_u_x;
+    parent::xi_u_y = _xi_u_y;
+    parent::phi_d_x = _phi_d_x;
+    parent::phi_d_y = _phi_d_y;
+    parent::xi_d_x = _xi_d_x;
+    parent::xi_d_y = _xi_d_y;
+    m_vec_rot_matrix.mul_rotate(axis.value().x(),axis.value().y(),axis.value().z(),angle);
+    return true;
+  }
+public:
+  virtual void event(event_action& a_action) {
+    parent::event(a_action);
+    do_event(a_action);
+  }
+public:
+  sf_vec3f axis; //must be normalized.
+  sf<float> omega; //rad/sec
+  sf<bool> rotation; //false=boost
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::spinor_dirac_anim)
+    static const desc_fields s_v(parent::node_desc_fields(),4, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(delay),
+      INLIB_ARG_FIELD_DESC(axis),
+      INLIB_ARG_FIELD_DESC(omega),
+      INLIB_ARG_FIELD_DESC(rotation)
+    );
+    return s_v;
+  }
+protected:
+  void add_fields(){
+    add_field(&delay);
+    add_field(&axis);
+    add_field(&omega);
+    add_field(&rotation);
+  }
+public:
+  spinor_dirac_anim(const atime& a_start)
+  :base_anim(a_start)
+  ,parent()
+  
+  ,axis(vec3f(0,0,1))
+  ,omega(ftwo_pi()/1.0f)  // turn/s  (one turn per second).
+  ,rotation(true) //false=boost
+
+  //,m_angle(0)
+  {
+    add_fields();
+    init_sg();
+    m_phi_u_x = phi_u_x;
+    m_phi_u_y = phi_u_y;
+    m_xi_u_x = xi_u_x;
+    m_xi_u_y = xi_u_y;
+    m_phi_d_x = phi_d_x;
+    m_phi_d_y = phi_d_y;
+    m_xi_d_x = xi_d_x;
+    m_xi_d_y = xi_d_y;
+  }
+  virtual ~spinor_dirac_anim(){}
+public:
+  spinor_dirac_anim(const spinor_dirac_anim& a_from)
+  :base_anim(a_from)
+  ,parent(a_from)
+
+  ,axis(a_from.axis)
+  ,omega(a_from.omega)
+  ,rotation(a_from.rotation)
+  
+  //,m_angle(0)
+  {
+    add_fields();
+    init_sg();
+    m_phi_u_x = phi_u_x;
+    m_phi_u_y = phi_u_y;
+    m_xi_u_x = xi_u_x;
+    m_xi_u_y = xi_u_y;
+    m_phi_d_x = phi_d_x;
+    m_phi_d_y = phi_d_y;
+    m_xi_d_x = xi_d_x;
+    m_xi_d_y = xi_d_y;
+  }
+  spinor_dirac_anim& operator=(const spinor_dirac_anim& a_from){
+    base_anim::operator=(a_from);
+    parent::operator=(a_from);
+    axis = a_from.axis;
+    omega = a_from.omega;
+    rotation = a_from.rotation;
+    return *this;
+  }
+public:
+  void reset_anim() {
+    phi_u_x = m_phi_u_x;
+    phi_u_y = m_phi_u_y;
+    xi_u_x = m_xi_u_x;
+    xi_u_y = m_xi_u_y;
+    phi_d_x = m_phi_d_x;
+    phi_d_y = m_phi_d_y;
+    xi_d_x = m_xi_d_x;
+    xi_d_y = m_xi_d_y;
+    set_start(atime::now());
+    m_vec_rot_matrix.set_identity();
+  }
+protected:  
+  void init_sg(){
+    parent::m_group.add(new noderef(m_vec_sep));
+    m_vec_sep.add(new noderef(m_vec_rot_matrix));
+    m_vec_sep.add(new noderef(m_vec_matrix));
+    m_vec_sep.add(new noderef(m_vec_color));
+    m_vec_sep.add(new noderef(m_vec));
+
+    m_vec_matrix.set_rotate(0,1,0,fhalf_pi());
+    m_vec_color.color = colorf_green();
+  }
+protected:
+  //float m_angle;
+  float m_phi_u_x,m_phi_u_y,m_xi_u_x,m_xi_u_y;
+  float m_phi_d_x,m_phi_d_y,m_xi_d_x,m_xi_d_y;
+  // vector :
+  separator m_vec_sep;
+  matrix m_vec_rot_matrix;
+  matrix m_vec_matrix;
+  rgba m_vec_color;
+  arrow m_vec;
+};
+
+}}
+
+#endif

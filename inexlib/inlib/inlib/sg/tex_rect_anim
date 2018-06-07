@@ -1,0 +1,78 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_tex_rect_anim
+#define inlib_sg_tex_rect_anim
+
+#include "base_tex_anim"
+#include "tex_rect"
+
+namespace inlib {
+namespace sg {
+
+class tex_rect_anim : public base_tex_anim, public tex_rect {
+  INLIB_NODE_NO_CAST(tex_rect_anim,inlib::sg::tex_rect_anim,tex_rect)
+public:
+  virtual void* cast(const std::string& a_class) const {
+    {if(void* p = cmp_cast<tex_rect_anim>(this,a_class)) return p;}
+    {if(void* p = base_tex_anim::cast(a_class)) return p;}
+    return parent::cast(a_class);
+  }
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::tex_rect_anim)
+    static const desc_fields s_v(parent::node_desc_fields(),3, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(delay),
+      INLIB_ARG_FIELD_DESC(time_interval),
+      INLIB_ARG_FIELD_DESC(repeat)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&delay);
+    add_field(&time_interval);
+    add_field(&repeat);
+  }
+protected:
+  virtual void _update_sg(std::ostream& a_out,
+                          unsigned int a_w,unsigned int a_h,unsigned int a_n,
+                          unsigned char* a_buffer,bool a_owner) {
+    img.value().set(a_w,a_h,a_n,a_buffer,a_owner);
+    tex_rect::update_sg(a_out);
+    img.reset_touched(); //IMPORTANT
+  }
+public:
+  virtual void event(event_action& a_action) {
+    //tex_rect::event(a_action);
+    if(touched()) {
+      m_it.rewind();
+      reset_touched();
+    }
+    do_event(a_action);
+  }
+public:
+  tex_rect_anim(const atime& a_start,image::iterator& a_it)
+  :base_tex_anim(a_start,a_it)
+  ,parent()
+  {
+    add_fields();
+  }
+  virtual ~tex_rect_anim(){}
+public:
+  tex_rect_anim(const tex_rect_anim& a_from)
+  :base_tex_anim(a_from)
+  ,parent(a_from)
+  {
+    add_fields();
+  }
+  tex_rect_anim& operator=(const tex_rect_anim& a_from){
+    base_tex_anim::operator=(a_from);
+    parent::operator=(a_from);
+    return *this;
+  }
+};
+
+}}
+
+#endif

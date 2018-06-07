@@ -1,0 +1,20 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_radec2xyz
+#define inlib_radec2xyz
+
+#include <cmath>
+
+namespace inlib {
+
+inline void radec2xyz(double a_ra,double a_dec,double a_sky_radius,double& a_x,double& a_y,double& a_z) {
+  double h = a_sky_radius*::cos(a_dec);
+  a_x = h*::cos(a_ra);
+  a_y = h*::sin(a_ra);
+  a_z = a_sky_radius*::sin(a_dec);
+}
+
+}
+
+#endif

@@ -1,0 +1,73 @@
+
+#include <inlib/printer>
+
+#include <inlib/random>
+#include <inlib/nostream>
+#include <inlib/system>
+#include <inlib/file>
+#include <inlib/get_cout>
+
+//#include <inlib/all>
+#include <inlib/histo/h1d>
+#include <inlib/histo/h2d>
+#include <inlib/histo/h3d>
+#include <inlib/histo/p1d>
+#include <inlib/histo/p2d>
+
+#include <inlib/waxml/file>
+#include <inlib/rroot/file>
+#include <inlib/rroot/rall>
+
+#include <inlib/vec2>
+#include <inlib/rcmp>
+#include <inlib/colorfs>
+#include <inlib/lut>
+
+#include <inlib/sg/sf_vec>
+#include <inlib/sg/sf_enum>
+#include <inlib/sg/sf_string>
+#include <inlib/sg/sf_rotf>
+#include <inlib/sg/sf_img>
+#include <inlib/sg/sf_vec2f>
+#include <inlib/sg/sf_vec3f>
+#include <inlib/sg/sf_vec4f>
+#include <inlib/sg/sf_mat4f>
+
+#include <inlib/sg/mf>
+#include <inlib/sg/strings>
+#include <inlib/sg/style_color>
+#include <inlib/sg/style_colormap>
+#include <inlib/sg/colormap>
+#include <inlib/sg/style>
+#include <inlib/sg/text_style>
+#include <inlib/sg/line_style>
+
+#include <inlib/sg/node>
+#include <inlib/sg/write_action>
+
+#include <inlib/sg/group>
+#include <inlib/sg/plots>
+
+#include <inlib/sg/gui_viewer>
+
+#include <inlib/sg/view_plots>
+
+#include <inlib/sg/polyhedron>
+#include <inlib/sg/infos>
+
+// used to SWIG wrap functions/methods that uses std::string& in arguments :
+namespace inlib {
+class std_string : public std::string {
+  typedef std::string parent;
+public:
+  std_string():parent(){}
+  virtual ~std_string(){}
+public:
+  std_string(const std_string& a_from):parent(a_from){}
+  std_string& operator=(const std_string& a_from) {parent::operator=(a_from);return *this;}
+public:
+  const std::string& cast() const {return *this;}
+};
+}
+
+//exlib_build_use skip

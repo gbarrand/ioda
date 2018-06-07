@@ -1,0 +1,53 @@
+#!/bin/sh -f
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+use_cfitsio=yes
+. ${bush_home}/use/cfitsio
+. ${bush_home}/use/thread
+
+ccflags="${ccflags} -I./include/wcslib"
+
+if [ ${build_visual} = "yes" ] ; then
+  ccflags="${ccflags} -DYY_NO_UNISTD_H"
+fi
+
+. ${bush_home}/ourex_generic
+
+if [ ${build_app} = "yes" ] ; then
+
+  ccflags="${ccflags} -I./include -I./tests"
+
+  if [ ${build_visual} = "yes" ] ; then
+    ccflags="${ccflags} -wd4305 -wd4244"
+  fi
+
+  preplib="${libname}"
+  . ${bush_home}/preplib
+
+  /bin/rm -f ./tmp_0
+  find ./tests -name '*.c' -print > ./tmp_0
+
+  /bin/rm -f ./tmp_1
+  for item in $(cat ./tmp_0) ; do
+    has_cpgplot="`grep cpgplot ${item}`" 
+    if [ "${has_cpgplot}" = "" ] ; then
+      echo ${item} >> ./tmp_1
+    fi
+  done
+  /bin/rm -f ./tmp_0
+
+  for item in $(cat ./tmp_1) ; do
+    objs=
+    app_src=${item}
+    name=`basename ${item}`
+    name=`echo ${name} | sed -e 's:\.c::g'`
+    app_exe="${name}"
+    . ${bush_home}/application
+  done
+  /bin/rm -f ./tmp_1
+
+fi

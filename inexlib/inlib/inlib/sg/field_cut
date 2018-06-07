@@ -1,0 +1,227 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_sg_field_cut
+#define inlib_sg_field_cut
+
+#include "atb_vertices"
+#include "nodekit"
+
+namespace inlib {
+namespace sg {
+
+class field_cut : public atb_vertices {
+  INLIB_NODE(field_cut,inlib::sg::field_cut,atb_vertices)
+public:
+  virtual bool field_vector(float,float,float,
+                            float& a_fx,float& a_fy,float& a_fz,
+                            float& a_r,float& a_g,float& a_b,float& a_a) {
+    a_fx = 0;
+    a_fy = 0;
+    a_fz = 0;
+    a_r = 0.5f;
+    a_g = 0.5f;
+    a_b = 0.5f;
+    a_a = 1;
+    return true;
+  }
+public:
+  sf<float> sx; 
+  sf<float> sy; 
+  sf<unsigned int> nx;
+  sf<unsigned int> ny;
+  sf<float> back_dz;
+  sf<float> depth;
+public:
+  virtual const desc_fields& node_desc_fields() const {
+    INLIB_FIELD_DESC_NODE_CLASS(inlib::sg::field_cut)
+    static const desc_fields s_v(parent::node_desc_fields(),6, //WARNING : take care of count.
+      INLIB_ARG_FIELD_DESC(sx),
+      INLIB_ARG_FIELD_DESC(sy),
+      INLIB_ARG_FIELD_DESC(nx),
+      INLIB_ARG_FIELD_DESC(ny),
+      INLIB_ARG_FIELD_DESC(back_dz),
+      INLIB_ARG_FIELD_DESC(depth)
+    );
+    return s_v;
+  }
+private:
+  void add_fields(){
+    add_field(&sx);
+    add_field(&sy);
+    add_field(&nx);
+    add_field(&ny);
+    add_field(&back_dz);
+    add_field(&depth);
+  }
+public:
+  virtual void render(render_action& a_action) {
+    update_sg(a_action.state());
+    parent::render(a_action);
+  }
+
+  virtual void bbox(bbox_action& a_action) {
+    // extend to more than the cut plane to be able
+    // to grab all sides with a cube_manip :
+    float w2 = nx*sx*0.5f;
+    float h2 = ny*sy*0.5f;
+    float d2 = depth*0.5f;
+    a_action.box().extend_by(w2,h2,d2);
+    a_action.box().extend_by(-w2,-h2,-d2);
+  }
+public:
+  field_cut()
+  :parent()
+
+  ,sx(1)
+  ,sy(1)
+  ,nx(1)
+  ,ny(1)
+  ,back_dz(0.001f)
+  ,depth(1)
+  {
+    add_fields();
+    mode = gl::triangles();
+  }
+  virtual ~field_cut(){}
+public:
+  field_cut(const field_cut& a_from)
+  :parent(a_from)
+
+  ,sx(a_from.sx)
+  ,sy(a_from.sy)
+  ,nx(a_from.nx)
+  ,ny(a_from.ny)
+  ,back_dz(a_from.back_dz)
+  ,depth(a_from.depth)
+  {
+    add_fields();
+    mode = gl::triangles();
+  }
+  field_cut& operator=(const field_cut& a_from){
+    parent::operator=(a_from);
+
+    sx = a_from.sx;
+    sy = a_from.sy;
+    nx = a_from.nx;
+    ny = a_from.ny;
+    back_dz = a_from.back_dz;
+    depth = a_from.depth;
+
+    return *this;
+  }
+protected:
+  void update_sg(state& a_state) {
+    if(touched()) {
+      m_old_model.set_zero();
+      parent::clear();
+      unsigned int npt = 3*(2+2)*nx*ny;
+      xyzs.values().resize(npt*3);
+      rgbas.values().resize(npt*4);
+      nms.values().resize(npt*3);
+      //don't do a reset_touched() here. Let atbs_vertices do it.
+    }
+
+    const mat4f& mtx = a_state.m_model;
+    if(m_old_model==mtx) return;
+    m_old_model = mtx;
+
+    if(sx.value()<=0) return;
+    if(sy.value()<=0) return;
+    if(!nx.value()) return;
+    if(!ny.value()) return;
+
+    float w2 = nx*sx*0.5f;
+    float h2 = ny*sy*0.5f;
+
+    float sx2 = sx*0.5f;
+    float sy2 = sy*0.5f;
+ 
+    float px,py,pz;
+    float fpx,fpy,fpz;
+    float fx,fy,fz;
+    float r,g,b,a;
+    float x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4;
+
+    size_t xyzs_pos = 0;
+    size_t rgbas_pos = 0;
+    size_t nms_pos = 0;
+
+    for(unsigned int ix=0;ix<nx.value();ix++) {
+      for(unsigned int iy=0;iy<ny.value();iy++) {
+        px = ix*sx - w2 + sx2;
+        py = iy*sy - h2 + sy2;
+        pz = 0;
+  
+        fpx = px;fpy = py;fpz = pz;
+        mtx.mul_3f(fpx,fpy,fpz);
+        if(!field_vector(fpx,fpy,fpz,fx,fy,fz,r,g,b,a)) {}
+
+        x1 = px;
+        y1 = py;
+        z1 = pz;
+
+        x2 = x1+sx;
+        y2 = y1;
+        z2 = z1;
+
+        x3 = x1+sx;
+        y3 = y1+sy;
+        z3 = z1;
+
+        x4 = x1;
+        y4 = y1+sy;
+        z4 = z1;
+
+        add_allocated(xyzs_pos,x1,y1,z1);
+        add_allocated(xyzs_pos,x2,y2,z2);
+        add_allocated(xyzs_pos,x3,y3,z3);
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_normal_allocated(nms_pos,0,0,1);
+        add_normal_allocated(nms_pos,0,0,1);
+        add_normal_allocated(nms_pos,0,0,1);
+  
+        add_allocated(xyzs_pos,x3,y3,z3);
+        add_allocated(xyzs_pos,x4,y4,z4);
+        add_allocated(xyzs_pos,x1,y1,z1);
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_normal_allocated(nms_pos,0,0,1);
+        add_normal_allocated(nms_pos,0,0,1);
+        add_normal_allocated(nms_pos,0,0,1);
+  
+        // back face :
+        add_allocated(xyzs_pos,x1,y1,z1+back_dz);
+        add_allocated(xyzs_pos,x4,y4,z4+back_dz);
+        add_allocated(xyzs_pos,x3,y3,z3+back_dz);
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_normal_allocated(nms_pos,0,0,-1);
+        add_normal_allocated(nms_pos,0,0,-1);
+        add_normal_allocated(nms_pos,0,0,-1);
+  
+        add_allocated(xyzs_pos,x3,y3,z3+back_dz);
+        add_allocated(xyzs_pos,x2,y2,z2+back_dz);
+        add_allocated(xyzs_pos,x1,y1,z1+back_dz);
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_rgba_allocated(rgbas_pos,float(r),float(g),float(b),float(a));
+        add_normal_allocated(nms_pos,0,0,-1);
+        add_normal_allocated(nms_pos,0,0,-1);
+        add_normal_allocated(nms_pos,0,0,-1);
+
+      }
+    }
+
+  }
+protected:
+  mat4f m_old_model;
+};
+
+}}
+
+#endif

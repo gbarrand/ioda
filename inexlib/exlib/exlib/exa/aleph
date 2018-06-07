@@ -1,0 +1,142 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_exa_aleph
+#define exlib_exa_aleph
+
+#include <inlib/sg/view_evd>
+
+#include <inlib/rroot/file>
+#include <inlib/rroot/geo_manager>
+#include <inlib/rroot/geo>
+#include "../zlib"
+
+namespace exlib {
+namespace exa {
+
+inline inlib::sg::return_action aleph(inlib::sg::gui_viewer& a_gv) {
+
+  //////////////////////////////////////////////////////////
+  /// read aleph.root //////////////////////////////////////
+  //////////////////////////////////////////////////////////
+
+  std::string file = a_gv.res_dir();
+  file += inlib::sep();
+  file += "aleph.root";
+
+  inlib::rroot::file rfile(a_gv.out(),file,false);
+  rfile.add_unziper('Z',decompress_buffer);
+  if(!rfile.is_open()) {
+    a_gv.map_warn("can't open aleph.root.");
+    return inlib::sg::return_none;     
+  }
+
+  inlib::rroot::key* key = rfile.dir().find_key_from_class("TGeoManager");
+  if(!key) {
+    a_gv.map_warn("TGeoManager key not found.");
+    return inlib::sg::return_none;     
+  }
+  unsigned int sz;
+  char* buf = key->get_object_buffer(rfile,sz);
+  if(!buf) {
+    a_gv.map_warn("can't get data buffer TGeoManager key.");
+    return inlib::sg::return_none;     
+  }
+
+  inlib::rroot::buffer b(a_gv.out(),rfile.byte_swap(),sz,buf,key->key_length(),false);
+  b.set_map_objs(true);
+
+  inlib::rroot::geo_manager mgr(a_gv.out());
+
+  if(!mgr.stream(b)) {
+    a_gv.map_warn("streaming failed for TGeoManager.");
+    return inlib::sg::return_none;     
+  }
+
+  const inlib::rroot::geo_volume* master = mgr.master();
+  if(!master) {
+    a_gv.map_warn("no master volume.");
+    return inlib::sg::return_none;     
+  }
+
+  //////////////////////////////////////////////////////////
+  /// create sg ////////////////////////////////////////////
+  /// same as ioda.scenario/aleph //////////////////////////
+  //////////////////////////////////////////////////////////
+
+  inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_gv);
+  if(!_evd) return inlib::sg::return_none;
+
+  if(!_evd->is_evd()) _evd->create_sg_evd(2000);
+
+  inlib::sg::separator& dsep = _evd->detector_sg();
+
+  inlib::sg::separator* sep = new inlib::sg::separator;
+  dsep.add(sep);
+
+  inlib::sg::draw_style* ds = new inlib::sg::draw_style;
+  //if(solid) {
+  //  ds->style = sg::draw_style::filled;
+  //} else {
+  //  ds->style = sg::draw_style::lines;
+  //}
+  ds->line_width = 1;
+  sep->add(ds);
+
+  //ALEF
+ {inlib::rroot::geo geo(*master);
+  geo.volume = "ALEF";
+  geo.volume_depth = 0; //OPTIMIZATION
+  geo.min_depth = 0;
+  geo.max_depth = 2;
+  geo.solid_depth = 2;
+  geo.atb = inlib::sg::atb_by_depth;
+ {inlib::sg::style_colormap cmap;
+  cmap.add(inlib::sg::style_color("yellow",inlib::colorf_yellow()));
+  cmap.add(inlib::sg::style_color("cyan",inlib::colorf_cyan()));
+  cmap.add(inlib::sg::style_color("magenta",inlib::colorf_magenta()));
+  cmap.add(inlib::sg::style_color("yellow",inlib::colorf_yellow()));
+  geo.set_cmap(cmap);}
+  geo.update_sg(a_gv.out()); //create sub sg now.
+  sep->add(geo.children().copy());}
+
+  //EBMO
+ {inlib::rroot::geo* geo = new inlib::rroot::geo(*master);
+  geo->volume = "EBMO";
+  geo->volume_depth = 4; //OPTIMIZATION
+  geo->min_depth = 0;
+  geo->max_depth = 1;
+  geo->solid_depth = 0; //solid
+  geo->atb = inlib::sg::atb_single;
+  geo->color = inlib::colorf_red();
+  geo->update_sg(a_gv.out()); //create sub sg now.
+  //sep->add(geo->children().copy());
+  inlib::sg::separator* _sep = new inlib::sg::separator;
+  sep->add(_sep);
+  _sep->add(new inlib::sg::matrix()); //for manip.
+  geo->reset_touched(); //TOUCHY : so that we do not use master anymore.
+  _sep->add(geo);} //TOUCHY : in principle we do not need the master !
+
+  //ECMO
+ {inlib::rroot::geo geo(*master);
+  geo.volume = "ECMO";
+  geo.volume_depth = 4; //OPTIMIZATION
+  geo.min_depth = 0;
+  geo.max_depth = 1;
+  geo.solid_depth = 1;
+  geo.atb = inlib::sg::atb_single;
+  geo.color = inlib::colorf_aquamarine();
+  geo.update_sg(a_gv.out()); //create sub sg.
+  sep->add(geo.children().copy());}
+
+  a_gv.hide_main_menu();
+
+  return inlib::sg::return_to_render;
+}
+
+}}
+
+#endif
+
+//exlib_build_use inlib inlib_glutess freetype zlib kernel
+

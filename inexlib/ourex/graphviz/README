@@ -1,0 +1,21 @@
+
+ Code taken from graphviz/2.28.0.
+ The copyright file found in this distribution had been copied under
+ a_native_copyright.
+  
+ Android : have to rename lib/common/memory.h to gv_memory.h.
+           The Android NDK brings a memory.h which is taken
+           prior the lib/common/memory.h one.
+
+ ioda/iOS : have to rename lib/common/utils.h to gv_utils.h to
+            avoid clash with SOPHYA. The same with lib/neatogen/poly.h.
+
+ Linux : lib/cdt/cdt.h : comment out extern memcomp, strcmp.
+         See G.Barrand comments.
+
+ Android : lib/common/emit.c : gv_fixLocal : initialize the static variables
+           and protect agains setlocale returning NULL.
+
+ WIN32 : See "G.Barrand : WIN32 " comments.
+
+ fix memleaks in lib/common/shapes.c/parse_reclbl.

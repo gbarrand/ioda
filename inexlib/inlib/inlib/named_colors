@@ -1,0 +1,191 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_named_colors
+#define inlib_named_colors
+
+#include "colors"
+#include <map>
+
+#include "S_STRING"
+
+#ifdef INLIB_MEM
+#include "mem"
+#endif
+
+namespace inlib {
+
+INLIB_GLOBAL_STRING_VALUE(nc_aquamarine,aquamarine)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumaquamarine,mediumaquamarine)
+INLIB_GLOBAL_STRING_VALUE(nc_black,black)
+INLIB_GLOBAL_STRING_VALUE(nc_blue,blue)
+INLIB_GLOBAL_STRING_VALUE(nc_cadetblue,cadetblue)
+INLIB_GLOBAL_STRING_VALUE(nc_cornflowerblue,cornflowerblue)
+INLIB_GLOBAL_STRING_VALUE(nc_darkslateblue,darkslateblue)
+INLIB_GLOBAL_STRING_VALUE(nc_lightblue,lightblue)
+INLIB_GLOBAL_STRING_VALUE(nc_lightsteelblue,lightsteelblue)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumblue,mediumblue)
+
+INLIB_GLOBAL_STRING_VALUE(nc_mediumslateblue,mediumslateblue)
+INLIB_GLOBAL_STRING_VALUE(nc_midnightblue,midnightblue)
+INLIB_GLOBAL_STRING_VALUE(nc_navyblue,navyblue)
+INLIB_GLOBAL_STRING_VALUE(nc_navy,navy)
+INLIB_GLOBAL_STRING_VALUE(nc_skyblue,skyblue)
+INLIB_GLOBAL_STRING_VALUE(nc_slateblue,slateblue)
+INLIB_GLOBAL_STRING_VALUE(nc_steelblue,steelblue)
+INLIB_GLOBAL_STRING_VALUE(nc_coral,coral)
+INLIB_GLOBAL_STRING_VALUE(nc_cyan,cyan)
+INLIB_GLOBAL_STRING_VALUE(nc_firebrick,firebrick)
+
+INLIB_GLOBAL_STRING_VALUE(nc_brown,brown)
+INLIB_GLOBAL_STRING_VALUE(nc_gold,gold)
+INLIB_GLOBAL_STRING_VALUE(nc_goldenrod,goldenrod)
+INLIB_GLOBAL_STRING_VALUE(nc_green,green)
+INLIB_GLOBAL_STRING_VALUE(nc_darkgreen,darkgreen)
+INLIB_GLOBAL_STRING_VALUE(nc_darkolivegreen,darkolivegreen)
+INLIB_GLOBAL_STRING_VALUE(nc_forestgreen,forestgreen)
+INLIB_GLOBAL_STRING_VALUE(nc_limegreen,limegreen)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumseagreen,mediumseagreen)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumspringgreen,mediumspringgreen)
+
+INLIB_GLOBAL_STRING_VALUE(nc_palegreen,palegreen)
+INLIB_GLOBAL_STRING_VALUE(nc_seagreen,seagreen)
+INLIB_GLOBAL_STRING_VALUE(nc_springgreen,springgreen)
+INLIB_GLOBAL_STRING_VALUE(nc_yellowgreen,yellowgreen)
+INLIB_GLOBAL_STRING_VALUE(nc_darkslategrey,darkslategrey)
+INLIB_GLOBAL_STRING_VALUE(nc_dimgrey,dimgrey)
+INLIB_GLOBAL_STRING_VALUE(nc_lightgrey,lightgrey)
+INLIB_GLOBAL_STRING_VALUE(nc_grey,grey)
+INLIB_GLOBAL_STRING_VALUE(nc_khaki,khaki)
+INLIB_GLOBAL_STRING_VALUE(nc_magenta,magenta)
+
+INLIB_GLOBAL_STRING_VALUE(nc_maroon,maroon)
+INLIB_GLOBAL_STRING_VALUE(nc_orange,orange)
+INLIB_GLOBAL_STRING_VALUE(nc_orchid,orchid)
+INLIB_GLOBAL_STRING_VALUE(nc_darkorchid,darkorchid)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumorchid,mediumorchid)
+INLIB_GLOBAL_STRING_VALUE(nc_pink,pink)
+INLIB_GLOBAL_STRING_VALUE(nc_plum,plum)
+INLIB_GLOBAL_STRING_VALUE(nc_red,red)
+INLIB_GLOBAL_STRING_VALUE(nc_indianred,indianred)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumvioletred,mediumvioletred)
+      
+INLIB_GLOBAL_STRING_VALUE(nc_orangered,orangered)
+INLIB_GLOBAL_STRING_VALUE(nc_violetred,violetred)
+INLIB_GLOBAL_STRING_VALUE(nc_salmon,salmon)
+INLIB_GLOBAL_STRING_VALUE(nc_sienna,sienna)
+INLIB_GLOBAL_STRING_VALUE(nc_tan,tan)
+INLIB_GLOBAL_STRING_VALUE(nc_thistle,thistle)
+INLIB_GLOBAL_STRING_VALUE(nc_turquoise,turquoise)
+INLIB_GLOBAL_STRING_VALUE(nc_darkturquoise,darkturquoise)
+INLIB_GLOBAL_STRING_VALUE(nc_mediumturquoise,mediumturquoise)
+INLIB_GLOBAL_STRING_VALUE(nc_violet,violet)
+
+INLIB_GLOBAL_STRING_VALUE(nc_blueviolet,blueviolet)
+INLIB_GLOBAL_STRING_VALUE(nc_wheat,wheat)
+INLIB_GLOBAL_STRING_VALUE(nc_white,white)
+INLIB_GLOBAL_STRING_VALUE(nc_yellow,yellow)
+INLIB_GLOBAL_STRING_VALUE(nc_greenyellow,greenyellow)
+
+template <class COLOR>
+class named_colors : public std::map<std::string,const COLOR*> {
+  //NOTE : we can't have <std::string,COLOR> because of intermediate copies of colors that induces a bad mem count at exit.
+  typedef typename std::map<std::string,const COLOR*> parent;
+public:
+  named_colors(){
+    parent::operator[](s_nc_aquamarine()) = &get_color_aquamarine<COLOR>();
+    parent::operator[](s_nc_mediumaquamarine()) = &get_color_mediumaquamarine<COLOR>();
+    parent::operator[](s_nc_black()) = &get_color_black<COLOR>();
+    parent::operator[](s_nc_blue()) = &get_color_blue<COLOR>();
+    parent::operator[](s_nc_cadetblue()) = &get_color_cadetblue<COLOR>();
+    parent::operator[](s_nc_cornflowerblue()) = &get_color_cornflowerblue<COLOR>();
+    parent::operator[](s_nc_darkslateblue()) = &get_color_darkslateblue<COLOR>();
+    parent::operator[](s_nc_lightblue()) = &get_color_lightblue<COLOR>();
+    parent::operator[](s_nc_lightsteelblue()) = &get_color_lightsteelblue<COLOR>();
+    parent::operator[](s_nc_mediumblue()) = &get_color_mediumblue<COLOR>();
+
+    parent::operator[](s_nc_mediumslateblue()) = &get_color_mediumslateblue<COLOR>();
+    parent::operator[](s_nc_midnightblue()) = &get_color_midnightblue<COLOR>();
+    parent::operator[](s_nc_navyblue()) = &get_color_navyblue<COLOR>();
+    parent::operator[](s_nc_navy()) = &get_color_navy<COLOR>();
+    parent::operator[](s_nc_skyblue()) = &get_color_skyblue<COLOR>();
+    parent::operator[](s_nc_slateblue()) = &get_color_slateblue<COLOR>();
+    parent::operator[](s_nc_steelblue()) = &get_color_steelblue<COLOR>();
+    parent::operator[](s_nc_coral()) = &get_color_coral<COLOR>();
+    parent::operator[](s_nc_cyan()) = &get_color_cyan<COLOR>();
+    parent::operator[](s_nc_firebrick()) = &get_color_firebrick<COLOR>();
+
+    parent::operator[](s_nc_brown()) = &get_color_brown<COLOR>();
+    parent::operator[](s_nc_gold()) = &get_color_gold<COLOR>();
+    parent::operator[](s_nc_goldenrod()) = &get_color_goldenrod<COLOR>();
+    parent::operator[](s_nc_green()) = &get_color_green<COLOR>();
+    parent::operator[](s_nc_darkgreen()) = &get_color_darkgreen<COLOR>();
+    parent::operator[](s_nc_darkolivegreen()) = &get_color_darkolivegreen<COLOR>();
+    parent::operator[](s_nc_forestgreen()) = &get_color_forestgreen<COLOR>();
+    parent::operator[](s_nc_limegreen()) = &get_color_limegreen<COLOR>();
+    parent::operator[](s_nc_mediumseagreen()) = &get_color_mediumseagreen<COLOR>();
+    parent::operator[](s_nc_mediumspringgreen()) = &get_color_mediumspringgreen<COLOR>();
+
+    parent::operator[](s_nc_palegreen()) = &get_color_palegreen<COLOR>();
+    parent::operator[](s_nc_seagreen()) = &get_color_seagreen<COLOR>();
+    parent::operator[](s_nc_springgreen()) = &get_color_springgreen<COLOR>();
+    parent::operator[](s_nc_yellowgreen()) = &get_color_yellowgreen<COLOR>();
+    parent::operator[](s_nc_darkslategrey()) = &get_color_darkslategrey<COLOR>();
+    parent::operator[](s_nc_dimgrey()) = &get_color_dimgrey<COLOR>();
+    parent::operator[](s_nc_lightgrey()) = &get_color_lightgrey<COLOR>();
+    parent::operator[](s_nc_grey()) = &get_color_grey<COLOR>();
+    parent::operator[](s_nc_khaki()) = &get_color_khaki<COLOR>();
+    parent::operator[](s_nc_magenta()) = &get_color_magenta<COLOR>();
+
+    parent::operator[](s_nc_maroon()) = &get_color_maroon<COLOR>();
+    parent::operator[](s_nc_orange()) = &get_color_orange<COLOR>();
+    parent::operator[](s_nc_orchid()) = &get_color_orchid<COLOR>();
+    parent::operator[](s_nc_darkorchid()) = &get_color_darkorchid<COLOR>();
+    parent::operator[](s_nc_mediumorchid()) = &get_color_mediumorchid<COLOR>();
+    parent::operator[](s_nc_pink()) = &get_color_pink<COLOR>();
+    parent::operator[](s_nc_plum()) = &get_color_plum<COLOR>();
+    parent::operator[](s_nc_red()) = &get_color_red<COLOR>();
+    parent::operator[](s_nc_indianred()) = &get_color_indianred<COLOR>();
+    parent::operator[](s_nc_mediumvioletred()) = &get_color_mediumvioletred<COLOR>();
+      
+    parent::operator[](s_nc_orangered()) = &get_color_orangered<COLOR>();
+    parent::operator[](s_nc_violetred()) = &get_color_violetred<COLOR>();
+    parent::operator[](s_nc_salmon()) = &get_color_salmon<COLOR>();
+    parent::operator[](s_nc_sienna()) = &get_color_sienna<COLOR>();
+    parent::operator[](s_nc_tan()) = &get_color_tan<COLOR>();
+    parent::operator[](s_nc_thistle()) = &get_color_thistle<COLOR>();
+    parent::operator[](s_nc_turquoise()) = &get_color_turquoise<COLOR>();
+    parent::operator[](s_nc_darkturquoise()) = &get_color_darkturquoise<COLOR>();
+    parent::operator[](s_nc_mediumturquoise()) = &get_color_mediumturquoise<COLOR>();
+    parent::operator[](s_nc_violet()) = &get_color_violet<COLOR>();
+
+    parent::operator[](s_nc_blueviolet()) = &get_color_blueviolet<COLOR>();
+    parent::operator[](s_nc_wheat()) = &get_color_wheat<COLOR>();
+    parent::operator[](s_nc_white()) = &get_color_white<COLOR>();
+    parent::operator[](s_nc_yellow()) = &get_color_yellow<COLOR>();
+    parent::operator[](s_nc_greenyellow()) = &get_color_greenyellow<COLOR>();
+  }
+  virtual ~named_colors() {}
+protected:
+  named_colors(const named_colors&) {}
+  named_colors& operator=(const named_colors&){return *this;}
+};
+
+template <class COLOR>
+inline const std::map<std::string,const COLOR*>& get_named_colors() {
+  static const named_colors<COLOR> s_v;
+  return s_v;
+}
+
+template <class COLOR>
+inline bool find_named_color(const std::map<std::string,const COLOR*>& a_map,const std::string& a_name,COLOR& a_color) {
+  typedef typename std::map<std::string,const COLOR*>::const_iterator map_it;
+  map_it it = a_map.find(a_name);
+  if(it==a_map.end()) {a_color.set_value(0,0,0,1);return false;}
+  a_color = *((*it).second);
+  return true;
+}
+
+}
+
+#endif

@@ -1,0 +1,90 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_keys
+#define exlib_hdf5_keys
+
+#include "ivisitor"
+#include "tools"
+
+#include <inlib/sout>
+#include <inlib/S_STRING>
+#include <ostream>
+
+// get objs,dirs in one directory (do not descent).
+
+namespace exlib {
+namespace hdf5 {
+
+class keys_visitor : public virtual ivisitor {
+  INLIB_CLASS_STRING(directory)
+  INLIB_CLASS_STRING(object)
+public:
+  virtual std::ostream& out() const {return m_out;}
+
+  virtual bool begin_group(hid_t a_loc,const std::string& a_name) { //a_loc = parent of a_name group.
+    hid_t id = exlib_H5Gopen(a_loc,a_name.c_str());
+    if(id<0) {
+      m_out << "exlib::hdf5::keys_visitor::begin_group : H5Gopen(" << inlib::sout(a_name) << ") failed." << "." << std::endl;
+      return false;      
+    }
+    std::string sclass;
+    if(!read_atb(id,"class",sclass)) sclass = "none";
+    std::string stype;
+    if(!read_atb(id,"type",stype)) stype = "none";
+    if(stype==s_directory()) {
+      m_dirs.push_back(a_name);
+    } else if(stype==s_object()) {
+      //sclass
+      m_objs.push_back(a_name);
+    } else {
+      // unknown class.
+      //m_out << "exlib::hdf5::keys_visitor::begin_group :"
+      //      << " unknown class : " << inlib::sout(sclass) << ", for group : " << inlib::sout(a_name) << "." << std::endl;
+    }
+    ::H5Gclose(id);
+    return false; //do not descent.
+  }
+
+  virtual void end_group(hid_t,const std::string&) {m_level -= 1;}
+
+  virtual void data_set(hid_t,const std::string&) {}
+  virtual void named_type(hid_t,const std::string&) {}
+  virtual void attribute(hid_t,const std::string&) {}
+
+  virtual unsigned int level() const {return m_level;}
+  virtual void set_level(unsigned int a_value) {m_level = a_value;}
+  
+public:
+  keys_visitor(std::ostream& a_out,std::vector<std::string>& a_objs,std::vector<std::string>& a_dirs)
+  :m_out(a_out),m_objs(a_objs),m_dirs(a_dirs),m_level(0){}
+  virtual ~keys_visitor() {}
+protected:
+  keys_visitor(const keys_visitor& a_from)
+  :ivisitor(a_from)
+  ,m_out(a_from.m_out)
+  ,m_objs(a_from.m_objs)
+  ,m_dirs(a_from.m_dirs)
+  ,m_level(0)
+  {}
+  keys_visitor& operator=(const keys_visitor&){return *this;}
+protected:
+  std::ostream& m_out;
+  std::vector<std::string>& m_objs;  //warning : ref.
+  std::vector<std::string>& m_dirs;  //warning : ref.
+  unsigned int m_level;
+};
+
+inline void get_keys(std::ostream& a_out,hid_t a_file_id,const std::string& a_path,
+                     std::vector<std::string>& a_objs,std::vector<std::string>& a_dirs) {
+  a_objs.clear();		      
+  a_dirs.clear();		      
+  keys_visitor visitor(a_out,a_objs,a_dirs);
+  ::H5Giterate(a_file_id,a_path.c_str(),NULL,visit_file,(ivisitor*)&visitor);
+}
+
+}}
+
+//exlib_build_use inlib hdf5
+
+#endif

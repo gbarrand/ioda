@@ -1,0 +1,78 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_ivisitor
+#define exlib_hdf5_ivisitor
+
+#include "hdf5_h"
+
+#include <string>
+#include <ostream>
+
+namespace exlib {
+namespace hdf5 {
+
+class ivisitor {
+public:
+  virtual ~ivisitor() {}
+public:
+  virtual std::ostream& out() const = 0;
+
+  virtual bool begin_group(hid_t,const std::string&) = 0;
+  virtual void end_group(hid_t,const std::string&) = 0;
+  virtual void data_set(hid_t,const std::string&) = 0;
+  virtual void named_type(hid_t,const std::string&) = 0;
+  virtual void attribute(hid_t,const std::string&) = 0;
+};
+
+inline herr_t visit_attribute(hid_t a_id,const char* a_name,void* a_tag) {
+  ivisitor* visitor = (ivisitor*)a_tag;
+  visitor->attribute(a_id,a_name);
+  return 0;
+}
+
+inline herr_t visit_file(hid_t a_id,const char* a_name,void* a_tag){ //a_id = parent of a_name object.
+  ivisitor* visitor = (ivisitor*)a_tag;
+
+  H5G_stat_t statbuf;
+  ::H5Gget_objinfo(a_id,a_name,0,&statbuf);
+
+  switch(statbuf.type) {
+  case H5G_GROUP:{
+    if(!visitor->begin_group(a_id,a_name)) return 0; //do not descend.
+  
+   {hid_t id = exlib_H5Gopen(a_id,a_name);
+    if(id<0) {
+      visitor->out() << "exlib::hdf5::visit_file : can't open group " << a_name << std::endl;
+    } else {
+      exlib_H5Aiterate(id,NULL,visit_attribute,visitor);
+      ::H5Gclose(id);
+    }}
+    
+    ::H5Giterate(a_id,a_name,NULL,visit_file,visitor);
+    visitor->end_group(a_id,a_name);
+  }break;
+  case H5G_DATASET: 
+   {hid_t id = exlib_H5Dopen(a_id,a_name);
+    if(id<0) {
+      visitor->out() << "exlib::hdf5::visit_file : can't open data set " << a_name << std::endl;
+    } else {
+      exlib_H5Aiterate(id,NULL,visit_attribute,visitor);
+      ::H5Dclose(id);
+    }}
+    visitor->data_set(a_id,a_name);
+    break;
+  case H5G_TYPE: 
+    visitor->named_type(a_id,a_name);
+    break;
+  default:
+    visitor->out() << " Unable to identify object " << a_name << std::endl;
+  }
+  return 0;
+}
+
+}}
+
+//exlib_build_use hdf5
+
+#endif

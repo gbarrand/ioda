@@ -1,0 +1,255 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_hdf5_cbk
+#define exlib_hdf5_cbk
+
+#include "keys_menu"
+
+// osc data schema :
+#include "osc_visitor"
+#include "osc_read"
+
+// g4tools data schema :
+#include "keys"
+#include "h2file"
+#include <inlib/tools_histo>
+
+#include <inlib/sg/entries>
+#include <inlib/sg/view_plots>
+
+namespace exlib {
+namespace hdf5 {
+
+class cbk : public inlib::sg::acbk, public inlib::sg::pos_data {
+public:
+  class cbk_fact : public virtual icbk_fact {
+  public:
+    cbk_fact(){}
+    virtual ~cbk_fact(){}
+  protected:    
+    cbk_fact(const cbk_fact& a_from):icbk_fact(a_from){}
+    cbk_fact& operator=(const cbk_fact&) {return *this;}
+  public:
+    virtual inlib::sg::bcbk* create(inlib::sg::gui_viewer& a_gv,
+                                    hid_t a_FID,bool a_is_osc,
+                                    const std::string& a_path,
+                                    const std::string& a_sid, //sid = storage id
+                                    unsigned int a_action,const inlib::sg::pos_data& a_data) {
+      return new cbk(a_gv,a_FID,a_is_osc,a_path,a_sid,a_action,a_data);
+    }
+  };
+
+public:
+  virtual inlib::sg::return_action action() {
+
+    //m_gv.out() << "debug : m_path : " << m_path << std::endl;
+    //m_gv.out() << "debug : m_sid : " << m_sid << std::endl;
+
+    std::string _path = m_path;
+    if(_path!="/") _path += "/";
+    _path += m_sid;
+
+    if(m_action==action_dir()) {
+      //m_gv.out() << "debug : action_dir " << _path << std::endl;
+
+      std::vector<std::string> objs;
+      std::vector<std::string> dirs;
+      if(m_is_osc) {
+        hdf5::osc_keys(m_gv.out(),m_FID,_path,objs,dirs);
+      } else {
+        hdf5::get_keys(m_gv.out(),m_FID,_path,objs,dirs);
+      }
+
+      cbk_fact fac;
+      hdf5::menu_sids(m_FID,m_is_osc,_path,objs,dirs,m_gv,fac,*this);
+
+   //{inlib_vforcit(std::string,objs,it) {
+   //   m_gv.out() << "obj : " << *it << std::endl;
+   //}}
+
+      return inlib::sg::return_to_render;     
+
+    } else if(m_action==action_obj()) {
+      //m_gv.out() << "debug : action_obj " << _path << std::endl;
+
+      if(m_is_osc) {
+        std::string scls;
+        void* o = hdf5::find_object(m_gv.out(),m_FID,_path,scls);
+        if(!o) {
+          m_gv.pop_warn(m_popup,m_ex,m_ey,"find_object failed.");
+        } else {
+          if(scls==inlib::osc::s_h1d()){
+            inlib::histo::h1d* h = (inlib::histo::h1d*)o;
+            inlib::sg::plot(m_gv,*h);
+            delete h;        
+            if(!m_popup) m_gv.hide_main_menu();
+  
+          } else if(scls==inlib::osc::s_h2d()){
+            inlib::histo::h2d* h = (inlib::histo::h2d*)o;
+            inlib::sg::plot(m_gv,*h);
+            delete h;        
+            if(!m_popup) m_gv.hide_main_menu();
+  
+          } else if(scls==inlib::osc::s_h3d()){
+            inlib::histo::h3d* h = (inlib::histo::h3d*)o;
+            delete h;
+  
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"no vis for "+scls);
+  
+          } else if(scls==inlib::osc::s_p1d()){
+            inlib::histo::p1d* h = (inlib::histo::p1d*)o;
+            inlib::sg::plot(m_gv,*h);
+            delete h;        
+            if(!m_popup) m_gv.hide_main_menu();
+  
+          } else if(scls==inlib::osc::s_p2d()){
+            inlib::histo::p2d* h = (inlib::histo::p2d*)o;
+            delete h;
+  
+            m_gv.pop_warn(m_popup,m_ex,m_ey,"no vis for "+scls);
+  
+          } else {
+            m_gv.pop_warn(m_popup,m_ex,m_ey,scls+" not handled");
+          }
+        }
+
+      } else { //g4tools data schema.
+       {inlib::histo::h1d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+       {tools::histo::h1d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+	
+       {inlib::histo::h2d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+       {tools::histo::h2d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+/*	
+       {inlib::histo::h3d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+       {tools::histo::h3d* h;
+        if(hdf5::read_histo(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+*/	
+       {inlib::histo::p1d* h;
+        if(hdf5::read_profile(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+       {tools::histo::p1d* h;
+        if(hdf5::read_profile(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+/*	
+       {inlib::histo::p2d* h;
+        if(hdf5::read_profile(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+       {tools::histo::p2d* h;
+        if(hdf5::read_profile(m_gv.out(),m_FID,_path,h,false)) {
+          inlib::sg::plot(m_gv,*h);
+          delete h;        
+          if(!m_popup) m_gv.hide_main_menu();
+          return inlib::sg::return_to_render;     
+        }}
+*/	
+        m_gv.pop_warn(m_popup,m_ex,m_ey,_path+" not handled");
+      }
+
+      return inlib::sg::return_to_render;     
+    }
+
+    return inlib::sg::return_to_render;     
+  }
+
+  virtual inlib::sg::bcbk* copy() const {return new cbk(*this);}
+public:
+  cbk(inlib::sg::gui_viewer& a_gv,
+      hid_t a_FID,
+      bool a_is_osc,
+      const std::string& a_path,
+      const std::string& a_sid, //sid = storage id
+      unsigned int a_action,const inlib::sg::pos_data& a_data)
+  :inlib::sg::acbk(a_action)
+  ,inlib::sg::pos_data(a_data)
+  ,m_gv(a_gv)
+  ,m_FID(a_FID)
+  ,m_is_osc(a_is_osc)
+  ,m_path(a_path)
+  ,m_sid(a_sid)
+  ,m_entries(0)
+  {}
+  virtual ~cbk(){}
+protected:
+  cbk(const cbk& a_from)
+  :inlib::sg::acbk(a_from)
+  ,inlib::sg::pos_data(a_from)
+  ,m_gv(a_from.m_gv)
+  ,m_FID(a_from.m_FID)
+  ,m_is_osc(a_from.m_is_osc)
+  ,m_path(a_from.m_path)
+  ,m_sid(a_from.m_sid)
+  ,m_entries(a_from.m_entries)
+  {}
+  cbk& operator=(const cbk& a_from){
+    inlib::sg::acbk::operator=(a_from);
+    inlib::sg::pos_data::operator=(a_from);
+    m_FID = a_from.m_FID;
+    m_is_osc = a_from.m_is_osc;
+    m_path = a_from.m_path;
+    m_sid = a_from.m_sid;
+    m_entries = a_from.m_entries;
+    return *this;
+  }
+protected:
+  inlib::sg::gui_viewer& m_gv;
+  hid_t m_FID;
+  bool m_is_osc;
+  std::string m_path;
+  std::string m_sid;
+public: // per action parameters :
+  inlib::sg::entries* m_entries; //not owner.
+};
+
+}}
+
+//exlib_build_use inlib hdf5 inlib_glutess freetype kernel
+
+#endif

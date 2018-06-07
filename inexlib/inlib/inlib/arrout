@@ -1,0 +1,260 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_arrout
+#define inlib_arrout
+
+#include "array"
+
+#include "sjust"
+#include "sprintf"
+#include "typedefs"
+
+namespace inlib {
+
+template <class TYPE>
+inline void array_dump(std::ostream& a_out,const array<TYPE>& a_array,const std::string& a_title) {
+  if(a_title.size()) a_out << a_title << std::endl;
+  if(a_array.dimension()==1) {
+    for(unsigned int i=0;i<a_array.orders()[0];i++) {
+      std::vector<unsigned int> is(1);
+      is[0] = i;
+      TYPE value;
+      a_array.value(is,value);
+      a_out << value << std::endl;
+    }
+  } else if(a_array.dimension()==2) {
+    for(unsigned int j=0;j<a_array.orders()[1];j++) {
+      for(unsigned int i=0;i<a_array.orders()[0];i++) {
+        std::vector<unsigned int> is(2);
+        is[0] = i;
+        is[1] = j;
+        TYPE value;
+        a_array.value(is,value);
+        std::string s;
+        sprintf(s,32,type_format(TYPE()),value);
+        justify(s,5);
+        a_out << s;
+      }
+      a_out << std::endl;
+    }
+  }
+}
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// used in gopaw/vector_C.cxx : ///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "sout"
+#include "mnmx"
+#include <cmath> //log10
+
+namespace inlib {
+
+template <class TYPE>
+inline bool array_get_cut(const array<TYPE>& a_array,const std::vector< std::pair<int,int> >& a_dims,
+                          std::vector< std::pair<unsigned int,unsigned int> >& a_cut) {
+  a_cut.clear();
+  size_t dim = a_array.dimension();
+  if(a_dims.size()) {
+    if(a_dims.size()!=dim) return false;
+    for(unsigned index = 0;index<dim;index++) {
+      int mn = a_dims[index].first;
+      if(mn==(-1)/*NotFound*/) return false;
+      int mx = a_dims[index].second;
+      if(mx==(-1)/*NotFound*/) return false;
+      a_cut.push_back(std::pair<unsigned int,unsigned int>(mn,mx));
+    }
+  } else {
+    for(size_t index = 0;index<dim;index++) {
+      unsigned int mn = 0;
+      unsigned int mx = a_array.orders()[index] -1;
+      a_cut.push_back( std::pair<unsigned int,unsigned int>(mn,mx));
+    }
+  }
+  return true;
+}
+
+template <class TYPE>
+class print_range {    
+public:
+  unsigned int begin;
+  unsigned int end;
+  TYPE value;
+public:
+  void dump(std::ostream& a_out,const array<TYPE>& a_array,const std::string& a_name,
+	    const std::vector<unsigned int>& a_digits,bool a_dense) {
+    size_t dim = a_array.dimension();
+    std::vector<unsigned int> is(dim);
+    const std::vector<TYPE>& v = a_array.vector();
+    std::string s;
+
+    if(a_dense) { 
+
+      if(begin==end) {
+        // V(end) = <value>
+
+        int index = end;
+        a_array.indices(index,is);
+        a_out << " " << a_name << "("; 
+        for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+          sprintf(s,32,"%d",is[iaxis]+1);
+          justify(s,a_digits[iaxis],side_right);
+          if(iaxis) a_out << ",";
+          a_out << s;
+        }
+        a_out << ") = " << v[index] << std::endl;
+
+
+      } else {
+        // V(begin)..(end) = <value>
+
+        a_out << " " << a_name;
+       {int index = begin;
+        a_array.indices(index,is);
+        a_out << "("; 
+        for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+          sprintf(s,32,"%d",is[iaxis]+1);
+          justify(s,a_digits[iaxis],side_right);
+          if(iaxis) a_out << ",";
+          a_out << s;
+        }
+        a_out << ")..";}
+
+       {int index = end;
+        a_array.indices(index,is);
+        a_out << "("; 
+        for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+          sprintf(s,32,"%d",is[iaxis]+1);
+          justify(s,a_digits[iaxis],side_right);
+          if(iaxis) a_out << ",";
+          a_out << s;
+        }
+        a_out << ") = " << v[index] << std::endl;}
+
+      }
+
+    } else {
+      // V(begin) = ...
+      // V(  end) = <value>
+
+      if(end!=begin) {
+        int index = begin;
+        a_out << " " << a_name << "("; 
+        a_array.indices(index,is);
+        for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+          sprintf(s,32,"%d",is[iaxis]+1);
+          justify(s,a_digits[iaxis],side_right);
+          if(iaxis) a_out << ",";
+          a_out << s;
+        }
+        a_out << ") = " << "..." << std::endl;
+      }
+
+     {int index = end;
+      a_out << " " << a_name << "("; 
+      a_array.indices(index,is);
+      for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+        sprintf(s,32,"%d",is[iaxis]+1);
+        justify(s,a_digits[iaxis],side_right);
+        if(iaxis) a_out << ",";
+        a_out << s;
+      }
+      a_out << ") = " << v[index] << std::endl;}
+
+    }
+
+  }
+};
+
+template <class TYPE>
+inline bool array_print(std::ostream& a_out,const array<TYPE>& a_array,
+                         const std::vector< std::pair<int,int> >& a_dims,
+	                 const std::string& a_name,unsigned int a_dense) {
+  
+  std::vector< std::pair<unsigned int,unsigned int> > cut;
+  if(!array_get_cut(a_array,a_dims,cut)) return false;
+
+  size_t dim = a_array.dimension();
+  std::vector<unsigned int> is(dim);
+  const std::vector<TYPE>& v = a_array.vector();
+  size_t vsize = a_array.size();
+
+  // First pass to get number of digits for indices :
+  std::vector<unsigned int> digits;
+  digits.resize(dim,1);
+  for(size_t index = 0;index<vsize;index++) {
+    if(a_array.accept(index,cut)) {
+      a_array.indices(index,is);
+      for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+        unsigned int i = is[iaxis]+1;
+        unsigned int ndigit = 1+(unsigned int)::log10((double)i);
+        digits[iaxis] = mx<unsigned int>(digits[iaxis],ndigit);
+      }
+    }
+  }
+
+  if(a_dense) {
+    print_range<TYPE> range;
+    bool first = true;
+    for(size_t index = 0;index<vsize;index++) {
+      if(a_array.accept(index,cut)) {
+        if(first) {
+          range.begin = index;
+          range.end = index;
+          range.value = v[index];
+          first = false;
+        } else {
+          if(v[index]==range.value) {
+            range.end = index;
+            continue;
+          } else { //Value changed :
+            range.dump(a_out,a_array,a_name,digits,a_dense==2?true:false);
+            range.begin = index;                    
+            range.end = index;
+            range.value = v[index];
+          }
+        }
+      }
+    }
+    if(!first) range.dump(a_out,a_array,a_name,digits,a_dense==2?true:false);
+
+  } else {
+
+    std::string s;
+    for(size_t index = 0;index<vsize;index++) {
+      if(a_array.accept(index,cut)) {
+        // V(indices) = <value>
+        a_out << " " << a_name << "("; 
+        a_array.indices(index,is);
+        for(size_t iaxis=0;iaxis<dim;iaxis++) { 
+          sprintf(s,32,"%u",is[iaxis]+1);
+          justify(s,digits[iaxis],side_right);
+          if(iaxis) a_out << ",";
+          a_out << s;
+        }
+        a_out << ") = " << v[index] << std::endl;
+      }
+    }
+
+  }
+
+  return true;
+}
+
+inline void check_compile_array_print(std::ostream& a_out) {
+ {array<double> array;
+  array_dump(a_out,array,"");
+  std::vector< std::pair<int,int> > dims;
+  array_print(a_out,array,dims,"",0);}
+ {array<int> array;
+  array_dump(a_out,array,"");
+  std::vector< std::pair<int,int> > dims;
+  array_print(a_out,array,dims,"",0);}
+}
+
+}
+
+#endif

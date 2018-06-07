@@ -1,0 +1,224 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_xml_heprep1
+#define inlib_xml_heprep1
+
+// read heprep1 files.
+
+#include "../heprep"
+#include "tree"
+
+namespace inlib {
+namespace heprep1 {
+
+class main {
+public:
+  INLIB_SCLASS(inlib::heprep1::main)
+public:
+  main(){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~main(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  main(const main& a_from)
+  :m_vols(a_from.m_vols)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  main& operator=(const main& a_from){
+    m_vols = a_from.m_vols;
+    return *this;
+  }
+public:
+  void add_volume(const heprep::volume& a_vol) {m_vols.push_back(a_vol);}
+  void clear() {m_vols.clear();}
+public:
+  std::vector<heprep::volume> m_vols;
+};
+
+// trees (=tags) :
+INLIB_GLOBAL_STRING(heprep)
+INLIB_GLOBAL_STRING_VALUE(heprep_heprep,heprep:heprep)
+INLIB_GLOBAL_STRING_VALUE(heprep_type,heprep:type)
+INLIB_GLOBAL_STRING_VALUE(heprep_instance,heprep:instance)
+INLIB_GLOBAL_STRING_VALUE(heprep_primitive,heprep:primitive)
+
+// elements :
+INLIB_GLOBAL_STRING_VALUE(heprep_attvalue,heprep:attvalue)
+INLIB_GLOBAL_STRING_VALUE(heprep_point,heprep:point)
+
+inline bool load_primitive(std::ostream& a_out,const xml::tree& a_tree,
+                           const std::string& a_type,std::vector<heprep::primitive>& a_prims) {
+  // a_tree is a <heprep::primitive>.
+
+  heprep::primitive prim;
+
+  if(a_type==heprep::s_Cylinder()) {
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,Radius1)
+    double Radius1;
+    if(!heprep::s2value(a_out,s_Radius1_value,Radius1,5.0)) return false;
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,Radius2)
+    double Radius2;
+    if(!heprep::s2value(a_out,s_Radius2_value,Radius2,5.0)) return false;
+
+    if(!is_Radius1||!is_Radius2) {
+      a_out << "inlib::heprep1::load_primitive :"
+            << " Cylinder prim but Radius1 or Radius2 attribute missing."
+            << std::endl;
+      return false;
+    }
+
+    prim.m_Radius1 = Radius1;
+    prim.m_Radius2 = Radius2;
+  }
+
+ {xml::looper _for(a_tree);
+  while(xml::element* _elem = _for.next_element()) {
+    if(_elem->name()==s_heprep_point()) {
+      double x,y,z;
+      bool found_x = false;
+      bool found_y = false;
+      bool found_z = false;
+      inlib_vforcit(xml::element::atb,_elem->attributes(),it) {
+        const std::string& name = (*it).first;
+        const std::string& value = (*it).second;
+        if(name==heprep::s_x()) {
+          if(!to<double>(value,x)) {
+            a_out << "inlib::heprep1::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_x = true;
+        } else if(name==heprep::s_y()) {
+          if(!to<double>(value,y)) {
+            a_out << "inlib::heprep1::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_y = true;
+        } else if(name==heprep::s_z()) {
+          if(!to<double>(value,z)) {
+            a_out << "inlib::heprep1::load_primitive : " << value << " not a double." << std::endl;
+            return false;
+          }
+          found_z = true;
+        }
+      }
+      if(!found_x||!found_y||!found_z) {
+        a_out << "inlib::heprep1::load_primitive : x or y or z missing." << std::endl;
+        return false;
+      }
+      prim.m_pts.push_back(heprep::point(x,y,z));
+    } else if(_elem->name()==s_heprep_attvalue()) {
+    } else {
+      a_out << "inlib::heprep1::load_primitive :"
+            << " unknown field " << sout(_elem->name()) << "."
+            << std::endl; 
+    }
+  }}
+
+  a_prims.push_back(prim);
+
+  return true;
+}
+
+inline bool load_volume(std::ostream& a_out,const xml::tree& a_tree,heprep::volume& a_vol) {
+  // a_tree is a <heprep::instance>.
+
+ {xml::looper _for(a_tree);
+  while(xml::tree* _tree = _for.next_tree()) {
+    const std::string& tag = _tree->tag_name();
+    //a_out << "inlib::heprep1::load_volume : tag " << tag << std::endl;
+    if(tag==s_heprep_primitive()) {
+      if(!load_primitive(a_out,*_tree,a_vol.m_DrawAs,a_vol.m_prims)) return false;
+    } else if(tag==s_heprep_type()) { //ok, an instance can contain a type.
+    } else {
+      a_out << "inlib::heprep1::load_volume :"
+            << " unknown tag " << sout(tag) << "."
+            << std::endl; 
+//      return false;
+    }
+  }}
+
+  return true;
+}
+
+inline bool scan_tree(std::ostream& a_out,const xml::tree& a_tree,main& a_main) {
+
+  const std::string& tag = a_tree.tag_name();
+  //a_out << "scan_tree : tag " << tag << std::endl;
+
+  if( (tag==s_heprep())          ||
+      (tag==s_heprep_heprep())   ||
+      (tag==s_heprep_type())     ){
+    xml::looper _for(a_tree);
+    while(xml::tree* _tree = _for.next_tree()) {
+      if(!scan_tree(a_out,*_tree,a_main)) return false;
+    }
+
+  } else if(tag==s_heprep_instance() ){
+   
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,DrawAs)
+    std::string DrawAs = s_DrawAs_value;
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,LineColor)
+    colorf line_color;
+    if(!heprep::s2color(a_out,s_LineColor_value,line_color,colorf_white())) return false;    
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,Color)
+    colorf color;
+    if(!heprep::s2color(a_out,s_Color_value,color,colorf_white())) return false;    
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,Visibility)
+    bool Visibility;
+    if(!heprep::s2value(a_out,s_Visibility_value,Visibility,true)) return false;    
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,MarkName)
+    sg::marker_style MarkName = sg::marker_circle_line;
+    if(!heprep::s2marker_style(a_out,s_MarkName_value,MarkName)) return false;
+
+    INLIB_HEPREP_ATT_VALUE(a_tree,s_heprep_attvalue,MarkSize)
+    double MarkSize;
+    if(!heprep::s2value(a_out,s_MarkSize_value,MarkSize,5.0)) return false;    
+
+    if(is_DrawAs && DrawAs.size()) {
+      heprep::volume vol;
+      vol.m_DrawAs = DrawAs;
+      if(is_LineColor) vol.m_color = line_color;
+      if(is_Color) vol.m_color = color;
+      vol.m_Visibility = Visibility;
+      vol.m_MarkName = MarkName;
+      vol.m_MarkSize = MarkSize;
+      if(!load_volume(a_out,a_tree,vol)) return false;
+      a_main.add_volume(vol);
+    }
+
+    xml::looper _for(a_tree);
+    while(xml::tree* _tree = _for.next_tree()) {
+      if(!scan_tree(a_out,*_tree,a_main)) return false;
+    }
+
+/*
+  } else {
+    a_out << "inlib::heprep::scan_tree :"
+          << " unknown tag " << sout(tag) << "."
+          << std::endl; 
+//      return false;
+*/
+  }
+
+  return true;
+}
+
+}}
+
+#endif
+

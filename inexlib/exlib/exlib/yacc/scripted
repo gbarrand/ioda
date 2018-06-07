@@ -1,0 +1,287 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_scripted
+#define exlib_scripted
+
+#include "cexpr_eval.h"
+
+#include <inlib/sout>
+#include <inlib/sort>
+#include <inlib/num2s>
+
+namespace exlib {
+
+class scripted {
+public:
+  scripted(std::ostream& a_out,const std::string& a_string)
+  :m_out(a_out)
+  ,m_is_valid(false)
+  ,m_dimension(0)
+  ,m_processor(a_out,"")
+  {
+    initialize(a_string);
+  }
+  virtual ~scripted(){}
+public:
+  scripted(const scripted& a_from)
+  :m_out(a_from.m_out)
+  ,m_is_valid(false)
+  ,m_dimension(0)
+  ,m_processor(a_from.m_out,"")
+  {
+    initialize(a_from.m_script);
+  }
+
+  scripted& operator=(const scripted& a_from){
+    m_is_valid = false;
+    m_dimension = 0;  
+    initialize(a_from.m_script);
+    return *this;
+  }
+
+public:
+  //std::ostream& out() const {return m_out;}
+  bool is_valid() const{return m_is_valid;}
+  unsigned int dimension() const {return m_dimension;}
+  const std::string& script() const {return m_script;}
+
+  const std::vector<std::string>& param_names() const {return m_param_names;}
+  const std::vector<double>& param_values() const {return m_param_values;}
+  const std::vector<std::string>& variables() const {return m_variables;}
+
+  bool initialize(const std::string& aString){
+    reset();
+    //Check for AIDA/SLAC variable syntax convention x[<int>] :
+    std::string ss = aString;
+    std::string ns;
+    bool slac_syntax = false;
+    while(true) {
+      std::string::size_type lb = ss.find("x[");
+      if(lb==std::string::npos){
+        ns += ss;
+        break;
+      }
+      std::string::size_type rb = ss.find(']',lb+2);
+      if(rb==std::string::npos) {
+        m_out << "exlib::scripted::initialize : bad [] balance in " << inlib::sout(aString) << std::endl;
+        reset();
+        return false;
+      }
+      //     abx[012]ef
+      //     0 2    7 9   size=10
+      std::string snum = ss.substr(lb+2,rb-lb-2);
+      int coord;
+      if(!inlib::to<int>(snum,coord)) {
+        m_out << "exlib::scripted::initialize : integer expected within [] in " << inlib::sout(aString)
+            << ". Found " << inlib::sout(snum) << "." << std::endl;
+        reset();
+        return false;
+      }
+      slac_syntax = true;
+      ns += ss.substr(0,lb)+ "x"+ snum;
+      ss = ss.substr(rb+1,ss.size()-rb);
+    }
+    //printf("debug : ns \"%s\"\n",ns.c_str());
+  
+    // Find variables in the script :
+    m_processor.set_script(ns);
+    std::vector<std::string> vars;
+    if(!m_processor.find_variables(vars)) {
+      m_out << "exlib::scripted::initialize : can't find variables in " << inlib::sout(ns) << std::endl;
+      reset();
+      return false;
+    }
+  
+    //vars had been passed to inlib::unique.
+  
+    //  In vars, some are expected to be of the form x<int>.
+    // The x<int> are the variables of the scripted function. 
+    // The rest are the parameters of the scripted function. 
+    // The variables are used to find the dimension of the function.
+    //  If x0 only is found, then it is a one dim function.
+    // If x0,x1 only are found, then it is a two dim function, etc...
+  
+    std::vector<int> coords;
+    bool found_x = false;
+    bool found_y = false;
+    bool found_z = false;
+   {for(unsigned int index=0;index<vars.size();index++) {
+      int coord;
+      if(vars[index]=="x") {
+        found_x = true;
+      } else if(vars[index]=="y") {
+        found_y = true;
+      } else if(vars[index]=="z") {
+        found_z = true;
+      } else if(is_variable(vars[index],coord)) {
+        coords.push_back(coord);
+      } else {
+        m_param_names.push_back(vars[index]);
+      }
+    }}
+  
+    vars.clear(); //Reorder with params first and variables last.
+   {for(unsigned int index=0;index<m_param_names.size();index++) {
+      vars.push_back(m_param_names[index]);
+    }}
+  
+    // Sort coords :
+    if(coords.size()) {
+      if(found_x||found_y||found_z) {      
+        m_out << "exlib::scripted::initialize : inconsistent variable specification in " << inlib::sout(aString) << std::endl;
+        reset();
+        return false;
+      }    
+      inlib::sort::sort<int>(coords);
+      for(unsigned int index=0;index<coords.size();index++) {
+        std::string s;
+        inlib::sprintf(s,32,"x%d",coords[index]);
+        vars.push_back(s);
+        if(slac_syntax) {
+          inlib::sprintf(s,32,"x[%d]",coords[index]);
+          m_variables.push_back(s);
+        } else {
+          m_variables.push_back(s);
+        }
+      }
+    } else {
+      if(found_x) {
+        vars.push_back("x");
+        m_variables.push_back("x");
+      }
+      if(found_y) {
+        vars.push_back("y");
+        m_variables.push_back("y");
+      }
+      if(found_z) {
+        vars.push_back("z");
+        m_variables.push_back("z");
+      }
+    }
+  
+    if(!m_processor.compile(vars)) {
+      m_out << "exlib::scripted::initialize : can't compile " << inlib::sout(aString) << std::endl;
+      reset();
+      return false;
+    }
+  
+    m_param_values.resize(m_param_names.size(),0);
+  
+    m_input.resize(m_param_names.size()+m_variables.size(),inlib::value((double)0));
+  
+    m_script = aString;
+    m_dimension = m_variables.size();
+    m_is_valid = true;
+    return true;
+  }
+
+  bool set_parameters(const std::vector<double>& a_params){
+    if(a_params.size()!=m_param_values.size()) return false;
+    m_param_values = a_params;
+    return true;
+  }
+
+  bool set_parameters(size_t a_n,const double a_params[]){
+    if(a_n!=m_param_values.size()) return false;
+    for(size_t i=0;i<a_n;i++) m_param_values[i] = a_params[i];
+    return true;
+  }
+
+  bool value(const std::vector<double>& a_xs,double& a_value,std::string& a_serr) {
+    if(!is_valid()) {
+      a_value = 0;
+      a_serr = "exlib::scripted::value : is not valid.";
+      return false;
+    }
+    if(a_xs.size()!=m_dimension) {
+      a_value = 0;
+      a_serr = "exlib::scripted::value : xs.size()/dimension mismatch.";
+      a_serr += " (";
+      inlib::numas((unsigned int)a_xs.size(),a_serr);
+      a_serr += ",";
+      inlib::numas(m_dimension,a_serr);
+      a_serr += ").";
+      return false;
+    }
+
+    unsigned int ii = 0;
+   {unsigned int number = m_param_values.size(); 
+    for(unsigned int index=0;index<number;index++) {
+      m_input[ii].set(m_param_values[index]);
+      ii++;
+    }}
+   {unsigned int number = a_xs.size(); 
+    for(unsigned int index=0;index<number;index++) {
+      m_input[ii].set(a_xs[index]);
+      ii++;
+    }}
+  
+    inlib::value var;
+    if(!m_processor.execute(m_input,var,a_serr)) {
+      a_value = 0;
+      return false;
+    }
+  
+    if(var.type()!=inlib::value::DOUBLE) {
+      a_serr = std::string("exlib::scripted::value : result is not a double Variable.");
+      a_value = 0;
+      return false;
+    }
+  
+    //a_value = var.toDouble(); //FIXME
+    a_value = var.get_double();
+    return true;
+  }
+
+private:
+  static bool is_variable(const std::string& aVar,int& aIndex){
+    // If aVar is not of the form x<int> return false.
+    // If yes, return true with aIndex=<int>.
+    if(aVar.size()<=1) {
+      aIndex = 0;
+      return false;
+    }
+    if(aVar[0]!='x') {
+      aIndex = 0;
+      return false;
+    }
+    if(!inlib::to<int>(aVar.substr(1,aVar.size()-1),aIndex)) {
+      aIndex = 0;
+      return false;
+    }
+    return true;
+  }
+
+  void reset() {
+    // Reset :
+    m_is_valid = false;
+    m_script = "";
+    m_dimension = 0;
+    m_param_names.clear();
+    m_param_values.clear();
+    m_variables.clear();
+    m_processor.clear();
+    m_input.clear();
+  }
+
+protected:
+  std::ostream& m_out;
+  std::string m_script;
+  bool m_is_valid;
+  unsigned int m_dimension;
+  //
+  std::vector<std::string> m_param_names;
+  std::vector<double> m_param_values;
+  std::vector<std::string> m_variables;
+  exlib::yacc::cexpr_eval m_processor;
+  std::vector<inlib::value> m_input;
+};
+
+}
+
+#endif
+
+
+
+

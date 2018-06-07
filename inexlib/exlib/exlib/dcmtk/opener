@@ -1,0 +1,171 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_dcmtk_opener
+#define exlib_dcmtk_opener
+
+#include "iterator"
+#include "reader"
+
+#include <inlib/sg/tex_rect_anim>
+#include <inlib/sg/holder>
+#include <inlib/sg/iopener>
+#include <inlib/sg/open_image_file>
+
+namespace exlib {
+namespace dcmtk {
+
+class opener : public virtual inlib::iopener {
+  typedef inlib::iopener parent;
+  INLIB_SCLASS(exlib::dcmtk::opener)
+public:
+  virtual parent* copy() const {return new opener(*this);}
+  virtual const std::string& s_cls() const {return s_class();}
+  virtual bool is(const std::string& a_path,bool& a_is) const {
+    return inlib::file::is_dcm(a_path,a_is);
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_viewer,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    a_done = false;
+
+    inlib::sg::view_evd* _evd = inlib::sg::cast_view_evd(a_viewer);
+    if(!_evd) return false;
+    inlib::sg::gui_viewer* _gv = inlib::sg::cast_gui_viewer(a_viewer);
+    if(!_gv) return false;
+    inlib::sg::gui_viewer& a_gv = *_gv;
+
+    unsigned int time_interval = 0;
+    if(a_gv.m_params.m_time_interval) {
+      time_interval = a_gv.m_params.m_time_interval;
+    } else {
+      unsigned int vui;
+      if(a_args.find(inlib::sg::s_time_interval(),vui)) time_interval = vui;
+    }
+
+    if(time_interval) {
+
+      inlib::atime _now(0,0);
+      if(!a_gv.get_time_now(_now)) {
+        a_gv.out() << "exlib::dcmtk::opener::open :"
+                   << " viewer.get_time_now() failed."
+                   << std::endl;
+        return false;     
+      }
+
+      iterator* it = new iterator(a_gv.out(),a_gv.res_dir());
+      if(!it->open(a_path)) {delete it;return false;}
+
+      if(!_evd->is_evd()) { //existing scene is not a evd scene.
+        _evd->create_sg_evd();
+        _evd->replace_camera(a_gv.create_2D_camera(2));
+      }
+      a_gv.set_plane_viewer(true);
+
+      inlib::sg::separator& dsep = _evd->detector_sg();
+
+      //if(a_args.is_arg(inlib::sg::s_clear_scene())) dsep.clear();
+
+      //bool adapt_camera = dsep.empty()?true:false;
+
+      inlib::colorf bg_color(inlib::colorf_lightgrey());
+//     {std::string sv;
+//      if(a_args.find(inlib::sg::s_back_color(),sv)) {
+//        inlib::colorf _col;
+//        if(inlib::sg::find_color(_evd->cmaps(),sv,_col)) bg_color = _col;
+//      }}
+
+      inlib::sg::separator* sep = new inlib::sg::separator;
+      dsep.add(sep);
+
+      inlib::sg::rgba* mat = new inlib::sg::rgba();
+      mat->color = inlib::colorf_white();
+      sep->add(mat);
+    
+      sep->add(new inlib::sg::normal);
+    
+      sep->add(new inlib::sg::matrix()); //for move_manip.
+
+      //sep->add(new inlib::sg::event_dispatcher()); //for image_manip.
+
+      inlib::sg::tex_rect_anim* node = new inlib::sg::tex_rect_anim(_now,*it);
+
+      node->time_interval = time_interval;
+      node->back_color = bg_color;
+      node->expand = a_gv.m_params.m_image_expand;
+      node->height = a_gv.wanted_size();
+
+      sep->add(node);
+
+      sep->add(new inlib::sg::holder<iterator>(it));
+
+      a_gv.enable_anim();
+      //if(!a_args.is_arg(inlib::sg::s_no_hide_menu())) a_gv.hide_main_menu();
+      a_gv.hide_main_menu();
+
+    } else { 
+
+      reader rdr(a_gv.res_dir());
+      if(!inlib::open_image_file(a_gv,rdr,a_path,a_args,m_mem_limit)) return false;
+
+    }
+
+    a_done = true;
+    return true;
+  }
+
+  virtual bool is(inlib::uint64,const char*,bool& a_is) const {
+    a_is = false;
+    return true;
+  }
+  virtual bool open(inlib::uint64,const char*,
+                    inlib::sg::viewer&,
+                    const inlib::args&,
+                    bool& a_done) const {
+    a_done = false;
+    return true;
+  }
+  virtual bool open(const std::string& a_path,
+                    inlib::sg::viewer& a_gv,
+                    const inlib::xml::scenario&,
+                    inlib::sg::cmaps_t&,
+                    const inlib::args& a_args,
+                    bool& a_done) const {
+    return open(a_path,a_gv,a_args,a_done);
+  }
+public:
+  opener(unsigned int a_mem_limit)
+  :m_mem_limit(a_mem_limit)
+  {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~opener(){
+#ifdef INLIB_MEM
+    inlib::mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  opener(const opener& a_from)
+  :parent(a_from)
+  ,m_mem_limit(a_from.m_mem_limit)
+  {
+#ifdef INLIB_MEM
+    inlib::mem::increment(s_class().c_str());
+#endif
+  }
+  opener& operator=(const opener& a_from){
+    m_mem_limit = a_from.m_mem_limit;
+    return *this;
+  }  
+protected:
+  unsigned int m_mem_limit;
+};
+
+}}
+
+#endif
+
+//exlib_build_use inlib dcmtk kernel

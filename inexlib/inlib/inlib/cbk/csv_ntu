@@ -1,0 +1,108 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_cbk_csv_ntu
+#define inlib_cbk_csv_ntu
+
+#include "../sg/strings"
+#include "../cbk/ntu"
+#include "../rcsv_ntuple"
+
+#include "../sg/gui_viewer"
+
+namespace inlib {
+namespace cbk {
+
+class csv_ntu : public sg::acbk, public sg::pos_data {
+public:
+  static unsigned int action_main()   {return 0;}
+protected:
+  typedef read::icol icol_t;
+  typedef read::icolumn<int> icoli_t;
+  typedef read::icolumn<float> icolf_t;
+  typedef read::icolumn<double> icold_t;
+public:
+  virtual sg::return_action action() {
+    if(m_action==action_main()) {    
+
+      char sep;
+     {unsigned int isep;
+      if(!to<unsigned int>(m_entries->values[0],isep)) {
+        m_entries = 0;
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"can't get a char");
+        return sg::return_to_render;     
+      }
+      sep = (char)isep;}
+
+      bool verbose = false;
+      if(!m_ntu.initialize(m_gv.out(),sep,"x",verbose)) { //col suffix is x.
+        m_gv.out() << "inlib::cbk::csv_ntu::action :"
+                   << " can't initialize ntuple."
+                   << std::endl;
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"ntu.init() failed");
+        return sg::return_to_render;     
+      }
+
+      if(m_ntu.columns().empty()) {
+        m_gv.pop_warn(m_popup,m_ex,m_ey,"no columns");
+        return sg::return_to_render;     
+      }
+
+      sg::entries* entries = new sg::entries(m_gv.ttf());
+      m_gv.set_style(*entries);
+      std::vector<std::string> opts;
+      opts.push_back(sg::s_1D());
+      opts.push_back(sg::s_2D());
+      entries->add_opts("proj",sg::s_1D(),opts);
+  
+      choose_proj* _cbk = new choose_proj(m_gv,m_proj,m_ntu,choose_proj::action_main(),*this);
+      _cbk->m_entries = entries;
+      entries->add_callback(_cbk);
+
+      m_gv.show_widget(*this,entries);
+
+    }
+
+    return sg::return_to_render;     
+  }
+
+  virtual sg::bcbk* copy() const {return new csv_ntu(*this);}
+public:
+  csv_ntu(sg::gui_viewer& a_gv,ntu_proj& a_proj,rcsv::ntuple& a_ntu,unsigned int a_action,const sg::pos_data& a_data)
+  :sg::acbk(a_action)
+  ,sg::pos_data(a_data)
+  ,m_gv(a_gv)
+  ,m_proj(a_proj)
+  ,m_ntu(a_ntu)  
+  ,m_entries(0)
+  {}
+  virtual ~csv_ntu(){}
+protected:
+  csv_ntu(const csv_ntu& a_from)
+  :sg::acbk(a_from)
+  ,sg::pos_data(a_from)
+  ,m_gv(a_from.m_gv)
+  ,m_proj(a_from.m_proj)
+  ,m_ntu(a_from.m_ntu)
+  ,m_entries(a_from.m_entries)
+  {}
+  csv_ntu& operator=(const csv_ntu& a_from){
+    sg::acbk::operator=(a_from);
+    sg::pos_data::operator=(a_from);
+    m_entries = a_from.m_entries;
+    return *this;
+  }
+protected:
+  sg::gui_viewer& m_gv;
+  ntu_proj& m_proj;
+  rcsv::ntuple& m_ntu;
+public: // per action parameters :
+  sg::entries* m_entries; //not owner.
+};
+
+
+}}
+
+//inlib_build_use kernel
+
+#endif

@@ -1,0 +1,181 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_objsz
+#define inlib_objsz
+
+#include "iobj_const_visitor"
+
+#include <list>
+#include <cstring>
+
+namespace inlib {
+
+class objsz : public virtual iobj_const_visitor {
+public:
+  virtual bool begin(const istorable&,const std::string&,local_func){
+    fStack.push_front(fCurrent);
+    fCurrent = 0;
+    return true;
+  }
+
+  virtual bool end(const istorable&){
+    unsigned int sav = fCurrent;
+    const_cast<unsigned int&>(fReturned) = fCurrent;
+    const_cast<unsigned int&>(fCurrent) = fStack.front();
+    // Back to parent :
+    const_cast<unsigned int&>(fCurrent) += sav;
+    const_cast< std::list<unsigned int>& >(fStack).pop_front();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,char) {
+    fCurrent += size_char();
+    return true;
+  }
+  virtual bool visit(const std::string&,bool) {
+    fCurrent += size_char();
+    return true;
+  }
+  virtual bool visit(const std::string&,short) {
+    fCurrent += size_short();
+    return true;
+  }
+  virtual bool visit(const std::string&,int) {
+    fCurrent += size_int();
+    return true;
+  }
+  virtual bool visit(const std::string&,unsigned int) {
+    fCurrent += size_int();
+    return true;
+  }
+  virtual bool visit(const std::string&,int64) {
+    fCurrent += size_int64();
+    return true;
+  }
+  virtual bool visit(const std::string&,uint64) {
+    fCurrent += size_int64();
+    return true;
+  }
+  virtual bool visit(const std::string&,float) {
+    fCurrent += size_float();
+    return true;
+  }
+  virtual bool visit(const std::string&,double) {
+    fCurrent += size_double();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::string& aData){
+    fCurrent += size_int()+(uint32(aData.size())+1)*size_char();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<bool>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_char();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<char>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_char();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<short>& aData){
+    fCurrent += size_int() + uint32(aData.size())*size_short();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<int>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_int();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<int64>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_int64();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<float>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_float();
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<double>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_double();
+    return true;
+  }
+
+/*
+  virtual bool visit(const std::string&,const std::vector<unsigned char>& aData) {
+    fCurrent += size_int() + uint32(aData.size())*size_char();
+    return true;
+  }
+*/
+  virtual bool visit(const std::string&,const std::vector< std::vector<double> >& aData){
+    unsigned int n = uint32(aData.size());
+    unsigned int dim = n?uint32(aData[0].size()):0;
+    unsigned int number = n*dim;
+    unsigned int array_sz = number*size_double();
+    fCurrent += 2*size_int()+array_sz;
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const std::vector<std::string>& aData){
+    unsigned int number = uint32(aData.size());
+    unsigned int sz = 0;
+    for(unsigned int index=0;index<number;index++) sz += uint32(aData[index].size())+1;
+    sz++;
+    fCurrent += size_int()+sz*size_char();
+    return true;
+  }
+
+/*
+  virtual bool visit_double(const std::string&,const Slash::Store::IArray& aData){ 
+    Slash::Store::IArray::Orders orders = aData.orders();
+    fCurrent += size_int() + orders.size()*size_int();
+    unsigned int array_sz = 1;
+    unsigned int dimn = orders.size();
+    for(unsigned int dimi=0;dimi<dimn;dimi++) array_sz *= orders[dimi];
+    array_sz *= size_double();
+    fCurrent += array_sz;
+    return true;
+  }
+
+  virtual bool visit(const std::string&,const char* aData) {
+    fCurrent += size_int()+(::strlen(aData)+1)*size_char();
+    return true;
+  }
+*/
+
+  virtual bool visit(const std::string&,const istorable& aData){ 
+    // WARNING : can't be called in a object.visit()
+    //   over a aData being a "super" of "object" .
+    objsz madd;
+    if(!aData.visit(madd)) {
+      fCurrent = 0;
+      return false;
+    }
+    fCurrent += madd.size();
+    return true;  
+  }
+
+
+public:
+  objsz():fCurrent(0),fReturned(0){}
+  virtual ~objsz(){}
+private:
+  objsz(const objsz& a_from):iobj_const_visitor(a_from){}
+  objsz& operator=(const objsz&){return *this;}
+public:
+  unsigned int size() const {return fReturned;}
+protected:
+  unsigned int fCurrent;
+  std::list<unsigned int> fStack;
+  unsigned int fReturned;
+
+};
+
+}
+
+#endif

@@ -1,0 +1,57 @@
+#!/bin/sh -f
+
+# NOTE : Python is done in ourex/HEPVisPython.
+
+bush_home=../../../bush
+
+. ${bush_home}/args
+. ${bush_home}/ourex_header
+
+#////////////////////////////////////
+#////////////////////////////////////
+#////////////////////////////////////
+
+if [ ${build_visual} = "yes" ] ; then
+  ccflags="${ccflags} -wd4244"
+  cppflags="${cppflags} -wd4244"
+fi
+
+ccflags="${ccflags} -DHEPVIS_GL2PS_HAVE_ZLIB"
+ccflags="${ccflags} -DHEPVIS_GL2PS_HAVE_LIBPNG"
+
+cppflags="${cppflags} -DHEPVIS_HAS_TTF2"
+cppflags="${cppflags} -DHEPVIS_HAS_JPEG"
+
+if [ ${build_inlib_gl} = "yes" ] ; then
+  if [ ${build_verbose} = yes ] ; then echo "HEPVis/build : build_inlib_gl.";fi
+  ccflags="${ccflags} -DOUREX_COINGL_INLIB_GL"
+  cppflags="${cppflags} -DOUREX_COINGL_INLIB_GL"
+fi
+
+#////////////////////////////////////
+#////////////////////////////////////
+#////////////////////////////////////
+use_archive=no # OpenScientist needs shared libs.
+
+use_inlib=yes # for inlib/glutess used in SbTessContour.h, but also if : ./build -sdk_ios or -sdk_android.
+
+use_CoinGL=yes
+use_GL=yes
+use_png=yes
+use_jpeg=yes
+use_freetype=yes
+use_zlib=yes
+
+. ${bush_home}/use/inlib
+. ${bush_home}/use/CoinGL
+. ${bush_home}/use/GL
+. ${bush_home}/use/png
+. ${bush_home}/use/jpeg
+. ${bush_home}/use/freetype
+. ${bush_home}/use/zlib
+
+#////////////////////////////////////
+#////////////////////////////////////
+#////////////////////////////////////
+
+. ${bush_home}/ourex_generic

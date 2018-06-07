@@ -1,0 +1,181 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_maxwell_transporter
+#define inlib_maxwell_transporter
+
+/*
+  Basic equations are :
+
+         |   a                     |
+         | du      a          b  c |   e             a
+g  (x(s))| --  + C   (x(s))  u  u  | = -- F  (x(s)) u 
+ da      | ds     b c              |   m   da         
+
+    a
+  dx     a
+  --  = u (x(s))
+  ds 
+
+  If space-time is metric, on the curve we must have :
+
+             a   b
+           dx  dx
+    g  (x) --  --   = +-1
+     ab    ds  ds
+
+  
+*/
+
+#include "base_transporter"
+
+#include "vec3"
+
+namespace inlib {
+
+template <class REAL>
+class maxwell_transporter : public base_transporter<REAL> {
+  typedef base_transporter<REAL> parent;
+private:
+  typedef REAL X[4];
+  typedef REAL U[4];
+  typedef REAL G[4][4];
+  typedef REAL CHR[4][4][4];
+
+  typedef REAL A[4];
+  typedef REAL F[4][4];
+protected:  
+  typedef typename parent::sqrt_func sqrt_func;
+  typedef typename parent::fabs_func fabs_func;
+public:
+  virtual bool set_metric(const X&,G& a_g) const {
+    set_mtx(a_g,0,0,  REAL(1));
+    set_mtx(a_g,1,1, -REAL(1));
+    set_mtx(a_g,2,2, -REAL(1));
+    set_mtx(a_g,3,3, -REAL(1));
+
+    set_mtx(a_g,0,1,  REAL(0));
+    set_mtx(a_g,0,2,  REAL(0));
+    set_mtx(a_g,0,3,  REAL(0));
+
+    set_mtx(a_g,1,0,  REAL(0));
+    set_mtx(a_g,1,2,  REAL(0));
+    set_mtx(a_g,1,3,  REAL(0));
+
+    set_mtx(a_g,2,0,  REAL(0));
+    set_mtx(a_g,2,1,  REAL(0));
+    set_mtx(a_g,2,3,  REAL(0));
+
+    set_mtx(a_g,3,0,  REAL(0));
+    set_mtx(a_g,3,1,  REAL(0));
+    set_mtx(a_g,3,2,  REAL(0));
+
+    return true;
+  }
+  virtual bool set_christoffel(const X&,CHR& a_chr) const {
+    zero_christo(a_chr);
+    return true;
+  }
+  virtual bool set_extra_acceleration(const X& a_x,const U& a_u,U& a_a) const {
+    maxwell_transporter& self = const_cast<maxwell_transporter&>(*this);
+
+    if(!set_inv_metric(a_x,self.m_inv_metric)) {
+      parent::m_out << "maxwell_transporter::set_extra_acceleration :"
+            << " set_inv_metric() failed."
+            << std::endl;
+      zero_vec(a_a);
+      return false;
+    }
+
+    if(!set_F(a_x,self.m_emf)) {
+      parent::m_out << "maxwell_transporter::set_extra_acceleration :"
+            << " set_F() failed."
+            << std::endl;
+      zero_vec(a_a);
+      return false;
+    }
+    
+    g_F_u(self.m_inv_metric,self.m_emf,a_u,a_a);
+
+    return true;
+  }
+public:
+  bool set_inv_metric(const X& a_x,G& a_g) const {
+    return set_metric(a_x,a_g);
+  }
+  bool set_F(const X&,F& a_F) const {
+    //     0  Ex  Ey  Ez
+    //   -Ex   0 -Bz  By
+    //   -Ey  Bz   0 -Bx
+    //   -Ez -By  Bx   0 
+
+    set_mtx(a_F,0,1,  m_E[0]);
+    set_mtx(a_F,0,2,  m_E[1]);
+    set_mtx(a_F,0,3,  m_E[2]);
+
+    set_mtx(a_F,1,2, -m_B[2]);
+    set_mtx(a_F,1,3,  m_B[1]);
+    set_mtx(a_F,2,3, -m_B[0]);
+
+    // antisym part :
+    set_mtx(a_F,1,0, -m_E[0]);
+    set_mtx(a_F,2,0, -m_E[1]);
+    set_mtx(a_F,3,0, -m_E[2]);
+
+    set_mtx(a_F,2,1,  m_B[2]);
+    set_mtx(a_F,3,1, -m_B[1]);
+    set_mtx(a_F,3,2,  m_B[0]);
+
+    // diagonal :
+    set_mtx(a_F,0,0,  REAL(0));
+    set_mtx(a_F,1,1,  REAL(0));
+    set_mtx(a_F,2,2,  REAL(0));
+    set_mtx(a_F,3,3,  REAL(0));
+
+    return true;
+  }
+public:
+  maxwell_transporter(std::ostream& a_out,
+                      sqrt_func a_sqrt,fabs_func a_fabs,
+                      vec3<REAL>& a_E,vec3<REAL>& a_B,
+                      bool a_verbose = false)
+  :parent(a_out,a_sqrt,a_fabs,a_verbose)
+  ,m_E(a_E)
+  ,m_B(a_B)
+  {}
+  virtual ~maxwell_transporter(){}
+public:
+  maxwell_transporter(const maxwell_transporter& a_from)
+  :parent(a_from)
+  ,m_E(a_from.m_E)
+  ,m_B(a_from.m_B)
+  {}
+  maxwell_transporter& operator=(const maxwell_transporter& a_from) {
+    parent::operator=(a_from);
+    m_E = a_from.m_E;
+    m_B = a_from.m_B;
+    return *this;
+  }
+protected:
+  static void g_F_u(const G& a_gi,const F& a_F,const U& a_u,U& a_acc) {
+    REAL value;
+    unsigned int a,b,c;
+    for(a=0;a<4;a++) {
+      value = REAL(0);
+      for(b=0;b<4;b++) {
+        for(c=0;c<4;c++) value += a_gi[a][b]*a_F[b][c]*a_u[c];
+      }
+      a_acc[a] = value;
+    }
+  }
+protected:
+  vec3<REAL> m_E;
+  vec3<REAL> m_B;
+  //OPTIMIZATION :
+  G m_inv_metric;
+  F m_emf;
+};
+
+}
+
+#endif

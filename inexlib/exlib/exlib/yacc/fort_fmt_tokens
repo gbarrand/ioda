@@ -1,0 +1,24 @@
+#ifndef exlib_fort_fmt_tokens
+#define exlib_fort_fmt_tokens
+
+namespace exlib {class data_desc;}
+
+#define NUMBER_INTEGER 257
+#define NUMBER_EXPONENT 258
+#define T_X 259
+#define T_I 260
+#define T_F 261
+#define T_E 262
+#define T_G 263
+#define T_A 264
+#define T_L 265
+#define T_SLASH 266
+#define UMINUS 267
+typedef union {
+  unsigned long fInteger;
+  exlib::data_desc* fDesc;
+  unsigned int fType;
+} YYSTYPE;
+extern YYSTYPE fort_fmt_lval;
+
+#endif

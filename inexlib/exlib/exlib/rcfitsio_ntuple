@@ -1,0 +1,554 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+#ifndef exlib_rcfitsio_ntuple
+#define exlib_rcfitsio_ntuple
+
+// A ntuple class to read a [ASCII,BINARY]_TABLE in a cfitsio file.
+
+#include <inlib/rntuple>
+
+#include <inlib/vfind>
+#include <inlib/vmanip>
+#include <inlib/rroot/cids>
+#include <inlib/sout>
+
+#include "cfitsio"
+
+#ifdef EXLIB_MEM
+#include <inlib/mem>
+#endif
+
+namespace exlib {
+namespace rcfitsio {
+
+class ntuple : public virtual inlib::read::intuple {
+public: //inlib::read::intuple
+  virtual void start() {
+    m_row = -1;
+  }
+  virtual void stop() {
+    inlib_vforit(inlib::read::icol*,m_cols,it) (*it)->stop();
+  }
+  virtual bool next() { 
+    if(!m_ffile.is_open()) return false;
+    m_row++;    
+    if(m_row>=m_nrow) return false;
+    return true;
+  }
+
+  virtual inlib::read::icol* find_icol(const std::string& a_name){
+    return inlib::find_named<inlib::read::icol>(m_cols,a_name);
+  }
+
+  virtual const std::vector<inlib::read::icol*>& columns() const {
+    return m_cols;
+  }
+
+public:
+  template <class T>
+  class column : public virtual inlib::read::icolumn<T> {
+  public: //icol
+    virtual const std::string& name() const {return m_name;}
+    virtual void stop() {delete [] m_vals;m_vals = 0;}
+  public: //icolumn<T>
+    virtual bool get_entry(T& a_v) const {
+      if(!m_vals) { //optimization : try to read at once the column.        
+        const_cast< column<T>& >(*this).m_vals = new T[m_rows];
+        if(m_vals) {
+          if(!m_ffile.TBL_read_col<T>(m_col,m_rows,1,m_vals)){
+            delete [] m_vals;
+            const_cast< column<T>& >(*this).m_vals = 0;
+            return false;
+          }
+        }
+      }      
+      if(!m_vals) { //continue with the not opt way.
+        return m_ffile.TBL_read_cell<T>(m_col,m_row,0,a_v); //0 irepeat
+      } else {
+        a_v = m_vals[m_row]; //0 = irepeat.
+        return true;
+      }
+    }
+  public:
+    column(cfitsio::file& a_ffile,int a_rows,
+           int& a_row,
+           int a_col,const std::string& a_name,cfitsio::T_type a_type)
+    :m_ffile(a_ffile)
+    ,m_rows(a_rows)
+    ,m_row(a_row)
+    ,m_col(a_col)
+    ,m_name(a_name)
+    ,m_type(a_type)
+    ,m_vals(0)
+    {}
+    virtual ~column(){delete [] m_vals;}
+  protected:
+    column(const column& a_from)
+    :inlib::read::icolumn<T>(a_from)
+    ,m_ffile(a_from.m_ffile)
+    ,m_rows(a_from.m_rows)
+    ,m_row(a_from.m_row)
+    ,m_col(a_from.m_col)
+    ,m_name(a_from.m_name) 
+    ,m_type(a_from.m_type)
+    ,m_vals(0)
+    {}
+    column& operator=(const column& a_from){
+      if(&a_from==this) return *this;
+      m_rows = a_from.m_rows;
+      m_col = a_from.m_col;
+      m_name = a_from.m_name;
+      m_type = a_from.m_type;
+      delete [] m_vals;
+      m_vals = 0;
+      return *this;
+    }
+  protected:
+    cfitsio::file& m_ffile;
+    int m_rows;
+    int& m_row; //WARNING : a ref.
+    int m_col;
+    std::string m_name;
+    cfitsio::T_type m_type;
+    //opt:
+    T* m_vals;
+  };
+
+
+  template <class T>
+  class vec_column : public virtual inlib::read::icolumn< std::vector<T> > {
+  public: //icol
+    virtual const std::string& name() const {return m_name;}
+    virtual void stop() {delete [] m_vals;m_vals = 0;}
+  public: //icolumn
+    virtual bool get_entry(std::vector<T>& a_v) const {
+      a_v.clear();
+      if(!m_vals) { //optimization : try to read at once the column.        
+        T*& vals = const_cast< vec_column<T>& >(*this).m_vals;
+        vals = new T[m_rows*m_repeat];
+        if(vals) {
+          if(!m_ffile.TBL_read_col<T>(m_col,m_rows,m_repeat,vals)){
+            delete [] vals;
+            vals = 0;
+            return false;
+          }
+        }
+      }      
+      if(!m_vals) { //continue with the not opt way.
+        T v;
+        for(int irepeat=0;irepeat<m_repeat;irepeat++){
+          if(!m_ffile.TBL_read_cell<T>(m_col,m_row,irepeat,v)){
+            a_v.clear();
+            return false;
+          }
+          a_v.push_back(v);
+        }        
+      } else {
+        T* pos = m_vals+m_row*m_repeat;
+        for(int irepeat=0;irepeat<m_repeat;irepeat++,pos++){
+          a_v.push_back(*pos);
+        }
+      }
+      return true;
+    }
+  public:
+    vec_column(cfitsio::file& a_ffile,int a_rows,
+               int& a_row,
+               int a_col,const std::string& a_name,cfitsio::T_type a_type,
+               int a_repeat)
+    :m_ffile(a_ffile)
+    ,m_rows(a_rows)
+    ,m_row(a_row)
+    ,m_col(a_col)
+    ,m_name(a_name)
+    ,m_type(a_type)
+    ,m_repeat(a_repeat)
+    ,m_vals(0)
+    {}
+    virtual ~vec_column(){delete [] m_vals;}
+  protected:
+    vec_column(const vec_column& a_from)
+    :inlib::read::icolumn<T>(a_from)
+    ,m_ffile(a_from.m_ffile)
+    ,m_rows(a_from.m_rows)
+    ,m_row(a_from.m_row)
+    ,m_col(a_from.m_col)
+    ,m_name(a_from.m_name) 
+    ,m_type(a_from.m_type)
+    ,m_repeat(a_from.m_repeat)
+    ,m_vals(0)
+    {}
+    vec_column& operator=(const vec_column& a_from){
+      if(&a_from==this) return *this;
+      m_rows = a_from.m_rows;
+      m_col = a_from.m_col;
+      m_name = a_from.m_name;
+      m_type = a_from.m_type;
+      m_repeat = a_from.m_repeat;
+      delete [] m_vals;
+      m_vals = 0;
+      return *this;
+    }
+  protected:
+    cfitsio::file& m_ffile;
+    int m_rows;
+    int& m_row; //WARNING : a ref.
+    int m_col;
+    std::string m_name;
+    cfitsio::T_type m_type;
+    int m_repeat;
+    //opt:
+    T* m_vals;
+  };
+
+
+  template <class T>
+  class va_column : public virtual inlib::read::icolumn< std::vector<T> > {
+  public: //icol
+    virtual const std::string& name() const {return m_name;}
+    virtual void stop() {}
+  public: //icolumn
+    virtual bool get_entry(std::vector<T>& a_v) const {
+      return m_ffile.TBL_read_va_cell<T>
+               ((unsigned int)m_col,(unsigned int)m_row,a_v);
+    }
+  public:
+    va_column(cfitsio::file& a_ffile,int a_rows,
+              int& a_row,
+              int a_col,const std::string& a_name,cfitsio::T_type a_type)
+    :m_ffile(a_ffile)
+    ,m_rows(a_rows)
+    ,m_row(a_row)
+    ,m_col(a_col)
+    ,m_name(a_name)
+    ,m_type(a_type)
+    {}
+    virtual ~va_column(){}
+  protected:
+    va_column(const va_column& a_from)
+    :inlib::read::icolumn<T>(a_from)
+    ,m_ffile(a_from.m_ffile)
+    ,m_rows(a_from.m_rows)
+    ,m_row(a_from.m_row)
+    ,m_col(a_from.m_col)
+    ,m_name(a_from.m_name) 
+    ,m_type(a_from.m_type)
+    {}
+    va_column& operator=(const va_column& a_from){
+      m_rows = a_from.m_rows;
+      m_col = a_from.m_col;
+      m_name = a_from.m_name;
+      m_type = a_from.m_type;
+      return *this;
+    }
+  protected:
+    cfitsio::file& m_ffile;
+    int m_rows;
+    int& m_row; //WARNING : a ref.
+    int m_col;
+    std::string m_name;
+    cfitsio::T_type m_type;
+  };
+
+
+public:
+  static const std::string& s_class() {
+    static const std::string s_v("exlib::rcfitsio::ntuple");
+    return s_v;
+  }
+public:
+  ntuple(std::ostream& a_out,const std::string& a_file,unsigned int a_hdu)
+  :m_file(a_file)
+  ,m_hdu(a_hdu)
+
+  ,m_ffile(a_out)  
+  ,m_nrow(0)
+  ,m_row(-1)
+  {
+#ifdef EXLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~ntuple() {
+    inlib::safe_clear<inlib::read::icol>(m_cols);
+    m_ffile.close();
+#ifdef EXLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  ntuple(const ntuple& a_from)
+  :inlib::read::intuple(a_from)
+  ,m_file(a_from.m_file)
+  ,m_hdu(a_from.m_hdu)
+
+  ,m_ffile(a_from.m_ffile.out())
+  ,m_nrow(0)
+  ,m_row(-1)
+  {
+#ifdef EXLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  ntuple& operator=(const ntuple&){return *this;}
+public:
+  bool initialize() {
+    inlib::safe_clear<inlib::read::icol>(m_cols);
+
+    std::ostream& out = m_ffile.out();
+
+    if(!m_ffile.open(m_file)) {
+      out << s_class() << "::initialize :"
+          << " can't open file " << m_file << "."
+          << std::endl;
+      return false;
+    }
+
+    if(!m_ffile.to_HDU(m_hdu)) {
+      m_ffile.close();
+      out << s_class() << "::initialize :"
+          << " to_HDU failed for " << m_hdu << "."
+          << std::endl;
+      return false;
+    }
+      
+    typedef cfitsio::T_type T_type;
+
+    unsigned int ncol = 0;
+    unsigned int nrow = 0;
+    std::vector<std::string> names;
+    std::vector<int> types;  
+    std::vector<int> repeats;
+    std::vector<int> widths;
+  
+    if(!m_ffile.TBL_infos(ncol,nrow,names,types,repeats,widths)){
+      m_ffile.close();
+      out << s_class() << "::initialize :"
+          << " to_HDU failed for " << m_hdu << "."
+          << std::endl;
+      return false;
+    }
+
+    if(!ncol) {
+      m_ffile.close();
+      out << s_class() << "::initialize :"
+          << " TBL without columns."
+          << std::endl;
+      return false;
+    }
+  
+    if(!nrow) {
+      m_ffile.close();
+      out << s_class() << "::initialize :"
+          << " TBL without rows."
+          << std::endl;
+      return false;
+    }
+  
+
+    for(unsigned int col=0;col<ncol;col++) {      
+
+/*
+      out << s_class() << "::initialize :"
+          << " name " << inlib::sout(names[col]) << "."
+          << " type " << types[col]
+          << " stype " << exlib::cfitsio::sTYPE(::abs(types[col]))
+          << " repeat " << repeats[col]
+          << std::endl;
+*/
+
+      inlib::read::icol* icol = 0;
+      if(repeats[col]<=0) {
+        std::string stype;
+        cfitsio::sTYPE(types[col],stype);
+        out << s_class() << "::initialize :"
+            << " column " << stype
+            << " with a repeat count <=0. Continue anyway."
+            << std::endl;
+        continue; //not fatal.
+      }
+
+      T_type type = ::abs(types[col]);
+      bool va_type = types[col]<0?true:false;
+      bool vec_type = repeats[col]==1?false:true;
+
+      if(type==TFLOAT) {
+        if(va_type) {
+          icol = create_va_column<float>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<float>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<float>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TDOUBLE) {
+        if(va_type) {
+          icol = create_va_column<double>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol =
+            create_vec_column<double>(nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<double>(nrow,col,names[col],type);
+        }
+
+      } else if((type==TINT)||(type==TLONG)) {
+        if(va_type) {
+          icol = create_va_column<int>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<int>(nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<int>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TSHORT) {
+        if(va_type) {
+          icol = create_va_column<short>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<short>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<short>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TBYTE) {
+        if(va_type) {
+          icol = create_va_column<inlib::byte>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<inlib::byte>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<inlib::byte>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TLONGLONG) {
+        if(va_type) {
+          icol = create_va_column<inlib::int64>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<inlib::int64>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<inlib::int64>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TBIT) {
+        if(va_type) {
+          icol = create_va_column<inlib::fits_bit>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<inlib::fits_bit>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<inlib::fits_bit>(nrow,col,names[col],type);
+        }
+
+      } else if((type==TUINT)||(type==TULONG)) {
+        if(va_type) {
+          icol = create_va_column<unsigned int>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<unsigned int>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<unsigned int>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TUSHORT) {
+        if(va_type) {
+          icol = create_va_column<unsigned short>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<unsigned short>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<unsigned short>(nrow,col,names[col],type);
+        }
+
+      } else if(type==TSBYTE) {
+        if(va_type) {
+          icol = create_va_column<char>(nrow,col,names[col],type);
+        } else if(vec_type) {
+          icol = create_vec_column<char>
+                   (nrow,col,names[col],type,repeats[col]);
+        } else {
+          icol = create_column<char>(nrow,col,names[col],type);
+        }
+
+      } else {
+        std::string stype;
+        cfitsio::sTYPE(types[col],stype);
+        out << s_class() << "::initialize :"
+            << " column name " << inlib::sout(names[col]) << "."
+            << " type " << types[col] << " " << stype
+            << " not treated."
+            << " (-type " << -types[col] << ")."
+            << " Continue anyway."
+            << std::endl;
+        continue; //not fatal.
+      }
+
+      if(!icol) {
+        out << s_class() << "::initialize :"
+            << " create_column failed for " << inlib::sout(names[col]) << "."
+            << std::endl;
+        inlib::safe_clear<inlib::read::icol>(m_cols);
+        m_ffile.close();
+        return false;
+      }
+    }
+
+    m_nrow = nrow;
+    m_row = -1;
+
+    return true;
+  }
+
+protected:
+  template <class T>
+  column<T>* create_column(int a_rows,
+                                  int a_col,
+                                  const std::string& a_name,
+                                  cfitsio::T_type a_type){
+    if(inlib::find_named<inlib::read::icol>(m_cols,a_name)) return 0;
+    column<T>* col = new column<T>(m_ffile,a_rows,m_row,a_col,a_name,a_type);
+    if(!col) return 0;
+    m_cols.push_back(col);
+    return col;
+  }
+  template <class T>
+  vec_column<T>* create_vec_column(int a_rows,
+                               int a_col,
+                               const std::string& a_name,
+                               cfitsio::T_type a_type,
+                               int a_repeat) {
+    if(inlib::find_named<inlib::read::icol>(m_cols,a_name)) return 0;
+    vec_column<T>* col = 
+      new vec_column<T>(m_ffile,a_rows,m_row,a_col,a_name,a_type,a_repeat);
+    if(!col) return 0;
+    m_cols.push_back(col);
+    return col;
+  }
+  template <class T>
+  va_column<T>* create_va_column(int a_rows,
+                                 int a_col,
+                                 const std::string& a_name,
+                                 cfitsio::T_type a_type){
+    if(inlib::find_named<inlib::read::icol>(m_cols,a_name)) return 0;
+    va_column<T>* col = 
+      new va_column<T>(m_ffile,a_rows,m_row,a_col,a_name,a_type);
+    if(!col) return 0;
+    m_cols.push_back(col);
+    return col;
+  }
+protected:
+  std::string m_file;
+  unsigned int m_hdu;
+  cfitsio::file m_ffile;
+  int m_nrow;
+  int m_row;
+  std::vector<inlib::read::icol*> m_cols;
+};
+
+}}
+
+#endif
+
+//exlib_build_use inlib cfitsio

@@ -1,0 +1,242 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_edep_best_units
+#define inlib_edep_best_units
+
+#include <string>
+#include <ostream>
+
+#ifdef INLIB_MEM
+#include "../S_STRING"
+#include "../mem"
+#endif
+
+namespace inlib {
+namespace edep {
+
+class unit_def {
+#ifdef INLIB_MEM
+  INLIB_SCLASS(inlib::edep::unit_def)
+#endif
+public:
+  unit_def(const std::string& a_name,
+           const std::string& a_symbol,
+           double a_value)
+  :m_name(a_name),m_symbol(a_symbol),m_value(a_value)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~unit_def(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  unit_def(const unit_def& a_from)
+  :m_name(a_from.m_name)
+  ,m_symbol(a_from.m_symbol)
+  ,m_value(a_from.m_value)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  unit_def& operator=(const unit_def& a_from){
+    m_name = a_from.m_name;
+    m_symbol = a_from.m_symbol;
+    m_value = a_from.m_value;
+    return *this;
+  }
+
+public:
+  const std::string& name() const {return m_name;}
+  const std::string& symbol() const {return m_symbol;}
+  double value() const {return m_value;}
+protected:
+  std::string m_name;
+  std::string m_symbol;
+  double m_value;
+};
+
+class value_unit {
+#ifdef INLIB_MEM
+  INLIB_SCLASS(inlib::edep::value_unit)
+#endif
+public:
+  value_unit(double a_value,const std::string& a_category)
+  :m_value(a_value),m_category(a_category)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~value_unit(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+public:
+  value_unit(const value_unit& a_from)
+  :m_value(a_from.m_value),m_category(a_from.m_category)
+  {
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  value_unit& operator=(const value_unit& a_from){
+    m_value  = a_from.m_value;
+    m_category = a_from.m_category;
+    return *this;
+  }
+
+public:
+  double value() const {return m_value;}
+  const std::string& category() const {return m_category;}
+protected:
+  double m_value;
+  std::string m_category;
+};
+
+}}
+
+#include <map>
+#include <vector>
+#include <iomanip>
+#include <cfloat>
+#include "../num2s"
+#include "../sjust"
+
+namespace inlib {
+namespace edep {
+
+class best_units : public std::ostream {
+#ifdef INLIB_MEM
+  INLIB_SCLASS(inlib::edep::best_units)
+#endif
+  typedef std::vector<unit_def> defs_t;
+public:
+  best_units(std::streambuf* a_b):std::ostream(a_b){
+#ifdef INLIB_MEM
+    mem::increment(s_class().c_str());
+#endif
+  }
+  virtual ~best_units(){
+#ifdef INLIB_MEM
+    mem::decrement(s_class().c_str());
+#endif
+  }
+protected:
+  best_units(const best_units&)
+  :std::basic_ios<char, std::char_traits<char> >()
+#ifdef INLIB_STL
+  ,std::basic_streambuf<char, std::char_traits<char> >()
+#endif
+  ,std::ostream(0)
+  {}
+  best_units& operator=(const best_units&){return *this;}
+public:
+  void add(const std::string& a_category,
+           const std::string& a_name,
+           const std::string& a_symbol,
+           double a_value){
+    std::map<std::string,defs_t>::iterator it = m_table.find(a_category);
+    if(it==m_table.end()) {
+      std::vector<unit_def> v;
+      v.push_back(unit_def(a_name,a_symbol,a_value));
+      m_table[a_category] = v;
+    } else { 
+      std::vector<unit_def>& v = (*it).second;
+      v.push_back(unit_def(a_name,a_symbol,a_value));
+    }    
+  }
+
+  bool out(const value_unit& a_vu,std::string& a_s) {
+    std::map<std::string,defs_t>::const_iterator itm = m_table.find(a_vu.category());
+    if(itm==m_table.end()) {a_s.clear();return false;}
+    const std::vector<unit_def>& udefs = (*itm).second;
+  
+    std::string::size_type mx = 0;
+   {std::vector<unit_def>::const_iterator it;
+    for(it=udefs.begin();it!=udefs.end();++it) {
+      const unit_def& udef = *it;
+      mx = udef.symbol().size()>mx?udef.symbol().size():mx;
+    }}
+  
+    double value = a_vu.value();
+    //for a ThreeVector, choose the best unit for the biggest value 
+    //double value = std::max(std::max(std::fabs(a.Value[0]),
+    //                                 std::fabs(a.Value[1])),
+    //                        std::fabs(a.Value[2]));
+  
+    int    ksup(-1), kinf(-1);
+    double umax(0.), umin(DBL_MAX);
+    double rsup(DBL_MAX), rinf(0.);
+  
+    for(unsigned int k=0;k<udefs.size();k++) {
+      const unit_def& udef = udefs[k];
+      double unit = udef.value();
+      if(!(value!=DBL_MAX)){
+        if(unit>umax) {umax=unit; ksup=k;}
+      } else if (value<=DBL_MIN) {
+        if(unit<umin) {umin=unit; kinf=k;}
+      } else {
+        double ratio = value/unit;
+        if ((ratio>=1.)&&(ratio<rsup)) {rsup=ratio; ksup=k;}
+        if ((ratio< 1.)&&(ratio>rinf)) {rinf=ratio; kinf=k;}
+      } 
+    }
+   
+    int index=ksup;
+    if(index==-1) { index=kinf; }
+    if(index==-1) { index=0; }
+    
+    //for(int j=0; j<1 or 3; j++) { 
+    //  a_out << a.Value[j]/(List[index]->GetValue()) << " ";
+    //}
+
+    if(!num2s(value/udefs[index].value(),a_s)) return false;
+    
+    a_s += " ";
+    std::string _s = udefs[index].symbol();
+  //justify(_s,mx,side_left);
+    a_s += _s;
+
+/* the below does not compile :
+    (*this) << value/udefs[index].value() << " ";
+  
+    std::ios::fmtflags old_flags = this->flags();
+    (*this).setf(std::ios::left,std::ios::adjustfield);
+    (*this) << std::setw(mx) << udefs[index].symbol();
+    (*this).flags(old_flags);
+*/
+
+    return true;
+  }       
+
+protected:
+  std::map<std::string,defs_t> m_table;
+};
+
+inline edep::best_units& operator<<(edep::best_units& a_out,const edep::value_unit& a_vu){
+  std::ostream& _out = static_cast<std::ostream&>(a_out);
+  std::string _s;  
+  if(!a_out.out(a_vu,_s)) {
+    _out << a_vu.value() << " " << a_vu.category();
+  } else {
+    _out << _s;
+  }
+  return a_out;
+}
+
+template <class T>
+inline edep::best_units& operator<<(edep::best_units& a_out,const T& a_v){
+  static_cast<std::ostream&>(a_out) << a_v;
+  return a_out;
+}
+
+}}
+
+#endif

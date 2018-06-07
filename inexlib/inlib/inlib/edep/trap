@@ -1,0 +1,115 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_edep_trap
+#define inlib_edep_trap
+
+#include "solid"
+
+namespace inlib {
+namespace edep {
+
+class trap : public solid {
+public:
+  INLIB_SCLASS(inlib::edep::trap)
+  virtual void* cast(const std::string& a_class) const {
+    if(void* p = cmp_cast<trap>(this,a_class)) return p;
+    return solid::cast(a_class);
+  }
+  virtual const std::string& s_cls() const {return s_class();}
+public:
+  static cid id_class() {return trap_cid();}
+  virtual void* cast(cid a_class) const {
+    if(void* p = cmp_cast<trap>(this,a_class)) return p;
+    return solid::cast(a_class);
+  }
+  virtual cid id_cls() const {return id_class();}
+public:
+  trap(
+   double a_theta
+  ,double a_phi
+  ,double a_h1
+  ,double a_bl1
+  ,double a_tl1
+  ,double a_alpha1
+  ,double a_h2
+  ,double a_bl2
+  ,double a_tl2
+  ,double a_alpha2
+  ,double a_dz
+  )
+  :m_theta(a_theta)
+  ,m_phi(a_phi)
+  ,m_h1(a_h1)
+  ,m_bl1(a_bl1)
+  ,m_tl1(a_tl1)
+  ,m_alpha1(a_alpha1)
+  ,m_h2(a_h2)
+  ,m_bl2(a_bl2)
+  ,m_tl2(a_tl2)
+  ,m_alpha2(a_alpha2)
+  ,m_dz(a_dz)
+  {
+  }
+  virtual ~trap(){
+  }
+public:
+  trap(const trap& a_from)
+  :iobj(a_from)
+  ,solid(a_from)
+  ,m_theta(a_from.m_theta)
+  ,m_phi(a_from.m_phi)
+  ,m_h1(a_from.m_h1)
+  ,m_bl1(a_from.m_bl1)
+  ,m_tl1(a_from.m_tl1)
+  ,m_alpha1(a_from.m_alpha1)
+  ,m_h2(a_from.m_h2)
+  ,m_bl2(a_from.m_bl2)
+  ,m_tl2(a_from.m_tl2)
+  ,m_alpha2(a_from.m_alpha2)
+  ,m_dz(a_from.m_dz)
+  {}
+  trap& operator=(const trap& a_from){
+    solid::operator=(a_from);
+    m_theta = a_from.m_theta;
+    m_phi = a_from.m_phi;
+    m_h1 = a_from.m_h1;
+    m_bl1 = a_from.m_bl1;
+    m_tl1 = a_from.m_tl1;
+    m_alpha1 = a_from.m_alpha1;
+    m_h2 = a_from.m_h2;
+    m_bl2 = a_from.m_bl2;
+    m_tl2 = a_from.m_tl2;
+    m_alpha2 = a_from.m_alpha2;
+    m_dz = a_from.m_dz;
+    return *this;
+  }
+public:
+  double theta() const {return m_theta;}
+  double phi() const {return m_phi;}
+  double h1() const {return m_h1;}
+  double bl1() const {return m_bl1;}
+  double tl1() const {return m_tl1;}
+  double alpha1() const {return m_alpha1;}
+  double h2() const {return m_h2;}
+  double bl2() const {return m_bl2;}
+  double tl2() const {return m_tl2;}
+  double alpha2() const {return m_alpha2;}
+  double dz() const {return m_dz;}
+protected:
+  double m_theta; // theta angle
+  double m_phi; // phi angle
+  double m_h1; // half length in y at low z
+  double m_bl1; // half length in x at low z and y low edge
+  double m_tl1; // half length in x at low z and y high edge
+  double m_alpha1; // angle between centers of x edges an y axis at low z
+  double m_h2; // half length in y at high z
+  double m_bl2; // half length in x at high z and y low edge
+  double m_tl2; // half length in x at high z and y high edge
+  double m_alpha2; // angle between centers of x edges an y axis at low z
+  double m_dz; // half length in Z
+};
+
+}}
+
+#endif

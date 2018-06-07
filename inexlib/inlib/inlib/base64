@@ -1,0 +1,130 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file inlib.license for terms.
+
+#ifndef inlib_base64
+#define inlib_base64
+
+#include <vector>
+#include <cstddef>
+
+namespace inlib {
+namespace base64 {
+
+inline char b(unsigned char a) {
+  return ((/*(a)>=0 &&*/ (a)<=25)?((a)+'A'):	
+              (((a)>=26 && (a)<=51)?((a)-26+'a'):
+               (((a)>=52 && (a)<=61)?((a)-52+'0'):
+                (((a)==62)?('+'):
+                 (((a)==63)?('/'):('='))
+                )
+               )
+              )
+             );
+}
+
+inline unsigned int read3(const char* a_mx,char*& a_pos,
+                          unsigned char a_out[3]){
+  unsigned int n = 0;
+  if(a_pos<a_mx) {a_out[0] = *a_pos;a_pos++;n++;} else return n;
+  if(a_pos<a_mx) {a_out[1] = *a_pos;a_pos++;n++;} else return n;
+  if(a_pos<a_mx) {a_out[2] = *a_pos;a_pos++;n++;} else return n;
+  return n;
+}
+
+inline void encode(size_t a_sz,const char* a_b,std::vector<char>& a_out) {
+  a_out.clear();
+
+  unsigned char buff[3];
+  buff[0] = buff[1] = buff[2] = 0;
+
+  const char* mx = a_b+a_sz;
+  char* pos = (char*)a_b;
+
+  unsigned int i=0;
+  while ( ( i = read3(mx,pos,buff) ) > 0 ) {
+    a_out.push_back(b(buff[0]>>2) );
+    a_out.push_back(b(((buff[0] & 0x3) << 4) | buff[1] >> 4 ) );
+    if ( i > 1 ) {
+      a_out.push_back(b(((buff[1] & 0xF) << 2) | buff[2] >> 6 ) );
+      if ( i > 2 ) {
+        a_out.push_back(b(buff[2] & 0x3F ) );
+      } else {
+        a_out.push_back('=');
+      }
+    } else {
+      a_out.push_back('=');
+      a_out.push_back('=');
+    }
+
+    buff[0] = buff[1] = buff[2] = 0;
+  }
+
+}
+
+inline void decode(size_t a_sz,const char* a_b,std::vector<char>& a_out) {
+  a_out.clear();
+
+  char* mx = (char*)a_b+a_sz;  
+  char* pos = (char*)a_b;  
+
+  char valcar[4];
+  int i;
+
+  while(pos<mx) {
+    for (i = 0; i < 4 && (pos<mx); i++) {
+      int car = *pos;pos++;
+
+      if ('A' <= car && car <= 'Z')
+        valcar [i] = car - 'A';
+      else if ('a' <= car && car <= 'z')
+        valcar [i] = car + 26 - 'a';
+      else if ('0' <= car && car <= '9')
+        valcar [i] = car + 52 - '0';
+      else if (car == '+')
+        valcar [i] = 62;
+      else if (car == '/')
+        valcar [i] = 63;
+    }
+
+    char oc = (valcar [0] << 2) | (valcar [1] >> 4);
+    a_out.push_back(oc);
+
+    if (i > 2) {
+      oc = (valcar [1] << 4) | (valcar [2] >> 2);
+      a_out.push_back(oc);
+
+      if (i > 3) {
+        oc = (valcar [2] << 6) | (valcar [3]);
+        a_out.push_back(oc);
+      }
+    }
+  }
+}
+
+}}
+
+#include <string>
+#include <cstring> //for ::memcpy.
+
+namespace inlib {
+namespace base64 {
+
+inline void encode(std::string& a_s){
+  std::vector<char> vc;
+  encode(a_s.size(),a_s.c_str(),vc);
+  a_s.clear();
+  std::vector<char>::const_iterator it;
+  for(it=vc.begin();it!=vc.end();++it) a_s += *it;
+}
+
+inline void decode(std::string& a_s){
+  std::vector<char> vc;
+  decode(a_s.size(),a_s.c_str(),vc);
+  a_s.clear();
+  std::vector<char>::const_iterator it;
+  for(it=vc.begin();it!=vc.end();++it) a_s += *it;
+}
+
+}}
+
+#endif
