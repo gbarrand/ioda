@@ -1,0 +1,135 @@
+ - comres : handle python_2_7_lib_py.zip. Unfolded at startup.
+ - res : tree.lua, hrand.lua.
+ - iOS, Cocoa, mgr/build : have -DINLIB_USE_CSZ for inlib_swig_[lua,py].cpp.
+ - Android : Android.mk -DINLIB_USE_CSZ for inlib_swig_[lua,py].cpp.
+
+1.13 :
+ - read .lua, .py files.
+ - read heprep.zip files containing multiple heprep files.
+ - cfitsio : fitsio2.h : __arm64__.
+ - <) : change logic (have a "radius" one) so that it is ok on M.Monville that has models thin in z but large in x,y.
+ - examples/hrand.py,riv.py,rroot.py,tree.py.
+ - left camera panel : W/B, clear.
+ - release notes iOS : Have FITS reading for arm64. Read HepRep zip files. Improve the logic of "View All" : on a model
+   thin in z, the camera were too close, now it is better. Have a "W/B" button in the left camera panel to change
+   background color (White or Black). Have also a clear scene button.
+
+1.12 :
+ - read heprep files.
+ - iOS, Android : have CoinGL.
+ - release notes iOS : Read VRML and Inventor files. Read HepRep SLAC file format version 1 and 2. For HepRep we can display
+   geometries found in these files both in wire-frame and solid. (If wanting solid, you have to set Params/solid first).
+   See file/Resources *.iv, *.hiv, *.wrl, *.heprep for examples. When picking an object in the scene, there is now an
+   "axes" menu item in the popup menu. It creates axes close to the picked object that permit to measure things around
+   the object. The scale of the axes are given by the bounding box of the picked object. The axes are themselves pickable
+   so that "popup/move" works for them so that someone can instrument them with draggers in order to move them close to
+   something to measure. It can easily be tested for example with "examples/polyhedron" from the main menu.
+ - release note Cocoa : Read HepRep SLAC file format version 1 and 2. We can display geometries found in these files both
+   in wire-frame and solid. (If wanting solid, you have to set Params/solid first). See file/Resources *.heprep for examples.
+
+1.11 :
+ - popup : axes menu item.
+ - release notes Cocoa : When picking an object in the scene, there is now an "axes" menu item in the popup menu. It creates axes
+   close to the picked object that permit to measure things around the object. The scale of the axes are given by the bounding
+   box of the picked object. The axes are themselves pickable so that "popup/move" works for them so that someone can instrument
+   them with draggers in order to move them close to something to measure. It can easily be tested for example
+   with "examples/polyhedron" from the main menu.
+
+1.10 :
+ - Cocoa : ioda-Info.plist : declare iv, hiv, wrl file extensions.
+ - Cocoa : include CoinGL to read .wrl files.
+ - Cocoa : res : add some .wrl, .hiv, iv files.
+
+1.9 :
+ - Cocoa : "open..." done with an NSOpenPanel.
+
+1.8 :
+ - About.
+ - new round corner style.
+
+1.7 :
+ - SOPHYA : V2_3.
+ - text_freetype, fog/scene : VBO.
+ - camenu-left : N,^,VBO buttons.
+ - inlib/ttf/plots_viewer, popup.
+ - exa/fit : use plotter.add_todel().
+ - exlib/[jpeg,png]_opener : implement reading from a buffer.
+   (use exlib/[jpeg,png]b).
+ - chang VBO logic so that on Android rotating the device cleanup VBOs.
+ - change console logic : text is no more in confine mode.
+ - exlib::sg::gui_viewer : inherits inlib/ttf/gui_viewer.
+ - entries : numeric : have button as fields to avoid indirectly
+   to do to much "load_font" in text_freetype.
+ - entries : range type, which shows a slider.
+ - rm exas/pmx,agora (and related icons).
+
+1.6 : (pass to Android 2.2/API-8) :
+ - softinex.slides : have lhcbvelo.gdml.
+ - gdml : edep : boolean operations.
+ - softinex.slides : have a fits file.
+ - handle .dcm DICOM files.
+ - handle .zvid extension.
+ - handle .slides. examples/slides.
+ - handle diaporama in a zip file.
+ - examples/zvid, zvid sphere.
+ - examples/softinex slides.
+ - add the usage of zip.
+ - Android : revisit gui_viewer::touch_sg_images when rotating the device.
+   Have inlib::sg::devrot_event.
+ - exlib/png::read : have png_destroy_read_struct.
+ - res/*fog : gzipped.
+ - rm iscenario_opener.
+ - diaporama node (rectangular, spherical).
+ - examples/snow.
+ - examples/angry cube.
+ - params -> node height not 0 -> can also set color.
+ - handle graphviz.
+ - inlib::file : revisit signature and is_xxx().
+ - Wt : curshor shape, WALL_DATA_CLIENT.
+ - Wt : first version.
+ - ourex/cfitsio,hdf5,freetype2,zlib :
+   inflate_<>,defalte_<> : change namespace.
+ - Windows : wall : handle mouse move without button (for remote control).
+ - Windows : wall : steering.
+ - Linux : wall : fix steering.
+
+1.5 :
+ - scene popup : center.
+ - iOS, Android : export/send mail.
+ - revisit file chooser. Handle sub directories.
+ - camenu : have a panel at left. With an erase button for the moment.
+ - ntu/cfitsio : more column types. Handle variable size array cells.
+   Handle ASCII_TBL.
+ - .aida : read clouds. plot 2d clouds.
+ - read gdml files.
+ - vbo.
+ - surface.
+ - LHC_status.
+
+1.4 :
+ - fit menu item.
+ - pick -> popup -> [move,delete,etc...].
+ - viewing/picking mode.
+ - hdf5 : read histos in hdf5 osc_batch files.
+ - ntuple projection : "[X,Y] bind" : have math expression over columns.
+ - ioda.style : read correctly plot_style sub styles !
+ - print item -> export item.
+ - files : have a "*" item.
+ - camera : anim around focal by default.
+ - wall sub menu.
+ - read jpeg with bpp 1,4.
+ - read png.
+ - inlib/waxml/ntuple :
+   in <column>, do not output default="<value>" which is not
+   understood by jas3.
+ - exlib/exlib/raxml : accept <column> without booking and default.
+ - inlib/aida_ntuple::create_col : accept an empty string for default.
+ - gui auto hide true by default.
+
+1.3 :
+ - lego.
+ - plots : set current, set colormap, resedit,
+   bins1D_xy_wire_boxes, bins1D_xy_bar_chart.
+ - fits : have SOPHYA cmaps.
+ - vis geom.root files.
+ - inlib/hep/pbp.icc : remove processor_error field.
