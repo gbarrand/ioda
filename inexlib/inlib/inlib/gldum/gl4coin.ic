@@ -1,0 +1,483 @@
+/* Copyright (C) 2010, Guy Barrand. All rights reserved. */
+/* See the file inlib.license for terms.                 */
+
+#ifndef inlib_gldum_gl4coin_h
+#define inlib_gldum_gl4coin_h
+
+/* iOS : to pass ourex/CoinGL if including first GL-ES gl.h : */
+
+typedef double         GLdouble;
+
+#define GL_POINT_SIZE_RANGE     1
+#define GL_LINE_WIDTH_RANGE     1
+#define GL_POLYGON_OFFSET_LINE  1
+#define GL_POLYGON_OFFSET_POINT 1
+#define GL_TEXTURE_WIDTH        1
+
+#define GL_ACCUM_RED_BITS       1
+#define GL_LOAD                 1
+#define GL_RETURN               1
+#define GL_ACCUM                1
+#define GL_TEXTURE_GEN_S        1
+#define GL_TEXTURE_GEN_T        1
+#define GL_TEXTURE_GEN_R        1
+#define GL_TEXTURE_GEN_Q        1
+#define GL_S                    1
+#define GL_T                    1
+#define GL_R                    1
+#define GL_Q                    1
+#define GL_EYE_PLANE            1
+#define GL_TEXTURE_GEN_MODE     1
+#define GL_EYE_LINEAR           1
+#define GL_BLUE                 1
+#define GL_NONE                 1
+#define GL_DEPTH_COMPONENT      1
+#define GL_UNSIGNED_INT         1
+#define GL_LINE                 1
+#define GL_FILL                 1
+#define GL_POINT                1
+#define GL_RGBA_MODE 1
+#define GL_LINE_STIPPLE 1
+
+#define GL_LIGHTING_BIT 1
+#define GL_FOG_BIT      1
+#define GL_TEXTURE_BIT  1
+#define GL_CURRENT_BIT  1
+#define GL_LINE_BIT     1
+
+#define GL_MAP1_VERTEX_3 1
+#define GL_CLAMP         1
+
+#define GL_SPHERE_MAP    1
+#define GL_OBJECT_LINEAR 1
+#define GL_OBJECT_PLANE  1
+
+#define GL_ALL_ATTRIB_BITS  1
+#define GL_PACK_SWAP_BYTES  1
+#define GL_PACK_LSB_FIRST   1
+#define GL_PACK_ROW_LENGTH  1
+#define GL_PACK_SKIP_ROWS   1
+#define GL_PACK_SKIP_PIXELS 1
+#define GL_MAP_COLOR        1
+#define GL_MAP_STENCIL      1
+#define GL_INDEX_SHIFT      1
+#define GL_INDEX_OFFSET     1
+
+#define GL_RED_SCALE   1
+#define GL_RED_BIAS    1
+#define GL_GREEN_SCALE 1
+#define GL_GREEN_BIAS  1
+#define GL_BLUE_SCALE  1
+#define GL_BLUE_BIAS   1
+#define GL_ALPHA_BIAS  1
+
+#define GL_DEPTH_SCALE 1
+#define GL_DEPTH_BIAS  1
+
+#define GL_PIXEL_MAP_I_TO_I 1
+#define GL_PIXEL_MAP_I_TO_R 1
+#define GL_PIXEL_MAP_I_TO_G 1
+#define GL_PIXEL_MAP_I_TO_B 1
+#define GL_PIXEL_MAP_I_TO_A 1
+
+#define GL_PIXEL_MAP_S_TO_S 1
+#define GL_PIXEL_MAP_R_TO_R 1
+#define GL_PIXEL_MAP_G_TO_G 1
+#define GL_PIXEL_MAP_B_TO_B 1
+#define GL_PIXEL_MAP_A_TO_A 1
+
+#define GL_MAP2_VERTEX_3        1
+#define GL_MAP2_VERTEX_4        1
+#define GL_MAP2_TEXTURE_COORD_2 1
+#define GL_MAP2_TEXTURE_COORD_4 1
+#define GL_MAP1_VERTEX_4        1
+
+#define GL_UNPACK_ROW_LENGTH      1
+#define GL_UNPACK_SKIP_PIXELS     1
+#define GL_UNPACK_SKIP_ROWS       1
+#define GL_ZOOM_X          1
+#define GL_ZOOM_Y          1
+#define GL_AUTO_NORMAL     1
+#define GL_ENABLE_BIT      1
+#define GL_PIXEL_MODE_BIT  1
+
+#define GL_INT             1
+
+#define GL_QUADS                          0x0007
+#define GL_QUAD_STRIP                     0x0008
+#define GL_POLYGON                        0x0009
+
+#define GL_COMPILE          1
+#define GL_POLYGON_STIPPLE  1
+#define GL_POLYGON_BIT      1
+
+/* for HEPVis : */
+#define GL_UNPACK_SWAP_BYTES       1
+#define GL_UNPACK_LSB_FIRST        1
+#define GL_CURRENT_RASTER_POSITION 1
+    
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+void glGetTexLevelParameterfv(GLenum a_target,GLint a_level,GLenum a_pname,GLfloat* a_params);
+void glGetTexLevelParameteriv(GLenum a_target,GLint a_level,GLenum a_pname,GLint* a_params);
+void glDepthMask(GLboolean a_flag);
+void glTexGend(GLenum a_coord,GLenum a_pname,GLdouble a_param);
+void glTexGenf(GLenum a_coord,GLenum a_pname,GLfloat a_param);
+void glTexGeni(GLenum a_coord,GLenum a_pname,GLint a_param);
+void glTexGendv(GLenum a_coord,GLenum a_pname,const GLdouble* a_param);
+void glTexGenfv(GLenum a_coord,GLenum a_pname,const GLfloat* a_param);
+void glTexGeniv(GLenum a_coord,GLenum a_pname,const GLint* a_param);
+void glAccum(GLenum a_op,GLfloat a_value);
+void glColorMaterial(GLenum a_face,GLenum a_mode);
+
+void glLoadMatrixd(const GLdouble* a_m);
+void glTranslated(GLdouble a_x,GLdouble a_y,GLdouble a_z);
+void glScaled(GLdouble a_x,GLdouble a_y,GLdouble a_z);
+void glMultMatrixd(const GLdouble* a_m);
+void glMultMatrixf(const GLfloat* a_m);
+
+void glTexCoord1d( GLdouble s );
+void glTexCoord1f( GLfloat s );
+void glTexCoord1i( GLint s );
+void glTexCoord1s( GLshort s );
+void glTexCoord2d( GLdouble s,GLdouble t );
+void glTexCoord2f( GLfloat s,GLfloat t );
+void glTexCoord2i( GLint s,GLint t );
+void glTexCoord2s( GLshort s,GLshort t );
+void glTexCoord3d( GLdouble s,
+                          GLdouble t,
+                          GLdouble r );
+void glTexCoord3f( GLfloat s,
+                          GLfloat t,
+                          GLfloat r );
+void glTexCoord3i( GLint s,
+                          GLint t,
+                          GLint r );
+void glTexCoord3s( GLshort s,
+                          GLshort t,
+                          GLshort r );
+void glTexCoord4d( GLdouble s,
+                          GLdouble t,
+                          GLdouble r,
+                          GLdouble q );
+void glTexCoord4f( GLfloat s,
+                          GLfloat t,
+                          GLfloat r,
+                          GLfloat q );
+void glTexCoord4i( GLint s,
+                          GLint t,
+                          GLint r,
+                          GLint q );
+void glTexCoord4s( GLshort s,
+                          GLshort t,
+                          GLshort r,
+                          GLshort q );
+
+void glTexCoord1dv( const GLdouble *v );
+void glTexCoord1fv( const GLfloat *v );
+void glTexCoord1iv( const GLint *v );
+void glTexCoord1sv( const GLshort *v );
+void glTexCoord2dv( const GLdouble *v );
+void glTexCoord2fv( const GLfloat *v );
+void glTexCoord2iv( const GLint *v );
+void glTexCoord2sv( const GLshort *v );
+void glTexCoord3dv( const GLdouble *v );
+void glTexCoord3fv( const GLfloat *v );
+void glTexCoord3iv( const GLint *v );
+void glTexCoord3sv( const GLshort *v );
+void glTexCoord4dv( const GLdouble *v );
+void glTexCoord4fv( const GLfloat *v );
+void glTexCoord4iv( const GLint *v );
+void glTexCoord4sv( const GLshort *v );
+
+void glVertex2d( GLdouble x,
+                        GLdouble y );
+void glVertex2f( GLfloat x,
+                        GLfloat y );
+void glVertex2i( GLint x,
+                        GLint y );
+void glVertex2s( GLshort x,
+                        GLshort y );
+void glVertex3d( GLdouble x,
+                        GLdouble y,
+                        GLdouble z );
+void glVertex3f( GLfloat x,
+                        GLfloat y,
+                        GLfloat z );
+void glVertex3i( GLint x,
+                        GLint y,
+                        GLint z );
+void glVertex3s( GLshort x,
+                        GLshort y,
+                        GLshort z );
+void glVertex4d( GLdouble x,
+                        GLdouble y,
+                        GLdouble z,
+                        GLdouble w );
+void glVertex4f( GLfloat x,
+                        GLfloat y,
+                        GLfloat z,
+                        GLfloat w );
+void glVertex4i( GLint x,
+                        GLint y,
+                        GLint z,
+                        GLint w );
+void glVertex4s( GLshort x,
+                        GLshort y,
+                        GLshort z,
+                        GLshort w );
+
+void glVertex2dv( const GLdouble *v );
+void glVertex2fv( const GLfloat *v );
+void glVertex2iv( const GLint *v );
+void glVertex2sv( const GLshort *v );
+void glVertex3dv( const GLdouble *v );
+void glVertex3fv( const GLfloat *v );
+void glVertex3iv( const GLint *v );
+void glVertex3sv( const GLshort *v );
+void glVertex4dv( const GLdouble *v );
+void glVertex4fv( const GLfloat *v );
+void glVertex4iv( const GLint *v );
+void glVertex4sv( const GLshort *v );
+
+void glOrtho( GLdouble left,
+                     GLdouble right,
+                     GLdouble bottom,
+                     GLdouble top,
+                     GLdouble zNear,
+                     GLdouble zFar );
+
+void glColor3b( GLbyte red,
+                       GLbyte green,
+                       GLbyte blue );
+void glColor3d( GLdouble red,
+                       GLdouble green,
+                       GLdouble blue );
+void glColor3f( GLfloat red,
+                       GLfloat green,
+                       GLfloat blue );
+void glColor3i( GLint red,
+                       GLint green,
+                       GLint blue );
+void glColor3s( GLshort red,
+                       GLshort green,
+                       GLshort blue );
+void glColor3ub( GLubyte red,
+                        GLubyte green,
+                        GLubyte blue );
+void glColor3ui( GLuint red,
+                        GLuint green,
+                        GLuint blue );
+void glColor3us( GLushort red,
+                        GLushort green,
+                        GLushort blue );
+void glColor4b( GLbyte red,
+                       GLbyte green,
+                       GLbyte blue,
+                       GLbyte alpha );
+void glColor4d( GLdouble red,
+                       GLdouble green,
+                       GLdouble blue,
+                       GLdouble alpha );
+void glColor4i( GLint red,
+                       GLint green,
+                       GLint blue,
+                       GLint alpha );
+void glColor4s( GLshort red,
+                       GLshort green,
+                       GLshort blue,
+                       GLshort alpha );
+void glColor4ub( GLubyte red,
+                        GLubyte green,
+                        GLubyte blue,
+                        GLubyte alpha );
+void glColor4ui( GLuint red,
+                        GLuint green,
+                        GLuint blue,
+                        GLuint alpha );
+void glColor4us( GLushort red,
+                        GLushort green,
+                        GLushort blue,
+                        GLushort alpha );
+void glColor3bv( const GLbyte *v );
+void glColor3dv( const GLdouble *v );
+void glColor3fv( const GLfloat *v );
+void glColor3iv( const GLint *v );
+void glColor3sv( const GLshort *v );
+void glColor3ubv( const GLubyte *v );
+void glColor3uiv( const GLuint *v );
+void glColor3usv( const GLushort *v );
+void glColor4bv( const GLbyte *v );
+void glColor4dv( const GLdouble *v );
+void glColor4fv( const GLfloat *v );
+void glColor4iv( const GLint *v );
+void glColor4sv( const GLshort *v );
+void glColor4ubv( const GLubyte *v );
+void glColor4uiv( const GLuint *v );
+void glColor4usv( const GLushort *v );
+
+void glNormal3b( GLbyte nx,
+                        GLbyte ny,
+                        GLbyte nz );
+void glNormal3d( GLdouble nx,
+                        GLdouble ny,
+                        GLdouble nz );
+void glNormal3i( GLint nx,
+                        GLint ny,
+                        GLint nz );
+void glNormal3s( GLshort nx,
+                        GLshort ny,
+                        GLshort nz );
+
+void glNormal3bv( const GLbyte *v );
+void glNormal3dv( const GLdouble *v );
+void glNormal3fv( const GLfloat *v );
+void glNormal3iv( const GLint *v );
+void glNormal3sv( const GLshort *v );
+
+void glClipPlane(GLenum a_plane,const GLdouble* a_equation);
+
+void glPolygonMode(GLenum a_face,GLenum a_mode);
+
+void glLightModeli( GLenum pname,
+                           GLint param );
+void glLightModeliv( GLenum pname,
+                            const GLint *params );
+void glFogi( GLenum pname,
+                    GLint param );
+void glFogiv( GLenum pname,
+                     const GLint *params );
+
+void glMateriali( GLenum face,
+                         GLenum pname,
+                         GLint param );
+
+void glMaterialiv( GLenum face,
+                          GLenum pname,
+                          const GLint *params );
+void glPolygonStipple( const GLubyte *mask );
+
+void glIndexd( GLdouble c );
+void glIndexf( GLfloat c );
+void glIndexi( GLint c );
+void glIndexs( GLshort c );
+void glIndexub( GLubyte c );
+
+void glIndexdv( const GLdouble *c );
+void glIndexfv( const GLfloat *c );
+void glIndexiv( const GLint *c );
+void glIndexsv( const GLshort *c );
+void glIndexubv( const GLubyte *c );
+
+void glLineStipple( GLint a_factor,GLushort a_pattern);
+
+void glRotated( GLdouble angle,
+                       GLdouble x,
+                       GLdouble y,
+                       GLdouble z );
+
+void glPushAttrib( GLbitfield a_mask );
+void glPopAttrib();
+
+void glPushClientAttrib( GLbitfield a_mask );
+void glPopClientAttrib();
+
+void glPixelTransferf( GLenum pname,
+                              GLfloat param );
+void glPixelTransferi( GLenum pname,
+                              GLint param );
+
+void glPixelMapfv( GLenum map,
+                          GLint mapsize,
+                          const GLfloat *values );
+void glPixelMapuiv( GLenum map,
+                           GLint mapsize,
+                           const GLuint *values );
+void glPixelMapusv( GLenum map,
+                           GLint mapsize,
+                           const GLushort *values );
+
+void glClearIndex( GLfloat c );
+
+void glPixelZoom( GLfloat xfactor,
+                         GLfloat yfactor );
+
+void glRasterPos2d( GLdouble x,
+                           GLdouble y );
+void glRasterPos2f( GLfloat x,
+                           GLfloat y );
+void glRasterPos2i( GLint x,
+                           GLint y );
+void glRasterPos2s( GLshort x,
+                           GLshort y );
+void glRasterPos3d( GLdouble x,
+                           GLdouble y,
+                           GLdouble z );
+void glRasterPos3f( GLfloat x,
+                           GLfloat y,
+                           GLfloat z );
+void glRasterPos3i( GLint x,
+                           GLint y,
+                           GLint z );
+void glRasterPos3s( GLshort x,
+                           GLshort y,
+                           GLshort z );
+void glRasterPos4d( GLdouble x,
+                           GLdouble y,
+                           GLdouble z,
+                           GLdouble w );
+void glRasterPos4f( GLfloat x,
+                           GLfloat y,
+                           GLfloat z,
+                           GLfloat w );
+void glRasterPos4i( GLint x,
+                           GLint y,
+                           GLint z,
+                           GLint w );
+void glRasterPos4s( GLshort x,
+                           GLshort y,
+                           GLshort z,
+                           GLshort w );
+
+void glRasterPos2dv( const GLdouble *v );
+void glRasterPos2fv( const GLfloat *v );
+void glRasterPos2iv( const GLint *v );
+void glRasterPos2sv( const GLshort *v );
+void glRasterPos3dv( const GLdouble *v );
+void glRasterPos3fv( const GLfloat *v );
+void glRasterPos3iv( const GLint *v );
+void glRasterPos3sv( const GLshort *v );
+void glRasterPos4dv( const GLdouble *v );
+void glRasterPos4fv( const GLfloat *v );
+void glRasterPos4iv( const GLint *v );
+void glRasterPos4sv( const GLshort *v );
+void glBitmap( GLsizei width,
+                      GLsizei height,
+                      GLfloat xorig,
+                      GLfloat yorig,
+                      GLfloat xmove,
+                      GLfloat ymove,
+                      const GLubyte *bitmap );
+void glDrawPixels( GLsizei width,
+                          GLsizei height,
+                          GLenum format,
+                          GLenum type,
+                          const GLvoid *pixels );
+
+void glBegin(GLenum a_0);
+void glEnd();
+
+GLuint glGenLists(GLsizei a_range);
+void glDeleteLists(GLuint a_list,GLsizei a_range);
+void glNewList(GLuint a_list,GLenum a_mode);
+GLboolean glIsList(GLuint a_list);
+void glCallList(GLuint a_list);
+void glEndList();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
