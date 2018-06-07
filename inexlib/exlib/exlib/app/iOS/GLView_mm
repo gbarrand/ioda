@@ -1,0 +1,1056 @@
+// Copyright (C) 2010, Guy Barrand. All rights reserved.
+// See the file exlib.license for terms.
+
+// this file needs the cpp macros :
+// - EXLIB_APP : for exa #define EXLIB_APP ioda
+// It needs also to have included before it a :
+//    #include "../<app>/main"
+
+#import "GLView.h"
+
+#import <MessageUI/MessageUI.h>
+//#import <AddressBook/AddressBook.h>
+//#import <AddressBookUI/AddressBookUI.h>
+#import <CoreMotion/CoreMotion.h>
+
+@interface view_controller_delegate : UIViewController<MFMailComposeViewControllerDelegate> {
+  CMMotionManager* m_motion_manager;
+  inlib::sg::gui_viewer* m_gui_viewer;
+}
+- (void)mailComposeController:(MFMailComposeViewController*)a_controller 
+          didFinishWithResult:(MFMailComposeResult)a_result
+                        error:(NSError*)a_error;
+- (void)set_gui_viewer:(inlib::sg::gui_viewer*)a_viewer;
+@end
+@implementation view_controller_delegate
+- (id)init {
+  if(self = [super init]) {
+    m_gui_viewer = 0;
+    m_motion_manager = [[CMMotionManager alloc] init];
+      /*
+    if(m_motion_manager.accelerometerAvailable) {
+      m_motion_manager.accelerometerUpdateInterval = .2; //sec
+      [m_motion_manager startAccelerometerUpdatesToQueue:[NSOperationQueue currentQueue]
+                                             withHandler:
+^(CMAccelerometerData* a_data,NSError* a_error) {
+ [self output_acceleration_data:a_data];if(a_error)NSLog(@"%@",a_error);
+}
+      ];
+    }
+    if(m_motion_manager.gyroAvailable) {
+      m_motion_manager.gyroUpdateInterval = .2;          //sec
+      [m_motion_manager startGyroUpdatesToQueue:[NSOperationQueue currentQueue]
+                                    withHandler:
+^(CMGyroData* a_data,NSError* a_error) {[self output_gyro_data:a_data];}
+      ];
+    }
+      */
+    /*uuuu
+    if(m_motion_manager.deviceMotionAvailable) {
+    //m_motion_manager.deviceMotionUpdateInterval = .2;          //sec
+      m_motion_manager.deviceMotionUpdateInterval = .1;          //sec
+    //[m_motion_manager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryCorrectedZVertical
+      [m_motion_manager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXArbitraryZVertical
+                                                            toQueue:[NSOperationQueue currentQueue]
+                                                        withHandler:
+^(CMDeviceMotion* a_device_motion,NSError* a_error) {[self output_device_motion_data:a_device_motion];}
+      ];
+    }
+    */
+  }
+  return self;
+}
+- (void)dealloc {
+//NSLog(@"debug : view_controller_delegate::dealloc");
+  [m_motion_manager stopAccelerometerUpdates];
+  [m_motion_manager stopGyroUpdates];
+  [m_motion_manager release];
+  [super dealloc];
+}
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 60000  //__IPHONE_OS_VERSION_6_0
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)a_interfaceOrientation {
+  //NSLog(@"debug : view_controller_delegate::shouldAutorotateToInterfaceOrientation");
+  (void)a_interfaceOrientation;
+  return YES;
+}
+#else
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {return YES;}
+- (BOOL)shouldAutorotate {return YES;}
+- (NSUInteger)supportedInterfaceOrientations {return UIInterfaceOrientationMaskAll;}
+//- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {return UIInterfaceOrientationPortrait;}
+- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {return UIInterfaceOrientationLandscapeLeft;}
+#endif
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
+- (void)mailComposeController:(MFMailComposeViewController*)a_controller 
+          didFinishWithResult:(MFMailComposeResult)a_result
+                        error:(NSError*)a_error { 
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 60000  //__IPHONE_OS_VERSION_6_0
+  [self dismissModalViewControllerAnimated:YES];
+#else  
+  [self dismissViewControllerAnimated:YES completion:nil];
+#endif
+  
+  //if(a_error) {
+  //  NSLog(@"debug : view_controller_delegate::mailComposeController: error %@",[a_error localizedDescription]);
+  //}
+
+  switch(a_result){
+  case MFMailComposeResultCancelled:
+    break;
+  case MFMailComposeResultSaved:
+    break;
+  case MFMailComposeResultSent:
+    break;
+  case MFMailComposeResultFailed:
+    break;
+  default:{
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Email"
+                                                    message:@"Sending Failed - Unknown Error :-("
+                                                   delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
+    [alert show];
+    [alert release];
+    }break;
+  }
+  (void)a_controller;
+  (void)a_error;
+}
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
+- (void)set_gui_viewer:(inlib::sg::gui_viewer*)a_viewer {m_gui_viewer = a_viewer;}
+- (void)output_acceleration_data:(CMAccelerometerData*)a_data {
+  //NSLog(@"debug : view_controller_delegate::output_acceleration_data %f %f %f",
+  //  100*a_data.acceleration.x,-100*a_data.acceleration.y,100*a_data.acceleration.z);
+}
+- (void)output_gyro_data:(CMGyroData*)a_data {
+  //NSLog(@"debug : view_controller_delegate::output_gyro_data %f %f %f",
+  //  a_data.rotationRate.x*180/M_PI,a_data.rotationRate.y*180/M_PI,a_data.rotationRate.z*180/M_PI);
+}
+- (void)output_device_motion_data:(CMDeviceMotion*)a_data {
+  //NSLog(@"debug : view_controller_delegate::output_device_motion_data %f %f %f",
+  //  a_data.gravity.x,-a_data.gravity.y,a_data.gravity.z);
+  //NSLog(@"debug : view_controller_delegate::output_device_motion_data pitch %f, roll %f, yaw %f",
+  //  a_data.attitude.pitch,a_data.attitude.roll,a_data.attitude.yaw);
+  //  a_data.rotationMatrix.[m11,m12,m13,m21,m22,m23,m31,m32,m33];
+
+  // In docs, it is said that Y points bottom (home button) to top (where is the camera) along the device,
+  // X points at right, and Z pointing toward user.
+
+  // VR is in landscape, and in landscape it looks as if X/Y are swapped.
+  // At least the below code does what is expected.
+
+  /*
+  */
+  inlib::rotf   _yaw(inlib::vec3f(0,0,1),a_data.attitude.yaw);   
+  inlib::rotf _pitch(inlib::vec3f(0,1,0),a_data.attitude.pitch);
+  inlib::rotf  _roll(inlib::vec3f(1,0,0),a_data.attitude.roll);
+  inlib::rotf  _q = _yaw*_pitch*_roll;
+
+  /*
+  inlib::rotf  _q;
+ {inlib::mat4f _m;
+  _m.set_identity();
+  _m.mul_rotate(0,0,1,a_data.attitude.yaw);
+  _m.mul_rotate(0,1,0,a_data.attitude.pitch);
+  _m.mul_rotate(1,0,0,a_data.attitude.roll);
+  _q.set_value(_m);
+  }
+  */
+
+  inlib::sg::base_camera* _camera = m_gui_viewer->scene_camera();
+  if(_camera) {
+    _camera->orientation = _q;
+    [(GLView*)[self view] window_render];
+  }
+}
+@end
+
+#include "../Cocoa/NSLog_streambuf"
+
+#include <exlib/sg/pv_holder>
+#include <exlib/sg/GL_VIEWER>
+
+namespace app_iOS {
+
+// we can't template EXLIB_APP, since Objective-C does not have template.
+  
+class main : protected exlib::sg::pv_holder, public EXLIB_APP::main {
+  typedef EXLIB_APP::main parent;
+public:
+  EXLIB_GL_VIEWER_METHODS
+public:
+  virtual void win_render() {[m_GLView window_render];}
+  virtual bool has_mail_panel() {return true;}
+  virtual bool mail_panel(const std::string& /*a_to*/,
+                          const std::string& a_subject,
+                          const std::string& a_msg,
+                          const std::string& a_path,
+                          const std::string& a_mime){
+    if ([MFMailComposeViewController canSendMail]) {
+
+
+      NSString* nsubj = [NSString stringWithUTF8String:a_subject.c_str()];
+      NSString* nmsg = [NSString stringWithUTF8String:a_msg.c_str()];
+
+      view_controller_delegate* _view_controller_delegate = [m_GLView get_view_controller_delegate];
+
+      MFMailComposeViewController* mcvc  = [[MFMailComposeViewController alloc] init];
+      mcvc.mailComposeDelegate = _view_controller_delegate;
+
+      [mcvc setModalPresentationStyle:UIModalPresentationFormSheet];
+      [mcvc setSubject:nsubj];
+      [mcvc setMessageBody:nmsg isHTML:NO];
+
+      if(a_path.size()) {
+        NSString* npath = [NSString stringWithUTF8String:a_path.c_str()];
+        NSData* ndata = [NSData dataWithContentsOfFile:npath]; 
+        NSString* nmime = [NSString stringWithUTF8String:a_mime.c_str()];
+        std::string file_name = inlib::base_name(a_path); //receiver file name.
+        NSString* ntofile = [NSString stringWithUTF8String:file_name.c_str()];
+        [mcvc addAttachmentData:ndata mimeType:nmime fileName:ntofile];
+      }
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 60000  //__IPHONE_OS_VERSION_6_0
+      [_view_controller_delegate presentModalViewController:mcvc animated:YES];
+#else
+      [_view_controller_delegate presentViewController:mcvc animated:YES completion:nil];
+#endif
+      
+      [mcvc release];
+
+      return true;
+ 
+    }else {
+      UIAlertView *alert =
+        [[UIAlertView alloc]
+         initWithTitle:@"Status:"
+         message:@"Your phone is not currently configured to send mail."
+         delegate:nil
+         cancelButtonTitle:@"ok"
+         otherButtonTitles:nil];
+ 
+      [alert show];
+      [alert release];
+      return false;
+
+   }
+  }
+public:
+  main(std::ostream& a_out,
+       const std::string& a_data_dir,
+       const std::string& a_res_dir,
+       const std::string& a_out_dir,
+       const std::string& a_tmp_dir)
+  :exlib::sg::pv_holder(a_out)
+  ,parent(a_out,
+          exlib::sg::pv_holder::m_mgr_gra,exlib::sg::pv_holder::m_ttf,exlib::sg::pv_holder::m_selection,
+          a_data_dir,a_res_dir,a_out_dir,a_tmp_dir,
+          false,200000000) //have a mem limit (for reading big jpeg).
+  ,m_GLView(0)
+  {
+    push_home();
+  }
+  virtual ~main(){}
+public:
+  void set_GLView(GLView* a_GLView) {m_GLView = a_GLView;}
+  //GLView* get_GLView() const {return m_GLView;}
+protected:
+  GLView* m_GLView;
+};
+
+}
+
+#include <exlib/sg/view_wall>
+
+@interface app_delegate : NSObject<UIApplicationDelegate> {
+  GLView* m_view;
+  NSLog_streambuf* m_buf;
+  std::ostream* m_out;
+  app_iOS::main* m_main;
+  exlib::sg::view_wall* m_view_wall;
+}
+- (id)init_with_view:(GLView*)a_view;
+- (void)dealloc;
+- (void)applicationWillTerminate:(UIApplication*)a_sender;
+- (BOOL)application:(UIApplication*)a_app didFinishLaunchingWithOptions:(NSDictionary*)a_opts;
+- (void)applicationDidEnterBackground:(UIApplication*)a_sender;
+- (void)applicationWillEnterForeground:(UIApplication*)a_sender;
+- (void)applicationDidReceiveMemoryWarning:(UIApplication*)a_sender;
+- (BOOL)application:(UIApplication*)a_app openURL:(NSURL*)a_url sourceApplication:(NSString*)a_from annotation:(id)a_annotation;
+- (app_iOS::main*)get_main;
+- (exlib::sg::view_wall*)get_view_wall;
+@end
+@implementation app_delegate
+- (id)init_with_view:(GLView*)a_view {
+  if(self = [super init]) {
+    m_view = a_view;
+    m_buf = new NSLog_streambuf();
+    m_out = new std::ostream(m_buf);
+
+    // Get the .app directory :
+    NSString* bundle_dir = [[NSBundle mainBundle] bundlePath];
+    std::string sbundle_dir = [bundle_dir UTF8String];
+    std::string res_dir = sbundle_dir;
+
+    // Get the tmp directory :
+    NSString* tmp_dir = NSTemporaryDirectory();
+    std::string stmp_dir = [tmp_dir UTF8String];
+    inlib::strip(stmp_dir,inlib::trailing,'/');
+
+    // Get the Documents directory :
+    NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES);
+    NSString* doc_dir = [paths objectAtIndex:0];
+    std::string sdoc_dir = [doc_dir UTF8String];
+    inlib::strip(sdoc_dir,inlib::trailing,'/');
+    std::string data_dir = sdoc_dir;
+    std::string out_dir = sdoc_dir;
+
+    EXLIB_APP::context context(res_dir);
+
+    m_main = new app_iOS::main(*m_out,data_dir,res_dir,out_dir,stmp_dir);
+
+    m_main->set_GLView(a_view);
+
+    m_view_wall = exlib::sg::cast_view_wall(*m_main);
+    //if(!m_view_wall) {
+    //  NSLog(@"app_delegate : APP_USE_WALL but main not a exlib::sg::view_wall.");
+    //}
+
+    //NSLog(@"debug : app_delegate : 0013");
+
+    //NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    //[center addObserver:self selector:@selector(mem_pb:)
+    //               name:UIApplicationDidReceiveMemoryWarningNotification
+    //               object:self];
+
+  }
+  return self;
+}
+- (void)dealloc {
+  m_main->set_GLView(0);
+  delete m_main;
+  delete m_out;
+  delete m_buf;
+
+  [super dealloc];
+}
+- (app_iOS::main*)get_main {return m_main;}
+- (exlib::sg::view_wall*)get_view_wall {return m_view_wall;}
+- (void)applicationDidEnterBackground:(UIApplication*)a_sender {
+  //NSLog(@"debug : delegate applicationDidEnterBackground : 004 : ********");
+  (void)a_sender;
+}
+- (void)applicationWillEnterForeground:(UIApplication*)a_sender {
+  //NSLog(@"debug : delegate applicationWillEnterForeground !!!!!!!!");
+  (void)a_sender;
+}
+- (void)applicationWillResignActive:(UIApplication*)a_sender {
+  //NSLog(@"debug : delegate applicationWillResignActive : 001 : !!!!!!!!");  
+  if(m_view_wall) m_view_wall->disconnect_from_wall();
+  [m_view set_disable_GL:true];
+  (void)a_sender;
+}
+- (void)applicationDidBecomeActive:(UIApplication*)a_sender {
+  //NSLog(@"debug : delegate applicationDidBecomeActive : 004 : !!!!!!!!");  
+  [m_view set_disable_GL:false];
+  //in case an openURL is done (then whilst being in background).
+  m_main->win_render();
+  (void)a_sender;
+}
+- (void)applicationDidReceiveMemoryWarning:(UIApplication*)a_sender {
+  //NSLog(@"debug : delegate : applicationDidReceiveMemoryWarning");  
+  m_main->set_memory_warning(true);
+  //[[ImageCache sharedImageCache] removeAllImagesInMemory];
+  (void)a_sender;
+}
+
+//- (void)mem_pb:(id)a_sender{
+//  NSLog(@"debug : delegate : mem_pb");
+//  m_main->set_memory_warning(true);
+//}
+
+
+- (void)applicationWillTerminate:(UIApplication*)a_sender {
+  //NOTE : 
+  // with iOS 3.2 : when hiting the home button we passed here.
+  // with iOS 4.0 : by default hiting the home button passes
+  //                the process in "background" and we do not
+  //                pass here anymore. Even if stopping the
+  //                process from the app-drawer. To stop
+  //                when passing in backgroup, and the pass here,
+  //                you have to set UIApplicationExitsOnSuspend
+  //                to </true>in the Info.plist.
+  //NSLog(@"debug : delegate applicationWillTerminate : 0004 : =========");
+
+  [m_view set_disable_GL:true];
+  delete m_main;m_main = 0;
+  delete m_out;m_out = 0;
+  delete m_buf;m_buf = 0;
+  (void)a_sender;
+}
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 60000 //__IPHONE_OS_VERSION_6_0
+- (BOOL)application:(UIApplication*)a_app didFinishLaunchingWithOptions:(NSDictionary*)a_opts {return YES;}
+#else
+- (NSUInteger)application:(UIApplication*)a_app supportedInterfaceOrientationsForWindow:(UIWindow*)a_window {return UIInterfaceOrientationMaskAll;}
+- (BOOL)application:(UIApplication*)a_app didFinishLaunchingWithOptions:(NSDictionary*)a_opts {
+  UIWindow* window = [[UIApplication sharedApplication] keyWindow];
+  [window setRootViewController:[m_view get_view_controller_delegate]];
+  return YES;
+}
+#endif
+
+- (BOOL)application:(UIApplication*)a_app openURL:(NSURL*)a_url sourceApplication:(NSString*)a_from annotation:(id)a_annotation {
+  //NSLog(@"debug : openURL ++006++++");
+  if(!m_main) return NO;
+  if([a_url isFileURL]) {
+    //std::string document = [[a_url path] UTF8String]; //to be tried.
+
+    NSString* nss = [a_url absoluteString];
+    //NSLog(@"debug : openURL : file URL NSString \"%@\"",nss);
+    //NSLog(@"debug : openURL : file URL UTF8String \"%s\"",[nss UTF8String]);
+    std::string document = [nss UTF8String];
+    if(document.substr(0,16)=="file://localhost") {
+      document = document.substr(16,document.size()-16); //keep a /
+    }
+    if(document.substr(0,7)=="file://") { //if opened from Mail.
+      document = document.substr(7,document.size()-7); //keep a /
+    }
+    if(document.empty()) return NO;
+
+    //NSLog(@"debug : openURL : 001 : document \"%s\"",document.c_str());
+
+    if(!inlib::file::exists(document)) {
+      NSLog(@"debug : openURL : inlib::file::exists(document) failed for \"%s\"",document.c_str());
+      // From GoodReader, a file with white spaces in name is "Open in"
+      // with spaces replaced with "%20". Check for that :
+      inlib::replace(document,"%20"," ");
+      if(!inlib::file::exists(document)) {
+        NSLog(@"debug : openURL : inlib::file::exists(document) (2) failed for \"%s\"",document.c_str());
+        return NO;
+      }
+    }
+
+    //create_gui() needed if called at startup through didFinishLaunching
+    m_main->create_gui();
+    //Huum, the below push_home() seems to induce a crash if agora spawned from Mail doing "Open with..."
+    //m_main->push_home(); //Why we had that here ?
+
+    //m_main->clear_scene();
+    bool done;
+    bool status = m_main->opener().open(document,inlib::file::s_format_guessed(),inlib::args(),done);
+    if(!status) {
+       NSLog(@"debug : openURL : main.opener().open(document) failed for \"%s\"",document.c_str());
+       return NO;
+    }
+    if(!done) {
+      NSLog(@"debug : openURL : main.opener().open(document) not done for \"%s\"",document.c_str());
+      return NO;
+    }
+    //NSLog(@"debug : openURL : open() looks ok.");
+    //no need to do win_render since we are probably in background.
+    return YES;
+  } else { //custom URL.
+    return NO;
+  }
+  (void)a_app;
+  (void)a_from;
+  (void)a_annotation;
+}
+
+@end
+
+@implementation GLView
+
+// You must implement this method
++ (Class)layerClass {
+  return [CAEAGLLayer class];
+}
+
+// NOTE from Apple :
+// The EAGL view is stored in the nib file.
+// When it's unarchived it's sent -initWithCoder:
+
+- (id)initWithCoder:(NSCoder*)a_coder {    
+  if ((self = [super initWithCoder:a_coder])) {
+  //NSLog(@"debug : GLView::initWithCode : 004");
+
+    // We want all the screen :
+    [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationNone];
+
+    CAEAGLLayer* eaglLayer = (CAEAGLLayer*)self.layer;
+
+    eaglLayer.opaque = TRUE;
+    eaglLayer.drawableProperties = 
+      [NSDictionary dictionaryWithObjectsAndKeys:
+       [NSNumber numberWithBool:FALSE],
+       kEAGLDrawablePropertyRetainedBacking,
+       kEAGLColorFormatRGBA8,
+       kEAGLDrawablePropertyColorFormat,
+       nil];
+
+    m_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+    if (!m_context || ![EAGLContext setCurrentContext:m_context]) {
+      [self release];
+      return nil;
+    }
+
+    // Create default framebuffer object.
+    // The backing will be allocated for the
+    // current layer in -resizeFromLayer
+    glGenFramebuffersOES(1,&m_frame_buffer);
+    glBindFramebufferOES(GL_FRAMEBUFFER_OES,m_frame_buffer);
+
+    glGenRenderbuffersOES(1,&m_color_buffer);
+    glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_color_buffer);
+    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES,
+                                 GL_COLOR_ATTACHMENT0_OES,
+                                 GL_RENDERBUFFER_OES,
+                                 m_color_buffer);
+
+    glGenRenderbuffersOES(1,&m_depth_buffer); 
+    glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_depth_buffer);
+    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES,
+                                 GL_DEPTH_ATTACHMENT_OES,
+                                 GL_RENDERBUFFER_OES,
+                                 m_depth_buffer);
+
+    // Antialiasing :
+#ifdef EXLIB_IOS_ANTIALIASING 
+    glGenFramebuffersOES(1,&m_aa_frame_buffer);
+    glBindFramebufferOES(GL_FRAMEBUFFER_OES,m_aa_frame_buffer);
+
+    glGenRenderbuffersOES(1,&m_aa_color_buffer);
+    glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_aa_color_buffer);
+    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES,
+                                 GL_COLOR_ATTACHMENT0_OES,
+                                 GL_RENDERBUFFER_OES,
+                                 m_aa_color_buffer);
+
+    glGenRenderbuffersOES(1,&m_aa_depth_buffer); 
+    glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_aa_depth_buffer);
+    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES,
+                                 GL_DEPTH_ATTACHMENT_OES,
+                                 GL_RENDERBUFFER_OES,
+                                 m_aa_depth_buffer);
+#endif
+
+    m_view_controller_delegate = [[view_controller_delegate alloc] init];
+    m_view_controller_delegate.view = self;
+
+    m_app_delegate = [[app_delegate alloc] init_with_view:self]; //it creates app_iOS::main.
+    [[UIApplication sharedApplication] setDelegate:m_app_delegate];
+
+    app_iOS::main* _main = [m_app_delegate get_main];
+    inlib::sg::gui_viewer* _gui_viewer = inlib::sg::cast_gui_viewer(*_main);
+    [m_view_controller_delegate set_gui_viewer:_gui_viewer];
+
+    //m_draw_count = 0;
+    m_disable_GL = false;
+
+#ifdef USE_DISPLAY_LINK
+    m_display_link = 0;
+#else
+    m_timer = 0;
+#endif
+
+   {//begin gesture declarations :
+/*
+    UITapGestureRecognizer* tap_gesture = 
+     [[UITapGestureRecognizer alloc]
+        initWithTarget:self action:@selector(single_tap_gesture:)];
+    tap_gesture.numberOfTapsRequired = 1;
+    [self addGestureRecognizer:tap_gesture];
+
+    UITapGestureRecognizer* double_tap_gesture = 
+     [[UITapGestureRecognizer alloc]
+        initWithTarget:self action:@selector(double_tap_gesture:)];
+    double_tap_gesture.numberOfTapsRequired = 2;
+    [self addGestureRecognizer:double_tap_gesture];
+    [tap_gesture requireGestureRecognizerToFail:double_tap_gesture];
+    [tap_gesture release];
+    [double_tap_gesture release];
+
+   {UIPanGestureRecognizer* pan_gesture = [[UIPanGestureRecognizer alloc]
+        initWithTarget:self action:@selector(pan_gesture:)];
+    [self addGestureRecognizer:pan_gesture];
+    [pan_gesture release];}
+
+*/
+   {UIPinchGestureRecognizer* pinch_gesture = 
+     [[UIPinchGestureRecognizer alloc]
+        initWithTarget:self action:@selector(pinch_gesture:)];
+    [self addGestureRecognizer:pinch_gesture];
+    [pinch_gesture release];}
+
+/*
+   {UIPanGestureRecognizer* pan_gesture_2 = [[UIPanGestureRecognizer alloc]
+        initWithTarget:self action:@selector(pan_gesture_2:)];
+    [pan_gesture_2 setMinimumNumberOfTouches:2];
+    //[pan_gesture_2 requireGestureRecognizerToFail:pinch_gesture];
+    [self addGestureRecognizer:pan_gesture_2];
+    [pan_gesture_2 release];}
+*/
+
+/*
+   {UIRotationGestureRecognizer* rotation_gesture = 
+      [[UIRotationGestureRecognizer alloc]
+        initWithTarget:self action:@selector(rotation_gesture:)];
+    //[rotation_gesture requireGestureRecognizerToFail:pinch_gesture];
+    [self addGestureRecognizer:rotation_gesture];
+    [rotation_gesture release];}
+
+    UISwipeGestureRecognizer* swipe_gesture = [[UISwipeGestureRecognizer alloc]
+        initWithTarget:self action:@selector(swipe_gesture:)];
+    //UISwipeGestureRecognizerDirectionRight //default
+    //UISwipeGestureRecognizerDirectionLeft
+    //UISwipeGestureRecognizerDirectionUp
+    //UISwipeGestureRecognizerDirectionDown 
+    [swipe_gesture setDirection:UISwipeGestureRecognizerDirectionDown];
+    [swipe_gesture setNumberOfTouchesRequired:1]; //default is 1.
+    [self addGestureRecognizer:swipe_gesture];
+    [pan_gesture requireGestureRecognizerToFail:swipe_gesture];
+    [swipe_gesture release];
+
+    UILongPressGestureRecognizer* long_press_gesture = 
+      [[UILongPressGestureRecognizer alloc]
+          initWithTarget:self action:@selector(long_press_gesture:)];
+    [long_press_gesture setMinimumPressDuration:2]; //1 sec = default.
+    [long_press_gesture setNumberOfTouchesRequired:1]; //default is 1.
+    [self addGestureRecognizer:long_press_gesture];
+    [long_press_gesture release];
+*/
+    } //end gestures.
+
+  }
+
+  return self;
+}
+
+- (void)dealloc {
+
+  [self stop_timer];
+
+  if(m_frame_buffer) {
+    glDeleteFramebuffersOES(1,&m_frame_buffer);
+    m_frame_buffer = 0;
+  }
+
+  if(m_color_buffer) {
+    glDeleteRenderbuffersOES(1,&m_color_buffer);
+    m_color_buffer = 0;
+  }
+
+  if(m_depth_buffer) {
+    glDeleteRenderbuffersOES(1,&m_depth_buffer);
+    m_depth_buffer = 0;
+  }
+
+#ifdef EXLIB_IOS_ANTIALIASING 
+  if(m_aa_frame_buffer) {
+    glDeleteFramebuffersOES(1,&m_aa_frame_buffer);
+    m_aa_frame_buffer = 0;
+  }
+
+  if(m_aa_color_buffer) {
+    glDeleteRenderbuffersOES(1,&m_aa_color_buffer);
+    m_aa_color_buffer = 0;
+  }
+
+  if(m_aa_depth_buffer) {
+    glDeleteRenderbuffersOES(1,&m_aa_depth_buffer);
+    m_aa_depth_buffer = 0;
+  }
+#endif
+
+  if([EAGLContext currentContext] == m_context) [EAGLContext setCurrentContext:nil];
+
+  [m_context release];
+  m_context = nil;
+
+  [m_view_controller_delegate release];
+  m_view_controller_delegate = 0;
+
+  [super dealloc];
+}
+
+- (view_controller_delegate*)get_view_controller_delegate {return m_view_controller_delegate;}
+
+- (void)start_timer{
+#ifdef USE_DISPLAY_LINK
+  if(m_display_link) return; //done.
+  m_display_link = [CADisplayLink displayLinkWithTarget:self selector:@selector(timer_proc:)];
+  [m_display_link setFrameInterval:1];
+  [m_display_link addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+#else
+  if(m_timer) return; //done 
+  double seconds = 1./60.; // 0.016666
+  m_timer = [NSTimer scheduledTimerWithTimeInterval:seconds target:self selector:@selector(timer_proc:) userInfo:nil repeats:TRUE];
+#endif
+}
+
+
+- (void)stop_timer{
+#ifdef USE_DISPLAY_LINK
+  if(!m_display_link) return; //done.
+  [m_display_link invalidate];
+  m_display_link = 0;
+#else
+  if(!m_timer) return; //done 
+  [m_timer invalidate];
+  m_timer = 0;
+#endif
+}
+
+- (void)timer_proc:(id)a_sender{
+  //NSLog(@"debug : timer_proc %d",s_timer_count);s_timer_count++;
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(_main) {
+    _main->do_works();
+    //_main->move_timer().check_time_out();
+    bool timer_stop = true;
+    if(_main->num_cbks()
+       //||_main->move_timer().active()
+       ) {
+      timer_stop = false;
+    }
+    exlib::sg::view_wall* _view_wall = [m_app_delegate get_view_wall];
+    if(_view_wall && _view_wall->is_connected()) {
+      //the below handles inlib::wall::protocol::disconnect()
+      if(!_view_wall->data_client().poll()) {}
+      if(!_view_wall->is_connected()) {
+        //NSLog(@"debug : disconnected");
+        //we have received a inlib::wall::protocol::disconnect()
+        _main->map_warn("disconnected");
+        //_main->win_render();
+        [self window_render];
+      } else {
+        timer_stop = false;
+      }
+    }
+    if(timer_stop) {
+      [self stop_timer];
+    }
+  }
+  (void)a_sender;
+}
+
+- (void)set_disable_GL:(bool)a_value {
+  m_disable_GL = a_value;
+}
+
+- (void)layoutSubviews {
+  //NSLog(@"debug : layoutSubviews");
+  if(m_disable_GL) return;
+
+  // Allocate color buffer backing based on the current layer size
+  glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_color_buffer);
+  [m_context renderbufferStorage:GL_RENDERBUFFER_OES fromDrawable:(CAEAGLLayer*)self.layer];
+
+  GLint ww;
+  GLint wh;
+  glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES,
+                                  GL_RENDERBUFFER_WIDTH_OES,
+                                  &ww);
+  glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES,
+                                  GL_RENDERBUFFER_HEIGHT_OES,
+                                  &wh);
+
+  glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_depth_buffer);
+  glRenderbufferStorageOES(GL_RENDERBUFFER_OES,
+                           GL_DEPTH_COMPONENT16_OES,
+                           ww,wh);
+
+#ifdef EXLIB_IOS_ANTIALIASING 
+  glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_aa_color_buffer);
+  glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES,
+                                        2,GL_RGB5_A1_OES,
+                                        ww,wh);
+
+  glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_aa_depth_buffer);
+  glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES,
+                                        2,GL_DEPTH_COMPONENT16_OES,
+                                        ww,wh);
+#endif
+
+  if(glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)!=GL_FRAMEBUFFER_COMPLETE_OES) {
+    NSLog(@"GLView::layoutSubviews : failed to make complete framebuffer object %x",
+          glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
+    return;
+  }
+
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(_main) _main->set_size(ww,wh);
+
+  [self window_render];
+}
+
+- (void)window_render {
+  //NSLog(@"debug : render : draw_count %u %d",m_draw_count,m_disable_GL);
+  //m_draw_count++;
+  if(m_disable_GL) return;
+
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+
+  [EAGLContext setCurrentContext:m_context];
+
+#ifdef EXLIB_IOS_ANTIALIASING 
+  glBindFramebufferOES(GL_FRAMEBUFFER_OES,m_aa_frame_buffer);
+  bool old_produce_out_jpg = _main->produce_out_jpg();
+  _main->set_produce_out_jpg(false);
+  bool old_produce_out_png = _main->produce_out_png();
+  _main->set_produce_out_png(false);
+#else
+  glBindFramebufferOES(GL_FRAMEBUFFER_OES,m_frame_buffer);
+#endif
+
+  _main->render();
+
+#ifdef EXLIB_IOS_ANTIALIASING 
+ {GLenum attachments[] = {GL_DEPTH_ATTACHMENT_OES};
+  glDiscardFramebufferEXT(GL_READ_FRAMEBUFFER_APPLE,1,attachments);}
+  glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE,m_aa_frame_buffer);
+  glBindFramebufferOES(GL_DRAW_FRAMEBUFFER_APPLE,m_frame_buffer);
+  glResolveMultisampleFramebufferAPPLE();
+#endif
+
+  glBindRenderbufferOES(GL_RENDERBUFFER_OES,m_color_buffer);
+
+#ifdef EXLIB_IOS_ANTIALIASING
+  if(old_produce_out_jpg||old_produce_out_png) {
+    glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE,m_color_buffer);
+    _main->set_produce_out_jpg(old_produce_out_jpg);
+    _main->set_produce_out_png(old_produce_out_png);
+    _main->after_render();
+  }
+#endif
+
+  [m_context presentRenderbuffer:GL_RENDERBUFFER_OES];
+}
+
+- (void)touchesBegan:(NSSet*)a_touches withEvent:(UIEvent*)a_event {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  UITouch* touch = [[a_touches allObjects] objectAtIndex:0];
+  CGPoint p = [touch locationInView:touch.view];
+  //CGPoint previousLocation = [touch previousLocationInView:touch.view];
+  // p = (0,0) = top left of window.
+  //NSLog(@"debug : touchesBegan %d : %g %g",[a_touches count],p.x,p.y);
+  unsigned int wh = _main->height();
+  if(_main->touch_down(p.x,wh-p.y)) [self window_render];
+  _main->do_works(); //for arm cbks.
+  (void)a_event;
+}
+
+- (void)touchesMoved:(NSSet*)a_touches withEvent:(UIEvent*)a_event {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  UITouch* touch = [[a_touches allObjects] objectAtIndex:0];
+  CGPoint p = [touch locationInView:touch.view];
+  //NSLog(@"debug : touchesMoved %d : %g %g",[a_touches count],p.x,p.y);
+  if(_main->touch_move(p.x,_main->height()-p.y)) [self window_render];
+  _main->do_works(); //treat single shoot cbks.
+  (void)a_event;
+}
+
+- (void)touchesEnded:(NSSet*)a_touches withEvent:(UIEvent*)a_event {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  UITouch* touch = [[a_touches allObjects] objectAtIndex:0];
+  CGPoint p = [touch locationInView:touch.view];
+  // p = (0,0) = top left of window.
+  //NSLog(@"debug : touchesEnded %d : %g %g",[a_touches count],p.x,p.y);
+  _main->add_work_check_arm_buttons();
+  unsigned int wh = _main->height();
+  if(_main->touch_up(p.x,wh-p.y)) [self window_render];
+  exlib::sg::view_wall* _view_wall = [m_app_delegate get_view_wall];
+  bool dc_connected = false;
+  if(_view_wall) dc_connected = _view_wall->is_connected();
+  _main->do_works(); //treat single shoot cbks.
+  if(_main->num_cbks()) { //see if not single shoot cbks remain.
+    [self start_timer];
+  }
+  if(_view_wall && !dc_connected && _view_wall->is_connected()) {
+    [self start_timer];
+  }
+  //if(_main->to_exit()) {
+    // how to exit properly ?
+    //::exit(0); //this produce a Segmentation fault.
+  //}
+  (void)a_event;
+}
+
+- (void)pinch_gesture:(UIGestureRecognizer*)a_sender {
+  CGFloat scale = [(UIPinchGestureRecognizer*)a_sender scale];
+  if(scale<=0) return;
+  //NSLog(@"debug : GLView::pinch_gesture : %g",scale);
+
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+
+  if(_main->ui_visible()      ||
+     _main->camenu_visible()  ||
+     _main->sliders_visible() ||
+     _main->popup_visible()
+  ){
+    _main->add_work_check_arm_buttons();
+    _main->do_works(); //treat single shoot cbks.
+    return;
+  }
+
+  inlib::sg::base_camera* camera = _main->scene_camera();
+  if(!camera) return;
+
+  //float cooking = 1.0f;
+  //scale *= cooking;
+
+  if(inlib::sg::ortho* oc = 
+       inlib::safe_cast<inlib::sg::base_camera,inlib::sg::ortho>(*camera)) {
+
+    if (a_sender.state == UIGestureRecognizerStateBegan) {
+      m_pinch_began = oc->height.value(); //save starting height.
+    } else if (a_sender.state == UIGestureRecognizerStateFailed) {
+      oc->height.value(m_pinch_began);
+    } else if( (a_sender.state == UIGestureRecognizerStateChanged) ||
+               (a_sender.state == UIGestureRecognizerStateEnded)   ){
+      oc->height.value(m_pinch_began*(1.0f/scale));
+      [self window_render];
+    }
+
+  } else if(
+      inlib::safe_cast<inlib::sg::base_camera,inlib::sg::perspective>(*camera)) {
+
+    if (a_sender.state == UIGestureRecognizerStateBegan) {
+
+      _main->start_gesture(0,0);
+
+    } else if (a_sender.state == UIGestureRecognizerStateFailed) {
+
+      _main->reset_camera_with_saved();
+      [self window_render];
+
+    } else if( (a_sender.state == UIGestureRecognizerStateChanged) ||
+               (a_sender.state == UIGestureRecognizerStateEnded)   ){
+
+      unsigned int saved_xcursor,saved_ycursor;
+      inlib::sg::base_camera* saved_camera = 
+        _main->saved_cursor_and_camera(saved_xcursor,saved_ycursor);
+
+      if(camera && saved_camera) {
+        float dx = camera->dx.value();        
+        dx *= 15; //ok with povama.
+        float trans = dx*(scale-1);
+
+        camera->position.value(saved_camera->position.value());
+        camera->translate_along_dir(trans);
+
+        [self window_render];
+      }
+    }
+
+  }
+}
+
+/*
+
+- (void)rotation_gesture:(UIRotationGestureRecognizer*)a_sender {
+  CGFloat gangle = [a_sender rotation]; //radians
+  // gangle > 0 clockwise.
+  //NSLog(@"debug : GLView::rotation_gesture %g",gangle);
+
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+
+  if(_main->ui_or_camenu_visible()) {
+    _main->add_work_check_arm_buttons();
+    _main->do_works(); //treat single shoot cbks.
+    return;
+  }
+
+  inlib::sg::base_camera* camera = _main->scene_camera();
+  if(!camera) return;
+
+  if (a_sender.state == UIGestureRecognizerStateBegan) {
+
+    _main->start_gesture(0,0);
+
+  } else if (a_sender.state == UIGestureRecognizerStateFailed) {
+
+    _main->reset_camera_with_saved();
+    [self window_render];
+
+  } else if( (a_sender.state == UIGestureRecognizerStateChanged) ||
+             (a_sender.state == UIGestureRecognizerStateEnded)   ){
+
+    unsigned int saved_xcursor,saved_ycursor;
+    inlib::sg::base_camera* saved_camera = 
+      _main->saved_cursor_and_camera(saved_xcursor,saved_ycursor);
+
+    camera->orientation.value(saved_camera->orientation.value());
+    camera->rotate_around_direction(-gangle);
+
+    [self window_render];
+  }
+}
+
+- (void)single_tap_gesture:(UIGestureRecognizer*)a_sender {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  CGPoint p = [a_sender locationInView:self];
+  // p = (0,0) = top left of window.
+  //NSLog(@"debug : GLView::single_tap_gesture %g %g",p.x,p.y);
+}
+
+- (void)double_tap_gesture:(UIGestureRecognizer*)a_sender {
+  //NSLog(@"debug : GLView::double_tap_gesture");
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  _main->toggle_param_viewing();
+  //[self window_render];
+}
+
+- (void)pan_gesture:(UIPanGestureRecognizer*)a_sender {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  CGPoint trans = [a_sender translationInView:self];
+  // trans.x goes left to right.
+  // trans.y goes top to down.
+  //NSLog(@"debug : GLView::pan_gesture %g %g",trans.x,trans.y);
+}
+
+- (void)pan_gesture_2:(UIPanGestureRecognizer*)a_sender {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  CGPoint trans = [a_sender translationInView:self];
+  // trans.x goes left to right.
+  // trans.y goes top to down.
+  //NSLog(@"debug : GLView::pan_gesture %g %g",trans.x,trans.y);
+}
+
+- (void)swipe_gesture:(UISwipeGestureRecognizer*)a_sender {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  //NSLog(@"debug : GLView::swipe_gesture : dir %d",[a_sender direction]);
+  if (a_sender.state == UIGestureRecognizerStateBegan) {
+  } else if (a_sender.state == UIGestureRecognizerStateFailed) {
+  } else if( (a_sender.state == UIGestureRecognizerStateChanged) ||
+             (a_sender.state == UIGestureRecognizerStateEnded)   ){
+  }
+}
+
+- (void)long_press_gesture:(UILongPressGestureRecognizer*)a_sender {
+  app_iOS::main* _main = [m_app_delegate get_main];
+  if(!_main) return;
+  //NSLog(@"debug : GLView::long_press_gesture");
+  if (a_sender.state == UIGestureRecognizerStateBegan) {
+  } else if (a_sender.state == UIGestureRecognizerStateFailed) {
+  } else if( (a_sender.state == UIGestureRecognizerStateChanged) ||
+             (a_sender.state == UIGestureRecognizerStateEnded)   ){
+  }
+}
+*/
+
+@end
+
