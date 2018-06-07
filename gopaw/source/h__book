@@ -1,0 +1,247 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_h__book
+#define gopaw_h__book
+
+#include <inlib/handle>
+#include <inlib/random>
+#include <inlib/forit>
+#include <inlib/vpair>
+
+#include <vector>
+#include <ostream>
+
+namespace gopaw {
+
+typedef std::pair<std::string,inlib::base_handle*> named_handle_t;
+typedef std::vector<named_handle_t> named_handles_t;
+typedef inlib::random::flat rand_t;
+
+template <class T>
+inline void add_handle(named_handles_t& a_named_handles,const std::string& a_name,T* a_obj) {
+  a_named_handles.push_back(named_handle_t(a_name,new inlib::handle<T>(a_obj->s_cls(),a_obj,true))); //true=handle owns a_obj.
+}
+inline bool remove_handle(named_handles_t& a_named_handles,const std::string& a_name) {
+  return inlib::remove(a_named_handles,a_name,true);
+}
+template <class T>
+inline bool find_object(const named_handles_t& a_named_handles,const std::string& a_name,T*& a_obj) {
+  a_obj = 0;
+  inlib_vforcit(named_handle_t,a_named_handles,it) {
+    inlib::base_handle* handle = (*it).second;
+    if( (handle->object_class()==T::s_class()) && ((*it).first==a_name) ){
+      a_obj = (T*)handle->object();
+      return true;
+    }
+  }
+  return false;
+}
+
+}
+
+#include <inlib/histo/h1d>
+#include <inlib/histo/h2d>
+#include <inlib/cast_deprec>
+#include <inlib/sout>
+#include <inlib/sto>
+#include <inlib/num2s>
+
+namespace gopaw {
+
+inline inlib::histo::h1d* h1d_find(const named_handles_t& a_named_handles,const std::string& aNAME) {
+  inlib::histo::h1d* histo;
+  if(!find_object(a_named_handles,aNAME,histo)) return 0;
+  return histo;
+}
+inline inlib::histo::h2d* h2d_find(const named_handles_t& a_named_handles,const std::string& aNAME) {
+  inlib::histo::h2d* histo;
+  if(!find_object(a_named_handles,aNAME,histo)) return 0;
+  return histo;
+}
+
+inline void get_partition(std::ostream& a_out,const inlib::histo::h1d& a_hist,std::vector<double>& a_partition) {
+  int nbins = a_hist.axis().bins();
+  if(nbins<=0) {
+    a_out << "h__book : get_partition : can't compute histogram partition. Histogram without bins." << std::endl;
+    a_partition.clear();
+    return;
+  }
+
+  a_partition.resize(nbins,0);
+
+  double height = a_hist.bin_height(0);
+  if(height<0) {
+    a_out << "h__book : get_partition : bin " << (int)0
+          << " of histogram with title " <<inlib::sout(a_hist.title()) << " has zero height." << std::endl;
+    a_partition.clear();
+    return;
+  }
+  a_partition[0] = height;
+  for(int ibin=1;ibin<nbins;ibin++) {
+    double height = a_hist.bin_height(ibin);
+    if(height<0) {
+      a_out << "h__book : get_partition : bin " << ibin
+            << " of histogram with title " <<inlib::sout(a_hist.title()) << " has zero height." << std::endl;
+      a_partition.clear();
+      return;
+    }
+    a_partition[ibin] = a_partition[ibin-1] + height;
+  }
+
+  double sum = a_partition[nbins-1];
+  // Normalize integral to 1
+  if(sum==0) {
+    a_out << "h__book : get_partition : integral of histogram is null." << std::endl;
+    a_partition.clear();
+    return;
+  }
+
+ {for(int ibin=0;ibin<nbins;ibin++) a_partition[ibin] /= sum;}
+}
+
+
+inline int binary_search(const inlib::histo::h1d& a_hist,double a_value) {
+  // Binary search in an array of n values to locate value.
+  //
+  // Array is supposed  to be sorted prior to this call.
+  // If match is found, function returns position of element.
+  // If no match found, function gives nearest element smaller than value.
+  // If aArray is empty (-1) is returned.
+  // If a_value is stricly below first element (-1) is returned.
+  //
+  // From ROOT/TMath code.
+  int nabove = a_hist.axis().bins() + 1;
+  int nbelow = 0;
+  while(nabove-nbelow > 1) {
+     int middle = (nabove+nbelow)/2;
+     double value = a_hist.bin_height(middle-1);
+     if (a_value == value) return middle-1;
+     if (a_value  < value) nabove = middle;
+     else nbelow = middle;
+  }
+  return nbelow-1;
+}
+
+inline double get_random(const inlib::histo::h1d& a_hist,rand_t& a_rand) {
+  // Get a flat random number (avoid strict 1).
+  //double r;
+  //while((r = g_random_flat->shoot())==1);
+
+  double r = a_rand.shoot(); // r is in [0,1]
+  
+  int ibin = binary_search(a_hist,r);
+
+  if(ibin==(-1)) { //r in [0,a_hist.bin_height(0)]
+    double dr = a_hist.bin_height(0);
+    if(dr==0) {
+      return a_hist.axis().bin_lower_edge(0) + a_hist.axis().bin_width(0) * r;
+    } else {
+      return a_hist.axis().bin_lower_edge(0) + a_hist.axis().bin_width(0) * r/dr;
+    }
+  } else if(ibin>=(int)(a_hist.axis().bins()-1)) {
+    // We pass here when r is stricly equal to 1.
+    return a_hist.axis().upper_edge();
+    // If histogrammed with same binning than a_hist, 
+    // it should go in the overflow.
+  } else {
+    // (ibin+1) < a_hist.bins()
+    double dr = a_hist.bin_height(ibin+1) - a_hist.bin_height(ibin);
+    if(dr==0) {
+      return a_hist.axis().bin_lower_edge(ibin+1) + a_hist.axis().bin_width(ibin+1) * r;
+    } else {
+      return a_hist.axis().bin_lower_edge(ibin+1) + a_hist.axis().bin_width(ibin+1) * (r-a_hist.bin_height(ibin))/dr;
+    }
+  }
+}
+
+inline float hrndm1(std::ostream& a_out,named_handles_t& a_named_handles,rand_t& a_rand,int aID) {
+  std::string ID;
+  inlib::num2s(aID,ID);
+
+  inlib::histo::h1d* histogram = h1d_find(a_named_handles,ID);
+  if(!histogram) {
+    a_out << "hrndm1 : can't find " << inlib::sout(ID) << "." << std::endl;
+    return 0;
+  }
+
+  std::string sintegrated;
+  if(histogram->annotation("Integrated",sintegrated) && (sintegrated=="true")) {
+    return (float)get_random(*histogram,a_rand); // The histogram had been integrated :
+  }
+
+  std::vector<double> partition;
+  get_partition(a_out,*histogram,partition);
+  if(!partition.size()) {
+    a_out << "hrndm1 : problem when computing partition of histogram " << inlib::sout(ID) << std::endl;
+    return 0;
+  }
+
+  const inlib::histo::h1d::axis_t& axis = histogram->axis();
+
+  inlib::histo::h1d* ihistogram = new inlib::histo::h1d(histogram->title(),axis.bins(),axis.lower_edge(),axis.upper_edge());
+  if(!ihistogram) {
+    a_out << "hrndm1 : can't create histogram " << inlib::sout(ID) << std::endl;
+    return 0;
+  }
+
+  int binn = axis.bins();
+  for(int bini = 0;bini<binn;bini++) {
+    double x = axis.bin_lower_edge(bini) + 0.5 * axis.bin_width(bini);
+    ihistogram->fill(x,partition[bini]);
+  }
+
+  ihistogram->add_annotation("Integrated","true");
+
+  remove_handle(a_named_handles,ID); //it deletes histogram.
+  add_handle(a_named_handles,ID,ihistogram);
+
+  //a_out << "hrndm1 : " << inlib::sout(ID) << " integrated." << std::endl;
+
+  // Return something not zero :
+  double r;
+  while((r = get_random(*ihistogram,a_rand))==0) {}
+  return (float)r;
+}
+
+inline void hfill(std::ostream& a_out,named_handles_t& a_named_handles,int aID,float aX,float aY,float aW) {
+  std::string ID;
+  inlib::num2s(aID,ID);
+
+  //printf("debug : hfill %s %g %g\n",ID.c_str(),*aX,*aW);
+
+  //FIXME : how to optimize to avoid the below find ?
+  inlib::histo::h1d* h1d = h1d_find(a_named_handles,ID);
+  inlib::histo::h2d* h2d = h2d_find(a_named_handles,ID);
+  if(!h1d && !h2d) {
+    a_out << "hfill : can't find " << inlib::sout(ID) << " in memory tree." << std::endl;
+    return;
+  }
+
+  if(h1d) {
+    h1d->fill(aX,aW);
+  } else if(h2d) {
+    h2d->fill(aX,aY,aW);
+  } else {
+    a_out << "hfill : histogram not 1D or 2D." << std::endl;
+    return;
+  }
+}
+
+inline void ohnorm(std::ostream& a_out,named_handles_t& a_named_handles,int aID,float aArea) {
+  std::string ID;
+  inlib::num2s(aID,ID);
+
+  inlib::histo::h1d* histogram = h1d_find(a_named_handles,ID);
+  if(!histogram) {
+    a_out << "ohnorm : can't find " << inlib::sout(ID) << " in memory tree." << std::endl;
+    return;
+  }
+
+  double sum = histogram->sum_bin_heights();
+  if(sum!=0) histogram->scale(((double)aArea)/sum);
+}
+
+}
+
+#endif

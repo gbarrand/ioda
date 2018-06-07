@@ -1,0 +1,312 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_fit_object
+#define gopaw_fit_object
+
+#include "funcs"
+
+#include <inlib/f2cmn>
+#include <inlib/poldeg>
+
+namespace gopaw {
+
+class FCN {
+public:
+  virtual double value(unsigned int aParamn,const double aParams[]) {
+    fChi2 = 0;
+    unsigned int npt = fPts.size();
+    fFunction.set_params(aParamn,aParams);
+    for(unsigned int i=0;i<npt;i++) {
+      double value = fFunction.point_value(fPts[i]);
+      double chinew = (fVs[i] - value)/fEs[i];
+      fChi2 += (chinew * chinew);
+    }
+    return fChi2;
+  }
+  virtual double chi2() const { return fChi2;}
+public:
+  FCN(base_func& aFunction,
+      const std::vector< std::vector<double> >& aPts,const std::vector<double>& aVs,const std::vector<double>& aEs)
+  :fFunction(aFunction),fPts(aPts),fVs(aVs),fEs(aEs),fChi2(0)
+  {}
+  virtual ~FCN() {}
+private:
+  FCN(const FCN& a_from)
+  :fFunction(a_from.fFunction)
+  ,fPts(a_from.fPts)
+  ,fVs(a_from.fVs)
+  ,fEs(a_from.fEs)
+  ,fChi2(a_from.fChi2)
+  {}
+  FCN& operator=(const FCN& a_from){
+    fChi2 = a_from.fChi2;
+    return *this;
+  }
+private:
+  base_func& fFunction;
+  const std::vector< std::vector<double> >& fPts;
+  const std::vector<double>& fVs;
+  const std::vector<double>& fEs;
+  double fChi2;
+};
+
+inline bool minuit_function(int& aParamn,double* /*aGrad*/,double& aValue,double* aParams,int /*aStatus*/,void* aTag) {
+  FCN* func = (FCN*)aTag;
+  aValue = func->value((unsigned int)aParamn,aParams);
+  return true;
+}
+
+template <class FUNC>
+inline bool base_fit(std::ostream& a_out,FUNC& aFunction,
+                     const std::vector< std::vector<double> >& aPts,const std::vector<double>& aVs,const std::vector<double>& aEs,
+                     double& aChi2,std::vector<double>& aErrs) {
+  aChi2 = 0;
+  aErrs.clear();
+  std::vector<double> fparams;
+  aFunction.param_values(fparams);
+  if(fparams.size()<=0) {
+    a_out << "base_fit : given function has no parameters." << std::endl;
+    return false;
+  }
+  std::vector<std::string> names = aFunction.parameter_names();
+  if(names.size()!=fparams.size()) {
+    a_out << "base_fit : bad given function parameter names size." << std::endl;
+    return false;
+  }
+  
+  FCN fcn(aFunction,aPts,aVs,aEs);
+  
+  inlib::f2cmn::fitter minuit(a_out,0);
+  minuit.SetFCN(minuit_function,&fcn);
+  
+  int status;
+
+  double args[10];
+  args[0] = -1; //0 minimum output, -1 no output.
+  //args[0] = 0; //0 minimum output, -1 no output.
+  minuit.mnexcm("SET PRI",args,1,status);   
+
+  for(unsigned int index=0;index<names.size();index++) {
+    double start = fparams[index];
+    //AIDA::IFitParameterSettings& ps = fitParameterSettings(names[index]);
+    //double step = ps.stepSize();
+    double step = 1;
+    minuit.mnparm(index,names[index].c_str(),start,step,0,0,status);
+  }
+  
+  args[0] = 0;
+  minuit.mnexcm("MIGRAD",args,0,status);
+  //minuit.mnexcm("MINOS",args,0,status);
+  if(status==4) {
+    a_out << "base_fit : MIGRAD failed." << std::endl;
+    return false;
+  }  
+  
+  // Output.
+  aChi2 = fcn.chi2();
+  
+ {aErrs.resize(names.size());
+  for(unsigned int index=0;index<names.size();index++) {
+    std::string s;
+    double value,err;
+    double bmin,bmax;
+    minuit.mnpout(index,s,value,err,bmin,bmax,status);
+    aErrs[index] = err;
+  }}
+  
+  return true;  
+}
+
+}
+
+#include <inlib/histo/dps>
+
+namespace gopaw {
+
+template <class FUNC>
+inline bool dps_fit(std::ostream& a_out,const inlib::histo::dps& a_dps,unsigned int a_x_index,unsigned int a_v_index,FUNC& a_func) {
+  size_t number = a_dps.size();
+  if(number<=0) return false;
+
+  unsigned int dim = a_dps.dimension();
+  
+  if(dim<=a_x_index) {
+    a_out << "dps_fit :"
+          << " dataPointSet index " << a_x_index
+          << " is out of range. Dimension is " << dim << "."
+          << std::endl;
+    return false;
+  }
+  if(dim<=a_v_index) {
+    a_out << "dps_fit :"
+          << " dataPointSet index " << a_v_index
+          << " is out of range. Dimension is " << dim << "."
+          << std::endl;
+    return false;
+  }
+  
+  std::vector<double> pt;
+  pt.resize(1,0);
+  std::vector< std::vector<double> > pts;
+  pts.resize(number,pt);
+  
+  std::vector<double> vs(number);
+  std::vector<double> es(number);
+  for(size_t index=0;index<number;index++) {
+    double x = a_dps.point(index).coordinate(a_x_index).value();
+    double v = a_dps.point(index).coordinate(a_v_index).value();
+    double e = ::sqrt(::fabs(v));
+    if(e==0) e = 0.01; //WARNING : must not be 0.
+    pts[index][0] = x;
+    vs[index] = v;
+    es[index] = e;
+  }
+    
+  double chi2;
+  std::vector<double> errs;
+  if(!base_fit(a_out,a_func,pts,vs,es,chi2,errs)) return false;
+  
+  /*
+  std::vector<double> func_params;
+  a_func.param_values(func_params);
+  int degreeOfFreedom = pts.size()-func_params.size();
+  double quality = degreeOfFreedom?(chi2/degreeOfFreedom):0;
+  */
+  
+  //BatchLab::FitResult* result = new BatchLab::FitResult(a_func,errs,degreeOfFreedom,quality);
+  //setFitInfos(a_dps.annotation(),*result);
+  //return result;
+
+  return true;
+}
+
+}
+
+#include <inlib/histo/h1d>
+
+namespace gopaw {
+
+template <class FUNC>
+inline bool hist_fit(std::ostream& a_out,const inlib::histo::h1d& a_hist,FUNC& a_func) {
+  if(a_hist.entries()==0) {
+    a_out << "hist_fit : histogram has no entries." << std::endl;
+    return false;
+  }
+  
+  unsigned int nbin = a_hist.axis().bins();
+  if(!nbin) {
+    a_out << "hist_fit : has no bins." << std::endl;
+    return false;
+  }
+  
+  unsigned int number = 0;
+ {for(unsigned int count=0;count<nbin;count++) { 
+    unsigned int nent = a_hist.bin_entries(count);
+    if(nent==0) continue;  // Do not take bin without entry.
+    number++;
+  }}
+
+  std::vector<double> pt;
+  pt.resize(1,0);
+  std::vector< std::vector<double> > pts;
+  pts.resize(number,pt);
+  
+  std::vector<double> vs(number);
+  std::vector<double> es(number);
+  unsigned int bini = 0;
+ {for(unsigned int index=0;index<nbin;index++) { 
+    unsigned int nent = a_hist.bin_entries(index);
+    if(nent==0) continue;  // Do not take bin without entry.
+    // Take middle of bin.
+    double xx = (a_hist.axis().bin_lower_edge(index)+a_hist.axis().bin_upper_edge(index))/2.;
+    double val = a_hist.bin_height(index);
+    double err = ::sqrt(::fabs(val)); // Take statistical error.
+    if(err==0.) { 
+      a_out << "hist_fit :"
+          << " null error for bin " << index 
+          << " x " << xx << " value " << val
+          << ". Set error to 0.01."
+          << std::endl;
+      //return 0;
+      err = 0.01; //FIXME
+    }
+    pts[bini][0] = xx;
+    vs[bini] = val;
+    es[bini] = err;
+    bini++;
+  }}
+  if(pts.size()==0) {
+    a_out << "hist_fit : no starting points." << std::endl;
+    return false;
+  }
+  
+  double chi2;
+  std::vector<double> errs;
+  if(!base_fit(a_out,a_func,pts,vs,es,chi2,errs)) return false;
+  
+  /*
+  std::vector<double> func_params;
+  a_func.param_values(func_params);
+  int degreeOfFreedom = pts.size()-func_params.size();
+  double quality = degreeOfFreedom?(chi2/degreeOfFreedom):0;
+  */
+  
+  //BatchLab::FitResult* result = new BatchLab::FitResult(aFunction,errs,degreeOfFreedom,quality);
+  //setFitInfos(a_hist.annotation(),*result);
+  
+  return true;
+}
+
+template <class HIST>
+inline bool half_lower_mean_point(HIST& a_hist,double& aX,double& aV){
+  int binn = a_hist.axis().bins();
+  int end = binn/2;
+  unsigned int n = 0;
+  aX = 0;
+  aV = 0;
+  for(int count=0;count<end;count++) { 
+    if(a_hist.bin_entries(count)==0) continue;  // Do not take empty bins.
+    // Take middle of Bin.
+    aX += (a_hist.axis().bin_lower_edge(count)+a_hist.axis().bin_upper_edge(count))/2.;
+    aV += a_hist.bin_height(count);
+    n++;
+  }
+  if(!n) {
+    aX = 0;
+    aV = 0;
+    return false;
+  }
+  aX /= n;
+  aV /= n;
+  return true;
+}
+
+template <class HIST>
+inline bool half_upper_mean_point(HIST& a_hist,double& aX,double& aV){
+  //  Used to find an end point for linear, exponential fit.
+  int binn = a_hist.axis().bins();
+  int begin = binn/2;
+  unsigned int n = 0;
+  aX = 0;
+  aV = 0;
+  for(int count=begin;count<binn;count++) {
+    if(a_hist.bin_entries(count)==0) continue;  // Do not take empty bins.
+    // Take middle of Bin.
+    aX += (a_hist.axis().bin_upper_edge(count)+a_hist.axis().bin_lower_edge(count))/2.;
+    aV += a_hist.bin_height(count);
+    n++;
+  }
+  if(!n) {
+    aX = 0;
+    aV = 0;
+    return false;
+  }
+  aX /= n;
+  aV /= n;
+  return true;
+}
+
+}
+
+#endif //gopaw_fit_object

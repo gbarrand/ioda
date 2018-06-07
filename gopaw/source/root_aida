@@ -1,0 +1,188 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef root_aida
+#define root_aida
+
+#include <inlib/aida_ntuple>
+#include <inlib/wroot/directory>
+#include <inlib/wroot/ntuple>
+
+namespace gopaw {
+
+inline bool aida2root(std::ostream& a_out,inlib::aida::ntuple& a_aida,inlib::wroot::directory& a_dir,
+                      const std::string& a_name,inlib::wroot::ntuple*& a_root) {
+  inlib::wroot::ntuple* root_tuple = new inlib::wroot::ntuple(a_dir,a_name,a_aida.title());
+    
+  typedef inlib::aida::aida_col<double> aida_col_t;
+  typedef inlib::wroot::ntuple::column<double> root_col_t;
+
+  std::vector<aida_col_t*> aida_cols;
+  std::vector<root_col_t*> root_cols;
+
+  inlib_vforcit(inlib::aida::base_col*,a_aida.cols(),it) {
+    aida_col_t* aida_col = inlib::safe_cast<inlib::aida::base_col,aida_col_t>(*(*it));
+    if(!aida_col) {
+      a_out << "aida2root : an aida_col is not of type double." << std::endl;
+      delete root_tuple;
+      a_root = 0;
+      return false;
+    }
+    aida_cols.push_back(inlib::safe_cast<inlib::aida::base_col,aida_col_t>(*(*it)));
+    root_cols.push_back(root_tuple->create_column<double>((*it)->name()));
+  }
+
+  size_t coln = root_cols.size();
+  double value;
+  bool status;
+
+  a_aida.start();
+  while(a_aida.next()) {
+    status = true;
+    for(size_t coli=0;coli<coln;coli++) {
+      if(!aida_cols[coli]->get_entry(value)) {
+        a_out << "aida2root : aida_col.get_entry() failed." << std::endl;
+        status = false;
+        break;
+      }
+      if(!root_cols[coli]->fill(value)) {
+        a_out << "aida2root : root_col fill failed." << std::endl;
+        status = false;
+        break;
+      }
+    }
+    if(!status || !root_tuple->add_row()) {
+      a_out << "aida2root : root ntuple fill failed." << std::endl;
+      delete root_tuple;
+      a_root = 0;
+      return false;
+    }
+  }
+
+  a_root = root_tuple;
+  return true;
+}
+
+}
+
+#include <inlib/rroot/ntuple>
+
+namespace gopaw {
+
+inline bool root2aida(std::ostream& a_out,inlib::rroot::tree& a_tree,inlib::aida::ntuple*& a_aida) {
+  inlib::rroot::ntuple ntu(a_tree); //use the flat ntuple API.
+  if(!ntu.initialize(a_out)) {
+    a_out << "root2aida : can't initialize ntuple." << std::endl;
+    a_aida = 0;
+    return false;
+  }
+
+  inlib::aida::ntuple* aida_tuple = new inlib::aida::ntuple(a_out,a_tree.title());
+
+  typedef inlib::read::icolumn<float> root_fcol_t;
+  std::vector<root_fcol_t*> root_fcols;
+  typedef inlib::read::icolumn<double> root_dcol_t;
+  std::vector<root_dcol_t*> root_dcols;
+  typedef inlib::read::icolumn<int> root_icol_t;
+  std::vector<root_icol_t*> root_icols;
+
+  typedef inlib::aida::aida_col<double> aida_col_t;
+  std::vector<aida_col_t*> aida_cols;
+
+  inlib_vforcit(inlib::read::icol*,ntu.columns(),it) {
+   {root_dcol_t* root_col = inlib::id_cast<inlib::read::icol,root_dcol_t>(*(*it));    
+    if(root_col) {
+      root_fcols.push_back(0);
+      root_dcols.push_back(root_col);
+      root_icols.push_back(0);
+      aida_cols.push_back(aida_tuple->create_col<double>(root_col->name()));
+      continue;
+   }}
+   {root_fcol_t* root_col = inlib::id_cast<inlib::read::icol,root_fcol_t>(*(*it));    
+    if(root_col) {
+      root_fcols.push_back(root_col);
+      root_dcols.push_back(0);
+      root_icols.push_back(0);
+      aida_cols.push_back(aida_tuple->create_col<double>(root_col->name()));
+      continue;
+    }}
+   {root_icol_t* root_col = inlib::id_cast<inlib::read::icol,root_icol_t>(*(*it));    
+    if(root_col) {
+      root_fcols.push_back(0);
+      root_dcols.push_back(0);
+      root_icols.push_back(root_col);
+      aida_cols.push_back(aida_tuple->create_col<double>(root_col->name()));
+      continue;
+    }}
+
+    std::string scid;
+    if(!inlib::cid2s((*it)->id_cls(),scid)) {}
+    a_out << "root2aida : a root_col " << inlib::sout((*it)->name())
+          << " is not of type double or float. id_cls() is " << (*it)->id_cls() << " (" << scid << ")."
+          << " Continue." << std::endl;
+    //delete aida_tuple;
+    //a_aida = 0;
+    //return false;
+  }
+
+  size_t coln = aida_cols.size();
+
+  float fvalue;
+  double dvalue;
+  int ivalue;
+  bool status;
+
+  ntu.start();
+  while(ntu.next()){
+    status = true;
+    for(size_t coli=0;coli<coln;coli++) {
+      if(root_fcols[coli]) {
+        if(!root_fcols[coli]->get_entry(fvalue)) {
+          a_out << "root2aida : root_fcol.get_entry() failed." << std::endl;
+          status = false;
+          break;
+        }
+        if(!aida_cols[coli]->fill(fvalue)) {
+          a_out << "root2aida : aida_col fill failed." << std::endl;
+          status = false;
+          break;
+        }
+      } else if(root_dcols[coli]) {
+        if(!root_dcols[coli]->get_entry(dvalue)) {
+          a_out << "root2aida : root_dcol.get_entry() failed." << std::endl;
+          status = false;
+          break;
+        }
+        if(!aida_cols[coli]->fill(dvalue)) {
+          a_out << "root2aida : aida_col fill failed." << std::endl;
+          status = false;
+          break;
+        }
+      } else if(root_icols[coli]) {
+        if(!root_icols[coli]->get_entry(ivalue)) {
+          a_out << "root2aida : root_icol.get_entry() failed." << std::endl;
+          status = false;
+          break;
+        }
+        if(!aida_cols[coli]->fill(double(ivalue))) {
+          a_out << "root2aida : aida_col fill failed." << std::endl;
+          status = false;
+          break;
+        }
+      }
+    }
+    if(!status || !aida_tuple->add_row()) {
+      a_out << "root2aida : aida ntuple fill failed." << std::endl;
+      delete aida_tuple;
+      a_aida = 0;
+      return false;
+    }
+  }
+
+  a_aida = aida_tuple;
+  return true;
+}
+
+}
+
+#endif //root_aida

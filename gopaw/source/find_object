@@ -1,0 +1,817 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_find_object
+#define gopaw_find_object
+
+#include "session"
+
+namespace gopaw {
+
+inline bool is_pawc_path(const std::string& a_PATH,bool& a_is,std::string& a_string) {
+  if((a_PATH.size()<2)||(a_PATH.substr(0,2)!="//")) {
+    a_is = false;
+    a_string = a_PATH;
+    return true;
+  }
+
+  std::vector<std::string> words;
+  inlib::words(a_PATH,"/",false,words);
+
+  if(!words.size()) {
+    a_is = false;
+    a_string.clear();
+    return false;
+  }
+
+  std::string sunit = words[0];
+  inlib::touppercase(sunit);
+  if(sunit!="PAWC") {
+    a_is = false;
+    a_string = a_PATH;
+    return true;
+  }
+
+  // //PAWC/item_1/item_2
+  // a_string = item_1/item_2
+
+  a_string.clear();
+  for(unsigned index = 1;index<words.size();index++){
+    if(index!=1) a_string += "/";
+    a_string += words[index];
+  }
+
+  a_is = true;
+  return true;
+}
+
+inline bool is_unit_path(const std::string& a_PATH,bool& a_is,std::string& a_string,int& a_unit) {
+  if((a_PATH.size()<2)||(a_PATH.substr(0,2)!="//")) {
+    a_is = false;
+    a_string = a_PATH;
+    a_unit = 0;
+    return true;
+  }
+
+  std::vector<std::string> words;
+  inlib::words(a_PATH,"/",false,words);
+
+  if(!words.size()) {
+    a_is = false;
+    a_string.clear();
+    a_unit = 0;
+    return false;
+  }
+
+  std::string sunit = words[0];
+  inlib::touppercase(sunit);
+
+  if((sunit.size()<3) || (sunit.substr(0,3)!="LUN")) {
+    a_is = false;
+    a_string = a_PATH;
+    a_unit = 0;
+    return true;
+  }
+
+  sunit = sunit.substr(3,sunit.size()-3);
+  if(!inlib::to(sunit,a_unit)) {
+    a_is = false;
+    a_string.clear();
+    a_unit = 0;
+    return false;
+  }
+
+  // //LUN<int>/item_1/item_2
+  // a_string = item_1/item_2
+
+  a_string.clear();
+  for(unsigned index = 1;index<words.size();index++){
+    if(index!=1) a_string += "/";
+    a_string += words[index];
+  }
+
+  a_is = true;
+  return true;
+}
+
+inline bool create_vectors(std::ostream& a_out,std::vector<gopaw::function_manager::function_args> a_args,
+                           gopaw::session& a_session,std::vector< std::vector<vector_t*> >& a_vctss) {
+  a_vctss.clear();
+
+  // Handle VECTOR
+  unsigned int funcn = a_args.size();
+  for(unsigned int funci=0;funci<funcn;funci++) {
+    std::vector<vector_t*> vcts;
+    unsigned int argn = a_args[funci].size();
+    for(unsigned int argi=0;argi<argn;argi++) {
+      inlib::value& v = a_args[funci][argi];
+      if(a_session.verbose_level()) {
+        std::string stype;
+        v.tos(stype);
+        a_out << "gopaw::create_vectors : arg : name " << inlib::sout(v.label()) << ", type " << stype << std::endl;
+      }
+      if(v.type()==inlib::value::DOUBLE_STAR) {
+        vector_t* vector = 0;
+	bool status = a_session.find_vector(v.label(),vector);
+
+        if(v.itag()==0) {
+          // Expect that the vector already exists. Check that.
+	  if(!status) {
+            a_out << "gopaw::create_vectors :" 
+                  << " vector " << inlib::sout(v.label()) << " not found."
+                  << std::endl;
+            a_vctss.clear();
+            return false;
+          }
+          if(a_session.verbose_level()) {
+            a_out << "gopaw::create_vectors : found vector (dim=0) " << inlib::sout(v.label()) << "." << std::endl;
+          }
+	  
+        } else { 
+
+	  if(status) {
+            if(vector->size()!=v.itag()) {
+              a_out << "pafort :" 
+                    << " dimension mismatch for vector " 
+                    << inlib::sout(v.label()) 
+                    << ". In code " << v.itag()
+                    << " whilst booked size is " << vector->size() 
+                    << "."
+                    << std::endl;
+              a_vctss.clear();
+              return false;
+            }
+            if(a_session.verbose_level()) {
+              a_out << "gopaw::create_vectors :"
+	            << " found vector " << inlib::sout(v.label()) << ", size = " << vector->size() << "."
+                    << std::endl;
+             }
+	     
+          } else {
+            // Create vector :
+            std::vector<unsigned int> orders(1);
+            orders[0] = v.itag();
+            vector = new vector_t(orders);
+            if(!vector) {
+               a_out << "pafort :" 
+                     << " can't create vector " 
+                     << inlib::sout(v.label()) << "."
+                     << std::endl;
+               a_vctss.clear();
+               return false;
+            }
+            if(a_session.verbose_level()) {
+              a_out << "gopaw::create_vectors : create vector " << inlib::sout(v.label()) << "." << std::endl;
+            }
+            a_session.add_vector(v.label(),vector);
+          }
+        }
+        vcts.push_back(vector);
+      } else { //Not a vector
+        if(a_session.verbose_level()) {
+          a_out << "gopaw::create_vector : inlib::value " << inlib::sout(v.label()) << " not of type DOUBLE_STAR." << std::endl;
+        }
+      }
+
+    }
+    
+    a_vctss.push_back(vcts);
+
+  }
+
+  return true;
+}
+
+inline bool find(const std::string& a_paths,const std::string& a_sep,const std::string& a_name,std::string& a_path) {
+  if(inlib::file::exists(a_name)) {
+    a_path = a_name;
+    return true;
+  }
+  std::vector<std::string> v;
+  inlib::words(a_paths,a_sep,false,v);
+  inlib_vforcit(std::string,v,it) {
+    a_path = (*it)+"/"+a_name;    
+    if(inlib::file::exists(a_path)) return true;
+  }
+  a_path.clear();
+  return false;
+}
+
+}
+
+#include <inlib/rroot/file>
+#include <inlib/rroot/rall>
+#include <inlib/rroot/THistogram>
+
+#ifdef APP_USE_HDF5
+#include <exlib/hdf5/group_exists>
+#endif
+
+namespace gopaw {
+
+/*
+template <class HIST>
+bool histo_find(gopaw::session& a_session,const std::string& a_NAME,HIST*& a_hist) {
+  a_hist = 0;
+
+  std::string path;
+ {bool is_pawc;
+  if(!is_pawc_path(a_NAME,is_pawc,path)) {
+    a_session.out() << "histo_find : syntax error in " << inlib::sout(a_NAME) << std::endl;
+    return false;
+  }
+  if(inlib::dir_name(path).size()) {
+    a_session.out() << "histo_find : a_NAME " << inlib::sout(a_NAME)
+                    << " : do not expect a directory in " << inlib::sout(path) << "." << std::endl;
+    return false;
+  }}
+  HIST* histo;
+  if(a_session.find_object(path,histo)) {a_hist = histo;return true;}
+
+  // look if there is a rroot file around : 
+  inlib::rroot::file* root_file = 0;
+  inlib::rroot::directory* root_dir = 0;
+  if(!a_session.find_current_root_file(root_file,root_dir)) return false;
+  const std::vector<inlib::rroot::key*>& keys = root_dir->keys();
+  inlib_vforcit(inlib::rroot::key*,keys,it) {
+    if((*it)->object_name()==path) {
+      HIST* histo = inlib::rroot::key_to_h1d(*root_file,*(*it),false);
+      if(histo) {
+        a_session.remove_handle((*it)->object_name());
+        a_session.add_handle((*it)->object_name(),histo);
+        a_histo = histo;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+*/
+
+}
+
+#ifdef APP_USE_HDF5
+#include <inlib/tools_histo>
+#endif
+
+namespace gopaw {
+
+inline inlib::histo::h1d* h1d_find(gopaw::session& a_session,const std::string& a_NAME) {
+  std::string path;
+ {bool is_pawc;
+  if(!is_pawc_path(a_NAME,is_pawc,path)) {
+    a_session.out() << "h1d_find : syntax error in " << inlib::sout(a_NAME) << std::endl;
+    return 0;
+  }
+  if(inlib::dir_name(path).size()) {
+    a_session.out() << "h1d_find : a_NAME " << inlib::sout(a_NAME)
+                    << " : do not expect a directory in " << inlib::sout(path) << "." << std::endl;
+    return 0;
+  }}
+
+  inlib::histo::h1d* histo;
+  if(a_session.find_object(path,histo)) return histo;
+
+  // look if there is a rroot file around : 
+ {inlib::rroot::file* root_file = 0;
+  inlib::rroot::directory* root_dir = 0;
+  if(a_session.find_current_rroot_file(root_file,root_dir)) {
+    const std::vector<inlib::rroot::key*>& keys = root_dir->keys();
+    inlib_vforcit(inlib::rroot::key*,keys,it) {
+      if((*it)->object_name()==path) {
+       {inlib::histo::h1d* histo = inlib::rroot::key_to_h1d(*root_file,*(*it),false);
+        if(histo) {
+          a_session.remove_handle((*it)->object_name());
+          a_session.add_handle((*it)->object_name(),histo);
+          return histo;
+        }}
+       {inlib::rroot::pd_data_t data;
+        inlib::rroot::annotations_t annotations;
+        if(inlib::rroot::read_key_THistogram(*root_file,*(*it),data,annotations,false)) {
+          inlib::histo::h1d* histo = inlib::rroot::THistogram_to_h1d(data);
+          if(histo) {
+            a_session.remove_handle((*it)->object_name());
+            a_session.add_handle((*it)->object_name(),histo);
+            return histo;
+          }
+        }}
+      }
+    }
+  }}
+
+#ifdef APP_USE_HDF5
+ {hid_t hdf5_file = (-1);
+  hid_t hdf5_dir = (-1);
+  if(a_session.find_current_hdf5_file(hdf5_file,hdf5_dir)) {
+    //a_session.out() << "h1d_find : hdf5 : search object " << inlib::sout(path) << std::endl;
+    const std::string& object_name = path;
+    if((hdf5_file!=(-1)) && (hdf5_dir!=(-1)) && exlib::hdf5::group_exists(hdf5_dir,object_name)) {
+     {inlib::histo::h1d* histo;
+      if(exlib::hdf5::read_histo(a_session.out(),hdf5_dir,object_name,histo,false)) {
+        a_session.remove_handle(object_name);
+        a_session.add_handle(object_name,histo);
+        return histo;
+      }}
+     {tools::histo::h1d* histo;
+      if(exlib::hdf5::read_histo(a_session.out(),hdf5_dir,object_name,histo,false)) {
+        a_session.remove_handle(object_name);
+        a_session.add_handle(object_name,histo);
+        return histo;
+      }}
+    }      
+  }}
+#endif //APP_USE_HDF5
+
+  return 0;
+}
+
+inline inlib::histo::h2d* h2d_find(gopaw::session& a_session,const std::string& a_NAME) {
+  std::string path;
+ {bool is_pawc;
+  if(!is_pawc_path(a_NAME,is_pawc,path)) {
+    a_session.out() << "h2d_find : syntax error in " << inlib::sout(a_NAME) << std::endl;
+    return 0;
+  }
+  if(inlib::dir_name(path).size()) {
+    a_session.out() << "h2d_find : a_NAME " << inlib::sout(a_NAME)
+                    << " : do not expect a directory in " << inlib::sout(path) << "." << std::endl;
+    return 0;
+  }}
+
+  inlib::histo::h2d* histo;
+  if(a_session.find_object(path,histo)) return histo;
+
+  // look if there is a rroot file around : 
+ {inlib::rroot::file* root_file = 0;
+  inlib::rroot::directory* root_dir = 0;
+  if(a_session.find_current_rroot_file(root_file,root_dir)) {
+    const std::vector<inlib::rroot::key*>& keys = root_dir->keys();
+    inlib_vforcit(inlib::rroot::key*,keys,it) {
+      if((*it)->object_name()==path) {
+       {inlib::histo::h2d* histo = inlib::rroot::key_to_h2d(*root_file,*(*it),false);
+        if(histo) {
+          a_session.remove_handle((*it)->object_name());
+          a_session.add_handle((*it)->object_name(),histo);
+          return histo;
+        }}
+       {inlib::rroot::pd_data_t data;
+        inlib::rroot::annotations_t annotations;
+        if(inlib::rroot::read_key_THistogram(*root_file,*(*it),data,annotations,false)) {
+          inlib::histo::h2d* histo = inlib::rroot::THistogram_to_h2d(data);
+          if(histo) {
+            a_session.remove_handle((*it)->object_name());
+            a_session.add_handle((*it)->object_name(),histo);
+            return histo;
+          }
+        }}
+      }
+    }
+  }}
+
+#ifdef APP_USE_HDF5
+ {hid_t hdf5_file = (-1);
+  hid_t hdf5_dir = (-1);
+  if(a_session.find_current_hdf5_file(hdf5_file,hdf5_dir)) {
+    //a_session.out() << "h2d_find : hdf5 : search object " << inlib::sout(path) << std::endl;
+    const std::string& object_name = path;
+    if((hdf5_file!=(-1)) && (hdf5_dir!=(-1)) && exlib::hdf5::group_exists(hdf5_dir,object_name)) {
+     {inlib::histo::h2d* histo;
+      if(exlib::hdf5::read_histo(a_session.out(),hdf5_dir,object_name,histo,false)) {
+        a_session.remove_handle(object_name);
+        a_session.add_handle(object_name,histo);
+        return histo;
+      }}
+     {tools::histo::h2d* histo;
+      if(exlib::hdf5::read_histo(a_session.out(),hdf5_dir,object_name,histo,false)) {
+        a_session.remove_handle(object_name);
+        a_session.add_handle(object_name,histo);
+        return histo;
+      }}
+    }
+  }}
+#endif //APP_USE_HDF5
+
+  return 0;
+}
+
+}
+
+#include "root_aida"
+#include <inlib/rroot/file>
+#include <inlib/rroot/rall>
+
+#ifdef APP_USE_HDF5
+#include "hdf5_aida"
+#endif
+
+#ifdef APP_USE_CFITSIO
+#include "fits_aida"
+#endif
+
+namespace gopaw {
+
+inline inlib::aida::ntuple* tuple_find(gopaw::session& a_session,const std::string& a_NAME) {
+  std::ostream& out = a_session.out();
+
+  std::string path;
+  bool is_unit;
+  int unit;
+  if(!is_unit_path(a_NAME,is_unit,path,unit)) {
+    out << "tuple_find : syntax error in " << inlib::sout(a_NAME) << std::endl;
+    return 0;
+  }
+  if(inlib::dir_name(path).size()) {
+    a_session.out() << "tuple_find : a_NAME " << inlib::sout(a_NAME)
+                    << " : do not expect a directory in " << inlib::sout(path) << "." << std::endl;
+    return 0;
+  }    
+  if(!is_unit) {
+    inlib::aida::ntuple* tuple;
+    if(a_session.find_object(path,tuple)) return tuple;
+  }
+
+ {inlib::rroot::file* root_file = 0;
+  inlib::rroot::directory* root_dir = 0;
+  if(!is_unit) {
+    if(!a_session.find_current_rroot_file(root_file,root_dir)) {} // look if there is a rroot file around : 
+  } else {
+    if(!a_session.find_rroot_file(unit,root_file,root_dir)) {}
+  }
+  if(root_file && root_dir) {
+    //inlib::rroot::directory& dir = root_file->dir();
+    inlib_vforcit(inlib::rroot::key*,root_dir->keys(),it) {
+      if((*it)->object_name()==path) {
+        inlib::rroot::fac fac(out);
+        inlib::rroot::tree* tree = inlib::rroot::key_to_tree(*root_file,fac,*(*it),false);
+        if(tree) { //object may be not a rroot::tree.
+          inlib::aida::ntuple* aida_tuple;
+          if(!root2aida(out,*tree,aida_tuple)) {delete tree;return 0;}
+          delete tree;
+          a_session.remove_handle((*it)->object_name());
+          a_session.add_handle((*it)->object_name(),aida_tuple);
+          return aida_tuple;
+        }
+      }
+    }
+  }}
+  
+#ifdef APP_USE_HDF5
+ {hid_t hdf5_file = (-1);
+  hid_t hdf5_dir = (-1);
+  if(!is_unit) {
+    if(!a_session.find_current_hdf5_file(hdf5_file,hdf5_dir)) {} // look if there is a hdf5 file around.
+  } else {
+    if(!a_session.find_hdf5_file(unit,hdf5_file,hdf5_dir)) {}
+  }
+  if((hdf5_file!=(-1))&&(hdf5_dir!=(-1))) {
+    //a_session.out() << "tuple_find : hdf5 : search object " << inlib::sout(path) << " ..." << std::endl;
+    const std::string& object_name = path;
+    if(exlib::hdf5::group_exists(hdf5_dir,object_name)) {
+      //a_session.out() << "tuple_find : hdf5 : found object " << inlib::sout(path) << "." << std::endl;
+      exlib::hdf5::ntuple ntuple(a_session.out(),hdf5_dir,object_name);
+      //a_session.out() << "tuple_find : hdf5 : found : columns " << ntuple.columns().size() << std::endl;
+      inlib::aida::ntuple* aida_tuple;
+      if(!hdf52aida(out,ntuple,aida_tuple)) return 0;
+      a_session.remove_handle(object_name);
+      a_session.add_handle(object_name,aida_tuple);
+      return aida_tuple;
+    }      
+  /*
+    std::vector<std::string> words;
+    inlib::words(path,"/",false,words);
+    if(!words.size()) {
+      a_session.out() << "tuple_find : hdf5 : bad path " << inlib::sout(path) << "." << std::endl;
+    } else {
+      std::vector<hid_t> dirs;
+      hid_t directory = hdf5_file;
+     {for(unsigned index = 0;index<(words.size()-1);index++){
+        hid_t dir = exlib_H5Gopen(directory,words[index].c_str());
+        if(dir<0) {
+          a_session.out() << "tuple_find : hdf5 : directory " << inlib::sout(words[index]) << " not found." << std::endl;
+	  directory = (-1);
+	  break;
+        }
+        if(dir!=hdf5_file) dirs.push_back(dir);
+        directory = dir;	
+      }}
+      if(directory<0) {
+      } else {
+        const std::string& sobj = words[words.size()-1];
+        a_session.out() << "tuple_find : hdf5 : search object " << inlib::sout(sobj) << ", path " << inlib::sout(path) << std::endl;
+        exlib::hdf5::ntuple ntuple(a_session.out(),directory,"rg_rbw");
+        a_session.out() << "tuple_find : hdf5 : found : columns " << ntuple.columns().size() << std::endl;
+        inlib::aida::ntuple* aida_tuple;
+        if(!hdf52aida(out,ntuple,aida_tuple)) {
+         {inlib_vforcit(hid_t,dirs,it) ::H5Gclose(*it);}
+	  return 0;
+        }	  
+        a_session.remove_handle(sobj);
+        a_session.add_handle(sobj,aida_tuple);
+       {inlib_vforcit(hid_t,dirs,it) ::H5Gclose(*it);}
+        return aida_tuple;
+      }
+     {inlib_vforcit(hid_t,dirs,it) ::H5Gclose(*it);}
+    }
+    */
+  }}
+#endif //APP_USE_HDF5
+
+#ifdef APP_USE_CFITSIO
+ {exlib::cfitsio::file* fits_file = 0;
+  if(!is_unit) {
+    if(!a_session.find_current_fits_file(fits_file)) {} // look if there is a fits file around
+  } else {
+    if(!a_session.find_fits_file(unit,fits_file)) {}
+  }
+  if(fits_file) {
+    //a_session.out() << "tuple_find : fits : search object " << inlib::sout(path) << " ..." << std::endl;
+    const std::string& object_name = path;
+    unsigned int hdu;
+    if(!inlib::to<unsigned int>(object_name,hdu)) {
+      a_session.out() << "tuple_find : can't convert string " << inlib::sout(object_name)
+                      << " to an HDU (unsigned int)." << std::endl;
+      return 0;
+    }
+    inlib::aida::ntuple* aida_tuple;
+    if(!fits2aida(out,fits_file->path(),hdu,aida_tuple)) return 0;
+    //a_session.out() << "tuple_find : file : found : columns " << aida_tuple->columns() << std::endl;
+    a_session.remove_handle(object_name);
+    a_session.add_handle(object_name,aida_tuple);
+    return aida_tuple;
+  }}
+#endif //APP_USE_CFITSIO
+
+  return 0;
+}
+
+}
+
+#ifdef APP_USE_CFITSIO
+#include <exlib/fits_image>
+
+namespace gopaw {
+
+inline exlib::fits_image::img* image_find(gopaw::session& a_session,const std::string& a_NAME,unsigned int a_slice) {
+  std::ostream& out = a_session.out();
+
+  std::string path;
+  bool is_unit;
+  int unit;
+  if(!is_unit_path(a_NAME,is_unit,path,unit)) {
+    out << "image_find : syntax error in " << inlib::sout(a_NAME) << std::endl;
+    return 0;
+  }
+  if(inlib::dir_name(path).size()) {
+    out << "image_find : a_NAME " << inlib::sout(a_NAME)
+        << " : do not expect a directory in " << inlib::sout(path) << "." << std::endl;
+    return 0;
+  }    
+  if(!is_unit) {
+    exlib::fits_image::img* img;
+    if(a_session.find_object(path,img)) return img;
+  }
+
+ {exlib::cfitsio::file* fits_file = 0;
+  if(!is_unit) {
+    if(!a_session.find_current_fits_file(fits_file)) {} // look if there is a fits file around
+  } else {
+    if(!a_session.find_fits_file(unit,fits_file)) {}
+  }
+  if(fits_file) {
+    //out << "image_find : fits : search object " << inlib::sout(path) << " ..." << std::endl;
+    const std::string& object_name = path;
+    unsigned int hdu;
+    if(!inlib::to<unsigned int>(object_name,hdu)) {
+      out << "image_find : can't convert string " << inlib::sout(object_name)
+          << " to an HDU (unsigned int)." << std::endl;
+      return 0;
+    }
+    unsigned int width,height;
+    size_t sz;
+    int bitpix;
+    char* buffer = exlib::fits_image::read_slice(out,*fits_file,hdu,a_slice,width,height,sz,bitpix);
+    if(!buffer) {
+      out << "image_find : exlib::fits_image::read_slice() for hdu " << inlib::sout(object_name)
+          << " and slice " << a_slice << "." << std::endl;
+      return 0;
+    }
+#ifdef INLIB_MEM
+    inlib::mem::decrement(inlib::s_new().c_str());
+#endif
+    exlib::fits_image::img* img = new exlib::fits_image::img(width,height,bitpix,buffer,true);
+    //out << "tuple_find : file : found : columns " << aida_tuple->columns() << std::endl;
+    a_session.remove_handle(object_name);
+    a_session.add_handle(object_name,img);
+    return img;
+  }}
+
+  return 0;
+}
+
+}
+#endif //APP_USE_CFITSIO
+
+#include "funcs"
+
+namespace gopaw {
+
+inline base_func* create_function_vector(std::ostream& a_out,
+					 const std::string& a_name,const std::string& a_paths,const std::string& a_codelet,
+                                         gopaw::session& a_session,bool a_retain_arrays) {
+  //out << "create_function_vector : name " << inlib::sout(a_name)
+  //    << ", codelet " << inlib::sout(a_codelet)  << " ..." << std::endl;
+
+  base_func* afunc = 0;
+
+  //a_codelet : [<kind>:][<model>][;<file>] //kind=scripted,compiled or empty=linked.
+
+  std::string FILE;
+  std::string KIND;
+  std::string MODEL;
+ {std::string rest;
+  std::string::size_type pos = a_codelet.rfind(';');
+  if(pos==std::string::npos) {
+    rest = a_codelet;
+  } else {
+    rest = a_codelet.substr(0,pos);
+    FILE = a_codelet.substr(pos+1,a_codelet.size()-(pos+1));
+  }
+  pos = rest.find(':');
+  if(pos==std::string::npos) {
+    MODEL = rest;
+  } else {
+    KIND = rest.substr(0,pos);
+    MODEL = rest.substr(pos+1,rest.size()-(pos+1));
+  }
+  if(FILE.empty()) {
+    pos = MODEL.rfind('.');
+    if(pos!=std::string::npos) {
+      rest = MODEL.substr(pos,MODEL.size()-pos); //rest = .<something>
+      if(inlib::is_cpp(rest)||inlib::is_f77(rest)
+#ifdef APP_USE_PYTHON
+         ||inlib::is_python(rest)
+#endif	 
+	 ) {
+	FILE = MODEL;
+        MODEL = MODEL.substr(0,pos);
+      } else {
+        //may be a script containing a dot : cos(x*2.0)
+        // Can we have a script containing ".c" ?
+      }
+    }
+  }}
+
+  // Extract name/parameters from MODEL :
+  std::string sfunc;
+ {std::vector<std::string> sargs;
+  if(!inlib::name_args(MODEL,sfunc,sargs)) {
+    a_out << "create_function_vector : syntax error in " << inlib::sout(MODEL)
+        << " Codelet was " << inlib::sout(a_codelet)
+        << std::endl;
+    return 0;
+  }}
+
+  if(a_session.verbose_level()) {
+    a_out << "create_function_vector : codelet = " << inlib::sout(a_codelet)
+         << ", KIND " << inlib::sout(KIND) << ", MODEL " << inlib::sout(MODEL) << ", FILE " << inlib::sout(FILE)
+         << ", sfunc " << inlib::sout(sfunc) << std::endl;
+  }
+
+  bool is_cpp = inlib::is_cpp(FILE);
+  bool is_f77 = inlib::is_f77(FILE);
+#ifdef APP_USE_PYTHON
+  bool is_python = inlib::is_python(FILE);
+#endif  
+  if(is_cpp||is_f77
+#ifdef APP_USE_PYTHON
+     ||is_python
+#endif     
+     ){
+    if(is_f77) inlib::touppercase(sfunc);
+
+    //On the fly compilation. Search file...
+    std::string path;
+    if(!find(a_paths,",",FILE,path)) {
+      a_out << "create_function_vector : file " << inlib::sout(FILE) << " not found."
+  	  << " Codelet was " << inlib::sout(a_codelet)
+          << std::endl;
+      return 0;
+    }
+
+    // Check for usage of VECTOR :
+    std::vector<std::string> funcs;
+    std::vector<gopaw::function_manager::function_args> args;
+    if(is_f77) {
+      if(a_session.verbose_level()) a_out << "create_function_vector : find_f77_functions ..." << std::endl;
+      if(!gopaw::function_manager::find_f77_functions(path,funcs,args,a_out,a_session.verbose_level())) {
+        a_out << "create_function_vector : f77 : can't get arguments in file " << inlib::sout(path)
+            << " Codelet was " << inlib::sout(a_codelet)
+	    << std::endl;
+        return 0;
+      }
+    }
+    if(is_cpp) {
+      if(a_session.verbose_level()) a_out << "create_function_vector : find_cpp_functions ..." << std::endl;
+      std::vector<unsigned int> parns;
+      if(!gopaw::function_manager::find_cpp_functions(path,funcs,args,parns)) {
+        a_out << "create_function_vector : cpp : can't get arguments in file " << inlib::sout(path)	
+            << " Codelet was " << inlib::sout(a_codelet)
+            << std::endl;
+        return 0;
+      }
+    }
+#ifdef APP_USE_PYTHON
+    if(is_python) {
+      if(a_session.verbose_level()) a_out << "create_function_vector : find_py_functions ..." << std::endl;
+      std::vector<unsigned int> parns;
+      if(!gopaw::function_manager::find_py_functions(a_out,path,funcs,args,parns,a_session.verbose_level())) {
+        a_out << "create_function_vector : py : can't get arguments in file " << inlib::sout(path)	
+            << " Codelet was " << inlib::sout(a_codelet)
+            << std::endl;
+        return 0;
+      }
+    }
+#endif
+
+    std::vector< std::vector<vector_t*> > vctss;
+    if(!create_vectors(a_out,args,a_session,vctss)) {
+      a_out << "create_function_vector : problem creating vectors."
+	  << " Codelet was " << inlib::sout(a_codelet)
+          << std::endl;
+      return 0;
+    }
+
+    gopaw::ifunction* func = a_session.function_manager().find_function(path,sfunc); //search case insensitive.
+    if(!func) {
+      a_out << "create_function_vector :" 
+          << " function " << inlib::sout(sfunc) << " not found"
+          << " in file " << inlib::sout(path) << "."
+          << " Codelet was " << inlib::sout(a_codelet)
+          << std::endl;
+      return 0;
+    }
+    // WARNING : func is managed by the gopaw::function_manager.
+
+    if(a_session.verbose_level()) a_out << "create_function_vector : gopaw::ifunction found." << std::endl;
+
+    unsigned int funci = 0;
+    bool found = false;
+   {unsigned int funcn = funcs.size();
+    sfunc = inlib::nosuffix(sfunc);
+    for(funci=0;funci<funcn;funci++) {
+      if(funcs[funci]==sfunc) { //Found function.
+        found = true;
+        break;
+      }
+    }}
+    if(!found) {
+      a_out << "create_function_vector :" 
+          << " can't find " << inlib::sout(sfunc) 
+          << " in list of functions from file " << inlib::sout(path) << "."
+          << " Codelet was " << inlib::sout(a_codelet)
+	  << std::endl;
+      return 0;
+    }
+
+    if(a_session.verbose_level()) a_out << "create_function_vector : create a gopaw::compiled()." << std::endl;
+
+    // WARNING : func is not own by the below object :
+    compiled* bfunc = new compiled(a_out,a_session.get_hbook(),&a_session,func,vctss[funci],a_retain_arrays);
+    bfunc->set_title(sfunc);
+    
+    afunc = bfunc;
+
+  } else {
+
+    if(a_session.verbose_level()) a_out << "create_function_vector : not f77, cpp, py ..." << std::endl;
+    
+    gopaw::ifunction* func = a_session.function_manager().find_function("",sfunc); //search case insensitive.
+    if(func) {
+      // WARNING : func is not own by the below object :
+      if(a_session.verbose_level()) a_out << "create_function_vector : create a gopaw::compiled()." << std::endl;
+      compiled* bfunc = new compiled(a_out,a_session.get_hbook(),&a_session,func);
+      bfunc->set_title(sfunc);
+      afunc = bfunc;
+
+    } else {
+      if(a_session.verbose_level()) a_out << "create_function_vector : create gopaw::scripted()." << std::endl;
+      inlib::tolowercase(MODEL);
+      scripted* func = new scripted(a_out,MODEL);
+      if(!func->is_valid()) {
+        a_out << "create_function_vector : scripted function with codelet " << inlib::sout(MODEL) << " not valid."
+	    << " Codelet was " << inlib::sout(a_codelet) << std::endl;
+        delete func;
+        return 0;
+      }
+      func->set_title(MODEL); 
+      afunc = func;
+    }
+  }
+
+  return afunc;
+}
+
+}
+
+#endif //gopaw_find_object

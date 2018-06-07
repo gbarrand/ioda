@@ -1,0 +1,28 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_ifunction
+#define gopaw_ifunction
+
+#include <inlib/value>
+
+namespace gopaw {
+
+class ifunction {
+public:
+  virtual ~ifunction() {};
+public:
+  virtual std::string file() const = 0;
+  virtual std::string model() const = 0;
+//virtual void* address() const = 0;
+  virtual unsigned int dimension() const = 0;
+  virtual unsigned int numberOfParameters() const = 0;
+//virtual bool value(const std::vector<double>&,double&) const = 0;
+  virtual bool value(const std::vector<inlib::value*>&,inlib::value&) const = 0;
+
+  virtual std::vector<inlib::value*> signature(inlib::value*&) const = 0;
+};
+
+}
+
+#endif

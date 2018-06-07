@@ -1,0 +1,2897 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_session
+#define gopaw_session
+
+#include "iui"
+
+#include "LUN"
+#include "hbook.h"
+#include "function_manager"
+
+#include <exlib/yacc/cexpr_eval.h>
+
+#include <inlib/params>
+#include <inlib/array>
+#include <inlib/touplow>
+#include <inlib/handle>
+#include <inlib/random>
+#include <inlib/value>
+#include <inlib/vpair>
+#include <inlib/strip>
+#include <inlib/sjust>
+#include <inlib/sort>
+#include <inlib/sys/atime>
+#include <inlib/not_found>
+
+#include <inlib/sg/h2plot_cp>
+#include <inlib/sg/cloud2plot_cp>
+#include <inlib/sg/f2plot>
+#include <inlib/sg/dps2plot>
+
+#ifdef APP_USE_EXPAT
+#include <inlib/xml/styles>
+#include <inlib/sg/plotter_style>
+
+#include <exlib/xml/xml_style>
+#include <inlib/xml/wrap_viewplot_style> // inlib/xml/viewplot.style file embeded in an inline function.
+inline bool load_embeded_styles(inlib::xml::styles& a_styles) {
+  std::string ss;
+  unsigned int linen;
+  const char** lines = viewplot_style(linen);
+  for(unsigned int index=0;index<linen;index++) {
+    std::string s = lines[index];
+    inlib::replace(s,"@@double_quote@@","\"");
+    inlib::replace(s,"@@back_slash@@","\\");
+    ss += s + "\n";
+  }
+  return exlib::xml::load_style_string(a_styles,ss);
+}
+#endif
+
+#ifdef APP_USE_PYTHON
+#include <exlib/py_opener>
+#endif
+
+extern "C" {
+  float _hrndm1(void* a_tag,int a_id);
+  void _hfill(void* a_tag,int a_id,float a_x,float a_y,float a_w);
+}
+
+namespace gopaw {
+
+class base_func;
+
+typedef std::map<unsigned int,gopaw::LUN> LUNs_t;
+typedef inlib::value value_t;
+typedef exlib::yacc::cexpr_eval ceval_t;
+
+typedef inlib::array<double> vector_t;
+typedef std::pair<std::string,vector_t*> named_vector;
+
+typedef std::pair<std::string,inlib::base_handle*> named_handle;
+
+// This is long to compile. Isolate it in a standalone files.
+
+inline int cat_HPLSET()    {return 0;}
+inline int cat_IGSET()     {return 1;}
+inline int cat_GOPAW_SET() {return 2;}
+
+
+inline int cat_HPLOPT()    {return 3;}
+inline int cat_GOPAW_OPT() {return 4;}
+
+inline int status_success() {return 0;}
+inline int status_failure() {return -1;}
+
+inline void att_opt_init(inlib::params<std::string,double>& aATT,inlib::params<std::string,std::string>& aOPT) {
+
+  //////////////////////////////////////////////////////////////////////
+  /// IGSET ////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //NOTE : have the IGSET first, since PASS,CSHI,BARO,BARW
+  //       exists also in cat_HPLSET().
+  aATT.add(cat_IGSET(),"FAIS","Fill area interior style",0,0,0);
+  aATT.add(cat_IGSET(),"FASI","Fill area style index",1,1,0);
+  aATT.add(cat_IGSET(),"LTYP","Line type",1,1,0);
+  aATT.add(cat_IGSET(),"BASL","Basic segment length (NDC)",0.150,0.010,0);
+  aATT.add(cat_IGSET(),"LWID","Line width",1.000,1.000,0);
+  aATT.add(cat_IGSET(),"MTYP","Marker type",1,1,0);
+  aATT.add(cat_IGSET(),"MSCF","Marker scale factor",1.000,1.000,0);
+  aATT.add(cat_IGSET(),"PLCI","Polyline color index",1,1,0);
+  aATT.add(cat_IGSET(),"PMCI","Polymarker color index",1,1,0);
+  aATT.add(cat_IGSET(),"FACI","Fill area color index",1,1,0);
+  aATT.add(cat_IGSET(),"TXCI","Text color index",1,1,0);
+  aATT.add(cat_IGSET(),"TXAL","Text alignment",0,0,0);
+  aATT.add(cat_IGSET(),"CHHE","Character height",0.280,0.280,0);
+  aATT.add(cat_IGSET(),"TANG","Text angle",0.000,0.000,0);
+  aATT.add(cat_IGSET(),"TXFP","Text font and precision",2,2,0);
+  aATT.add(cat_IGSET(),"PICT","Current automatic number",1,1,0);
+  aATT.add(cat_IGSET(),"BORD","Border flag",0,0,0);
+  //exist in cat_HPLSET() !
+  aATT.add(cat_IGSET(),"PASS","Number of pass in IGTEXT",1,1,0);
+  aATT.add(cat_IGSET(),"CSHI","IGTEXT shift",0.030,0.020,0);
+  //
+  aATT.add(cat_IGSET(),"LASI","Label axis size",0.018,0.018,0);
+  aATT.add(cat_IGSET(),"LAOF","Label axis offset",0.013,0.013,0);
+  aATT.add(cat_IGSET(),"TMSI","Tick marks size",0.019,0.019,0);
+  aATT.add(cat_IGSET(),"AWLN","Axis wire lenght",0.000,0.000,0);
+  //exist in cat_HPLSET() !
+  aATT.add(cat_IGSET(),"BARO","Offset of IGHIST (IGRAPH)",0.250,0.250,0);
+  aATT.add(cat_IGSET(),"BARW","Width of IGHIST (IGRAPH) bars",0.500,0.500,0);
+  //
+  aATT.add(cat_IGSET(),"NCOL","Number of COLors",8,8,0);
+  aATT.add(cat_IGSET(),"CLIP","Clipping mode",1,1,0);
+  aATT.add(cat_IGSET(),"NLIN","Number of line for 3D shapes",40,40,0);
+  aATT.add(cat_IGSET(),"AURZ","Automatic saving flag",0,0,0);
+  aATT.add(cat_IGSET(),"DIME","Dimension used (2D or 3D)",2,2,0);
+  aATT.add(cat_IGSET(),"ZBUF","Z-Buffer (1=on or 0=off)",0,0,0);
+
+  //////////////////////////////////////////////////////////////////////
+  /// HPLSET ///////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  // NOTE : the /GRAPHICS/SET command logic (see pagraf) is that a
+  //        value of 0 sets a HPLSET attribute to its default value.
+  //        Then an attribute can't be set to zero if its default
+  //        value is not zero.
+
+  aATT.add(cat_HPLSET(),"XSIZ","Size along X",20.00,20.00,0);
+  aATT.add(cat_HPLSET(),"YSIZ","Size along Y",20.00,20.00,0);
+  aATT.add(cat_HPLSET(),"XMGL","X MarGin Left",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"XMGR","X MarGin Right",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"XLAB","distance y axis to Label",1.40,1.40,0);
+  aATT.add(cat_HPLSET(),"XVAL","distance y axis to axis VALues",0.40,0.40,0);
+  aATT.add(cat_HPLSET(),"XTIC","X axis TICk marks length",0.30,0.30,0);
+  aATT.add(cat_HPLSET(),"YMGL","Y MarGin Low",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"YMGU","Y MarGin Up",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"YLAB","distance x axis to Label",0.80,0.80,0);
+  aATT.add(cat_HPLSET(),"YVAL","distance x axis to axis VALues",0.20,0.20,0);
+  aATT.add(cat_HPLSET(),"YTIC","Y axis TICk marks length",0.30,0.30,0);
+  aATT.add(cat_HPLSET(),"YNPG","Y position for Number of PaGe",0.60,0.60,0);
+  aATT.add(cat_HPLSET(),"YGTI","Y position of Global TItle",1.50,1.50,0);
+  aATT.add(cat_HPLSET(),"YHTI","Y position of Histogram TItle",1.20,1.20,0);
+  aATT.add(cat_HPLSET(),"SMGR","Stat MarGin Right (%)",0.00,0.00,0);
+  aATT.add(cat_HPLSET(),"SMGU","Stat MarGin Up (%)",0.00,0.00,0);
+  aATT.add(cat_HPLSET(),"CMMG","ColorMap MarGin",0.30,0.30,0);
+  aATT.add(cat_HPLSET(),"CVAL","distance Color map axis VALues",0.20,0.20,0);
+  aATT.add(cat_HPLSET(),"KSIZ","Hershey charact. (HPLKEY)",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"GSIZ","Global title SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"TSIZ","histogram Title SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"ASIZ","Axis label SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"CSIZ","Comment and stat SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"PSIZ","Page number SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"VSIZ","axis Values SIZe",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"SSIZ","aSterisk SIZe (for functions)",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"2SIZ","scatter-plot & table-char.",0.28,0.28,0);
+  aATT.add(cat_HPLSET(),"XWIN","X space between WINdows",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"YWIN","Y space between WINdows",2.00,2.00,0);
+  aATT.add(cat_HPLSET(),"HMAX","Histogram MAXimum for scale",0.90,0.90,0);
+  // add anyway PASS, CSHI, BARO, BARW in order that SHOW
+  // gives correct output. But the four belows are in
+  // principle not used.
+  aATT.add(cat_HPLSET(),"PASS","number of PASS for characters",1.00,1.00,0);
+  aATT.add(cat_HPLSET(),"CSHI","Character SHIft between 2 pass",0.03,0.03,0);
+  aATT.add(cat_HPLSET(),"BARO","BAR histogram Offset (%)",0.25,0.25,0);
+  aATT.add(cat_HPLSET(),"BARW","BAR histogram Width (%)",0.50,0.50,0);
+  //
+  aATT.add(cat_HPLSET(),"DASH","length of basic DASHed segment",0.15,0.15,0);
+  aATT.add(cat_HPLSET(),"DMOD","Dash MODe (or type) for lines",1,1,0);
+  aATT.add(cat_HPLSET(),"GRID","GRID line type",3,3,0);
+  aATT.add(cat_HPLSET(),"CMAP","Color MAP position",1,1,0);
+  aATT.add(cat_HPLSET(),"DATE","DATE position",2,2,0);
+  aATT.add(cat_HPLSET(),"FILE","FILE name position",1,1,0);
+  aATT.add(cat_HPLSET(),"STAT","STAT values to be plotted",1111,1111,0);
+  aATT.add(cat_HPLSET(),"FIT","FIT values to be plotted",101,101,0);
+  aATT.add(cat_HPLSET(),"HTYP","Histogram fill area TYPe",0,0,0);
+  aATT.add(cat_HPLSET(),"BTYP","Box fill area TYPe",0,0,0);
+  aATT.add(cat_HPLSET(),"PTYP","Picture fill area TYPe",0,0,0);
+  aATT.add(cat_HPLSET(),"FTYP","Function fill area TYPe",0.00,0.00,0);
+  aATT.add(cat_HPLSET(),"HCOL","Histogram fill area COLor",0.00,1.00,0);
+  aATT.add(cat_HPLSET(),"BCOL","Box fill area and shading",1,1,0);
+  aATT.add(cat_HPLSET(),"PCOL","Picture fill area COLor",1,1,0);
+  aATT.add(cat_HPLSET(),"FCOL","Function fill area COLor",1,1,0);
+  aATT.add(cat_HPLSET(),"XCOL","X axis COLor",1,1,0);
+  aATT.add(cat_HPLSET(),"YCOL","Y axis COLor",1,1,0);
+  aATT.add(cat_HPLSET(),"HWID","Histogram line WIDth",1,1,0);
+  aATT.add(cat_HPLSET(),"BWID","Box line WIDth",1.0,1.0,0);
+  aATT.add(cat_HPLSET(),"PWID","Picture line WIDth",1,1,0);
+  aATT.add(cat_HPLSET(),"FWID","Function line WIDth",1,1,0);
+  aATT.add(cat_HPLSET(),"XWID","X ticks WIDth",1,1,0);
+  aATT.add(cat_HPLSET(),"YWID","Y ticks WIDth",1,1,0);
+  aATT.add(cat_HPLSET(),"CWID","Color map WIDth",0.50,0.50,0);
+  aATT.add(cat_HPLSET(),"TFON","Text (and Title) FONT and PREC",2,2,0);
+  aATT.add(cat_HPLSET(),"GFON","Global title FONT and PREC",2,2,0);
+  aATT.add(cat_HPLSET(),"VFON","axis Values FONT and PREC",2,2,0);
+  aATT.add(cat_HPLSET(),"LFON","axis Labels FONT and PREC",2,2,0);
+  aATT.add(cat_HPLSET(),"CFON","Comment FONT and PREC",2,2,0);
+  aATT.add(cat_HPLSET(),"NDVX","Number of DIVisions for X axis",10510.00,10510.00,0);
+  aATT.add(cat_HPLSET(),"NDVY","Number of DIVisions for Y axis",10510.00,10510.00,0);
+  aATT.add(cat_HPLSET(),"NDVZ","Number of DIVisions for Z axis",10510.00,10510.00,0);
+  aATT.add(cat_HPLSET(),"FPGN","First PaGe Number",1,1,0);
+  aATT.add(cat_HPLSET(),"ERRX","ERRor on X (% of bin width)",0.50,0.50,0);
+  aATT.add(cat_HPLSET(),"1DEF","1D Plot Option",0,0,0);
+  aATT.add(cat_HPLSET(),"2DEF","2D Plot Option",0,0,0);
+
+  //////////////////////////////////////////////////////////////////////
+  /// GOPAW_SET ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  aATT.add(cat_GOPAW_SET(),"TWID","Hershey Text line WIDth",1.0,1.0,0);
+  aATT.add(cat_GOPAW_SET(),"TTFM","Freetype font modeling (outline=1,filled=2,pixmap=3)",3,3,0); //value can't be 0.
+  aATT.add(cat_GOPAW_SET(),"BGCI","Background color index",8,8,0); //8=white.
+
+  //////////////////////////////////////////////////////////////////////
+  /// HPLOPT ///////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  aOPT.add(cat_HPLOPT(),"VERT","VERTical or HORIzontal orientation of paper","VERT","VERT","HORI");
+  aOPT.add(cat_HPLOPT(),"NEAH","Error bars And Histogram are plotted (if both are present)","NEAH","NEAH","EAH");
+  aOPT.add(cat_HPLOPT(),"NCHA","scatter plots drawn with dots (NCHA) or 1 char./bin (CHA)","NCHA","NCHA","CHA");
+  aOPT.add(cat_HPLOPT(),"NAST","functions drawn with (AST) or without (NAST) asterisks","NAST","NAST","AST");
+  aOPT.add(cat_HPLOPT(),"SOFT","SOFTware or HARDware characters are used","SOFT","SOFT","HARD");
+  aOPT.add(cat_HPLOPT(),"NSQR","size is set to the largest square (SQR)","NSQR","NSQR","SQR");
+  aOPT.add(cat_HPLOPT(),"HTIT","HBOOK TITle (HTIT) or User TITle (UTIT) is printed","HTIT","HTIT","UTIT");
+  aOPT.add(cat_HPLOPT(),"TAB","table printed as TABles (TAB) or scatter plots (NTAB)","TAB","TAB","NTAB");
+  aOPT.add(cat_HPLOPT(),"BOX","a box is (BOX) or is not (NBOX) drawn around picture","BOX","BOX","NBOX");
+  aOPT.add(cat_HPLOPT(),"NTIC","cross-wires are drawned (TIC) or not (NTIC) on each plot","NTIC","NTIC","TIC");
+  aOPT.add(cat_HPLOPT(),"NSTA","STAtistics are printed (STA) or not (NSTA) on each plot","NSTA","NSTA","STA");
+  aOPT.add(cat_HPLOPT(),"NFIT","FIT parameters are printed or not (NFIT) on each plot","NFIT","NFIT","FIT");
+  aOPT.add(cat_HPLOPT(),"NZFL","picture is (ZFL) or is not (NZFL) put in Z data base","NZFL","NZFL","ZFL");
+  aOPT.add(cat_HPLOPT(),"NPTO","PTO (Please Turn Over) (NPTO)","NPTO","NPTO","PTO");
+  aOPT.add(cat_HPLOPT(),"NBAR","BAR charts for histogram (NBAR)","NBAR","NBAR","BAR");
+  aOPT.add(cat_HPLOPT(),"DVXR","Integer (DVXI) or Real (DVXR) divisions for X axis","DVXR","DVXR","DVXI");
+  aOPT.add(cat_HPLOPT(),"DVYR","Integer (DVYI) or Real (DVYR) divisions for Y axis","DVYR","DVYR","DVYI");
+  aOPT.add(cat_HPLOPT(),"NGRI","GRID or not grid (NGRI) on X and Y axis","NGRI","NGRI","GRID");
+  aOPT.add(cat_HPLOPT(),"NDAT","DATE is printed (DATE) or not (NDAT) on each plot","NDAT","NDAT","DATE");
+  aOPT.add(cat_HPLOPT(),"NFIL","FILE name is printed (FILE) or not (NFIL) on each plot","NFIL","NFIL","FILE");
+  aOPT.add(cat_HPLOPT(),"A4","page format for the plotter (A0,A1,A2,A3,A4,A5,A6)","A4","A4","A0/6");
+  aOPT.add(cat_HPLOPT(),"NOPG","page number is (P ) or is not (NOPG) printed","NOPG","NOPG","P");
+  aOPT.add(cat_HPLOPT(),"LINY","LINear or LOGarithmic scale in Y","LINY","LINY","LOGY");
+  aOPT.add(cat_HPLOPT(),"LINX","LINear or LOGarithmic scale in X","LINX","LINX","LOGX");
+  aOPT.add(cat_HPLOPT(),"LINZ","LINear or LOGarithmic scale in Z (Lego or Surface)","LINZ","LINZ","LOGZ");
+  aOPT.add(cat_HPLOPT(),"HNST","Filling statistics (HSTA) (HNST)","HNST","HNST","HSTA");
+
+  //////////////////////////////////////////////////////////////////////
+  /// GOPAW OPT ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  // if adding an option, think to update in pagraf.cpp the /GRAPHICS/OPTION command.
+  aOPT.add(cat_GOPAW_OPT(),"COLL","Coloring by level (COLL) or by VALUE (COLV) (gopaw)","COLL","COLL","COLV");
+  aOPT.add(cat_GOPAW_OPT(),"PTIT","If RTIT, the title box has a ROOT-like style (gopaw).","PTIT","PTIT","RTIT");
+  aOPT.add(cat_GOPAW_OPT(),"PSTA","If RSTA, the infos box has a ROOT-like style (gopaw).","PSTA","PSTA","RSTA");
+  aOPT.add(cat_GOPAW_OPT(),"NBAC","If NBAC, the infos region background is transparent (gopaw).","NBAC","NBAC","BACK");
+  aOPT.add(cat_GOPAW_OPT(),"BGRD","If BGRD, the plotter background is visible (gopaw).","BGRD","BGRD","NBGR");
+}
+
+inline int round_d2i(double a_double){
+  if (a_double == (double) (int(a_double))) return int(a_double);
+  else return (a_double>0.) ? int(a_double+0.5) : -int(0.5-a_double);
+}
+
+INLIB_GLOBAL_STRING_VALUE(FUN_C,C)
+
+inline const inlib::colorf& get_COL(int a_COLOR) {
+  // 1 black
+  // 2 red
+  // 3 green
+  // 4 blue
+  // 5 yellow
+  // 6 magenta
+  // 7 cyan
+  // 8 white
+
+       if(a_COLOR==0) return inlib::colorf_black();
+  else if(a_COLOR==1) return inlib::colorf_black();
+  else if(a_COLOR==2) return inlib::colorf_red();
+  else if(a_COLOR==3) return inlib::colorf_green();
+  else if(a_COLOR==4) return inlib::colorf_blue();
+  else if(a_COLOR==5) return inlib::colorf_yellow();
+  else if(a_COLOR==6) return inlib::colorf_magenta();
+  else if(a_COLOR==7) return inlib::colorf_cyan();
+  else if(a_COLOR==8) return inlib::colorf_white();
+  else                return inlib::colorf_white();
+}
+
+inline unsigned short get_DMOD(int a_DMOD) {
+       if(a_DMOD==2) return inlib::sg::line_dashed;
+//else if(a_DMOD==3) return inlib::sg::line_dotted; //0x1111,
+  else if(a_DMOD==3) return 0x0101;
+  else if(a_DMOD==4) return inlib::sg::line_dash_dotted;
+  else              return inlib::sg::line_solid;
+}
+
+inline float get_MSCF(double a_MSCF)  { //def MSCF=1
+  // with inlib::sg::markers::size<unsigned int> (def=10) is horizontal size in pixels.
+  return float(7*a_MSCF); //match markers size in pawex1/bottom and pawex2.
+}
+
+inline float get_SSIZ(double a_SSIZ)  { //def SSIZ=0.28
+  return float(70*a_SSIZ); //match markers size in lsimard_c.
+}
+
+inline inlib::sg::marker_style get_MTYP(std::ostream& a_out,int a_MTYP){
+  //::printf("debug : get_MTYPE : %d\n",a_MTYP);
+  // Documented :
+       if(a_MTYP==31) return inlib::sg::marker_asterisk;
+  else if(a_MTYP==30) return inlib::sg::marker_penta_star_line;
+  else if(a_MTYP==29) return inlib::sg::marker_penta_star_filled;
+  else if(a_MTYP==28) return inlib::sg::marker_swiss_cross_line;
+  else if(a_MTYP==27) return inlib::sg::marker_diamond_line;
+  else if(a_MTYP==26) return inlib::sg::marker_triangle_up_line;
+  else if(a_MTYP==25) return inlib::sg::marker_square_line;
+  else if(a_MTYP==24) return inlib::sg::marker_circle_line;
+  else if(a_MTYP==23) return inlib::sg::marker_triangle_down_filled;
+  else if(a_MTYP==22) return inlib::sg::marker_triangle_up_filled;
+  else if(a_MTYP==21) return inlib::sg::marker_square_filled;
+  else if(a_MTYP==20) return inlib::sg::marker_circle_filled;
+
+  // Not documented :
+  else if(a_MTYP==1) return inlib::sg::marker_dot;
+  else if(a_MTYP==2) return inlib::sg::marker_plus;
+  else if(a_MTYP==3) return inlib::sg::marker_asterisk;
+  else if(a_MTYP==4) return inlib::sg::marker_circle_line;
+  else if(a_MTYP==5) return inlib::sg::marker_cross;
+  else if(a_MTYP==6) return inlib::sg::marker_swiss_cross_filled;
+  else if(a_MTYP==7) return inlib::sg::marker_square_filled;
+  else if(a_MTYP==8) return inlib::sg::marker_circle_filled;
+
+  // gopaw :         
+  else if(a_MTYP==120) return inlib::sg::marker_star;
+  else if(a_MTYP==123) return inlib::sg::marker_triangle_down_line;
+  else if(a_MTYP==127) return inlib::sg::marker_diamond_filled;
+  else if(a_MTYP==128) return inlib::sg::marker_david_star_line;
+  else if(a_MTYP==129) return inlib::sg::marker_david_star_filled;
+
+  else {
+    a_out << "gopaw::get_MTYP : marker type " << a_MTYP << " not yet supported. We use dot for it for the moment." << std::endl;
+    return inlib::sg::marker_dot;
+  }
+}
+
+inline void get_divisions(int a_num_zones,double a_NDV,
+                          unsigned int& a_divisions,unsigned int& a_labels_id,unsigned int& a_labels_align) {
+  double d_NDV = a_NDV;
+  if(d_NDV<0) d_NDV *= -1; //FIXME : handle negative case.
+  a_divisions = (unsigned int)d_NDV;
+  unsigned int rest = round_d2i((d_NDV - a_divisions)*100);
+  if(a_num_zones>=2) { 
+    //seen with pawex22. x axis prim-div seems to be divided by 2.
+    //seen with gopaw/labels. y axis prim-div seems to be divided by 2.
+    unsigned int N3 = a_divisions/10000;    //See inlib::hplot::axis::paint().
+    unsigned int N2 = (a_divisions - N3*10000)/100;    
+    unsigned int N1 = a_divisions - N2*100 - N3*10000;
+    N1 /= 2;
+    a_divisions = N1 + N2 * 100 + N3 * 10000;
+  }
+  a_labels_id = rest/10;
+  a_labels_align = rest - a_labels_id*10;
+  //::printf("debug : get_divisions : %g : %u : %u %u %u\n",a_NDV,rest,a_divisions,a_labels_id,a_labels_align);
+}
+
+template <class HIST>
+inline void region_set_automated(inlib::sg::plotter& a_plotter,const HIST& a_hist)  {
+  //printf("debug : region_set_automated \"%s\"\n",histogram_name(a_hist).c_str());
+
+  bool automated = true;
+  std::string svalue;
+  if(a_hist.annotation("opaw.value.automated",svalue)) {
+    if(svalue!="") {
+      if(!inlib::tob(svalue,automated)) automated = true;
+    }
+  }
+
+  if(a_hist.dimension()==1) {
+    if(automated) {
+      a_plotter.y_axis_automated = true;
+    } else {
+      a_plotter.y_axis_automated = false;
+     {float value = 0;
+      if(a_hist.annotation("opaw.value.minimum",svalue)) {
+        if(inlib::to(svalue,value)) a_plotter.y_axis_min = value;
+      }}
+     {float value = 0;
+      if(a_hist.annotation("opaw.value.maximum",svalue)) {
+        if(inlib::to(svalue,value)) a_plotter.y_axis_max = value;
+      }}
+    }
+  } else if(a_hist.dimension()==2) {
+    if(automated) {
+      a_plotter.z_axis_automated = true;
+    } else {
+      a_plotter.z_axis_automated = false;
+     {float value = 0;
+      if(a_hist.annotation("opaw.value.minimum",svalue)) {
+        if(inlib::to(svalue,value)) a_plotter.z_axis_min = value;
+      }}
+     {float value = 0;
+      if(a_hist.annotation("opaw.value.maximum",svalue)) {
+        if(inlib::to(svalue,value)) a_plotter.z_axis_max = value;
+      }}
+    }
+  }
+}
+
+class ZONE {
+public:
+  ZONE(unsigned int a_NX,unsigned int a_NY,unsigned int a_FIRST,bool a_SUPER)
+  :m_NX(a_NX)
+  ,m_NY(a_NY)
+  ,m_FIRST(a_FIRST)
+  ,m_SUPER(a_SUPER)
+  {}
+  virtual ~ZONE(){}
+public:
+  ZONE(const ZONE& a_from)
+  :m_NX(a_from.m_NX)
+  ,m_NY(a_from.m_NY)
+  ,m_FIRST(a_from.m_FIRST)
+  ,m_SUPER(a_from.m_SUPER)
+  {}
+  ZONE& operator=(const ZONE& a_from){
+    m_NX = a_from.m_NX;
+    m_NY = a_from.m_NY;
+    m_FIRST = a_from.m_FIRST;
+    m_SUPER = a_from.m_SUPER;
+    return *this;
+  }
+public:
+//  unsigned int NX() const {return m_NX;}
+//  unsigned int NY() const {return m_NY;}
+//  unsigned int FIRST() const {return m_FIRST;}
+//  bool SUPER() const {return m_SUPER;}
+//private:
+  unsigned int m_NX;
+  unsigned int m_NY;
+  unsigned int m_FIRST;
+  bool m_SUPER;
+};
+
+inline std::string s_current() {return "@current@";}
+
+class color_entry {
+public:
+  color_entry():m_red(0),m_green(0),m_blue(0){}
+  color_entry(double aRed,double aGreen,double aBlue):m_red(aRed),m_green(aGreen),m_blue(aBlue){}
+public:
+  color_entry(const color_entry& a_from):m_red(a_from.m_red),m_green(a_from.m_green),m_blue(a_from.m_blue)  {}
+  color_entry& operator=(const color_entry& a_from){
+    m_red = a_from.m_red;m_green = a_from.m_green;m_blue = a_from.m_blue;
+    return *this;
+  }
+public:
+  double m_red;
+  double m_green;
+  double m_blue;
+};
+
+class palette : public std::vector<int> {
+  typedef std::vector<int> parent;
+public:
+  palette(){
+    // Default CERN/PAW palette elements (2,3,4,5,6,7)
+    push_back(2); //red in default color table.
+    push_back(3); //green in default color table.
+    push_back(4); //blue in default color table.
+    push_back(5); //yellow in default color table.
+    push_back(6); //magenta in default color table.
+    push_back(7); //cyan in default color table.
+  }
+  palette(const std::vector<int>& a_from):parent(a_from){}
+public:
+  palette(const palette& a_from):parent(a_from){}
+  palette& operator=(const palette& a_from){parent::operator=(a_from);return *this;}
+};
+
+class session {
+public:
+  static size_t PALETTE_DEFAULT() {return 1;}
+  static size_t PALETTE_HISTOGRAM_PLOT_COL() {return 11;}
+  static size_t PALETTE_HISTOGRAM_2D_PLOT_CONTOUR_OPT_0() {return 12;}
+public:
+  session(std::ostream& a_out,unsigned int a_verbose_level,iui& a_ui,const std::string& a_res_dir)
+  :m_out(a_out)
+  ,m_verbose_level(a_verbose_level)
+  ,m_ui(a_ui)
+  ,m_cuts(inlib::not_found(),"")
+  ,m_OPTs("","")
+  ,m_ATTs("",0)
+  ,m_contour_mode(true) //Contour or fill area.
+  ,m_current_unit(0)
+  ,fFunctionCounter(0)
+  ,m_NPX(100)
+  ,m_NPY(100)
+  ,m_NPZ(100)
+  ,m_do_zone(true)
+  ,m_ZONE(1,1,1,false)
+  ,m_start_ZONE(false)
+  ,m_ZONE_K(0)
+  ,m_current_palette(PALETTE_HISTOGRAM_PLOT_COL()) //for pahist.
+  ,m_variables("",value_t())
+  ,fProcessor(a_out,"")
+  ,m_THETA(30)
+  ,m_PHI(30)
+  ,m_warn_metaf(false)
+  ,m_func_counter(0)
+  //,m_hbook
+  ,m_function_manager(a_out,a_res_dir,a_verbose_level)
+  ,m_atime(inlib::atime::now())
+#ifdef APP_USE_EXPAT
+  ,m_styles(a_out)
+#endif  
+#ifdef APP_USE_PYTHON
+  ,m_py_opener()
+#endif
+  {
+    att_opt_init(m_ATTs,m_OPTs);
+  
+    // Default CERN/PAW color table is :
+    // 0 white, 1 black, 2 red, 3 green, 4 blue, 5 yellow, 6 magenta, 7 cyan.
+    m_color_table.push_back(color_entry(1,1,1));
+    m_color_table.push_back(color_entry(0,0,0));
+    m_color_table.push_back(color_entry(1,0,0));
+    m_color_table.push_back(color_entry(0,1,0));
+    m_color_table.push_back(color_entry(0,0,1));
+    m_color_table.push_back(color_entry(1,1,0));
+    m_color_table.push_back(color_entry(1,0,1));
+    m_color_table.push_back(color_entry(0,1,1));
+  
+    // Some default palettes :
+  
+    //(red,green,blue,yellow,magenta,cyan)
+    set_palette(PALETTE_DEFAULT(),palette());
+    //m_current_palette(PALETTE_DEFAULT());
+  
+    //So that :
+    //  H/PLOT 1 COL (studeny)
+    //without having done a SET PALETTE reproduce CERN/PAW. 
+   {std::vector<int> pal;
+    pal.push_back(0); //white
+    pal.push_back(5); //yellow
+    pal.push_back(7); //cyan
+    pal.push_back(3); //green
+    pal.push_back(6); //magenta
+    pal.push_back(2); //red
+    pal.push_back(4); //blue
+    pal.push_back(1); //black
+    set_palette(PALETTE_HISTOGRAM_PLOT_COL(),pal);}
+  
+    //CERN/PAW has PALNB in [0,9]. PALNB >= 10 are for gopaw internal usage.
+  
+    //HI/2D/CONTOUR CHOPT=0 (pawex14)
+   {std::vector<int> pal;
+    pal.push_back(1); //black
+    pal.push_back(2); //red
+    pal.push_back(3); //green
+    pal.push_back(4); //blue
+    set_palette(PALETTE_HISTOGRAM_2D_PLOT_CONTOUR_OPT_0(),pal);}
+  
+    m_hbook.m_hrndm1 = _hrndm1;
+    m_hbook.m_hfill = _hfill;
+
+#ifdef APP_USE_EXPAT
+  //if(inlib::file::exists("viewplot.style")) {
+  //   exlib::xml::load_style_file(a_out,"viewplot.style",m_styles);
+  //} else {
+      load_embeded_styles(m_styles);
+  //}
+    m_styles.add_colormap("default",inlib::sg::style_default_colormap());
+    m_styles.add_colormap("ROOT",inlib::sg::style_ROOT_colormap());
+#endif
+
+  }
+  
+  virtual ~session() {
+    close_LUNs();
+   {inlib_vforcit(named_vector,m_named_vectors,it) delete (*it).second;
+    m_named_vectors.clear();}
+   {inlib_vforcit(named_handle,m_named_handles,it) delete (*it).second;
+    m_named_handles.clear();}
+  }
+
+protected:
+public: //for ioda/main.
+  session(const session& a_from)
+  :m_out(a_from.m_out)
+  ,m_verbose_level(a_from.m_verbose_level)
+  ,m_ui(a_from.m_ui)
+  ,m_LUNs(a_from.m_LUNs)
+  ,m_cuts(a_from.m_cuts)
+  ,m_OPTs(a_from.m_OPTs)
+  ,m_ATTs(a_from.m_ATTs)
+  ,m_ZONE(a_from.m_ZONE)
+  ,m_variables(a_from.m_variables)
+  ,fProcessor(a_from.fProcessor)
+  ,m_function_manager(a_from.m_out,"",a_from.m_verbose_level)
+  ,m_atime(a_from.m_atime)
+#ifdef APP_USE_EXPAT
+  ,m_styles(a_from.m_styles)
+#endif
+  {}
+protected:
+  session& operator=(const session& a_from){return *this;}  
+public:
+  iui& ui() const {return m_ui;}
+  gopaw::function_manager& function_manager() {return m_function_manager;}
+public:
+
+  inline inlib::sg::plots* find_plots(const std::string& a_string) {
+    iwidget* widget = m_ui.find_widget(a_string);
+    if(!widget) {
+      m_out << "gopaw::session::find_plots : " << inlib::sout(a_string) << " not found." << std::endl;
+      return 0;
+    }
+    bool created;
+    inlib::sg::plots* _plots = widget->plots(created);
+    if(created) { //for ioda/gopaw.
+      set_plots_layout(*_plots);
+      set_plots_zone(*_plots);
+    }
+    return _plots;
+  }
+  
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  const LUNs_t& LUNs() const {return m_LUNs;}
+
+  bool mx_LUN(unsigned int& a_unit) const {
+    if(m_LUNs.empty()) {a_unit = 0;return false;}
+    LUNs_t::const_iterator it = m_LUNs.begin();
+    a_unit = (*it).first;
+    for(it=m_LUNs.begin();it!=m_LUNs.end();++it) a_unit = inlib::mx(a_unit,(*it).first);
+    return true;
+  }
+  
+  bool remove_LUN(unsigned int a_unit) {
+    LUNs_t::iterator it = m_LUNs.find(a_unit);
+    if(it==m_LUNs.end()) return false;
+    m_LUNs.erase(it);
+    return true;
+  }
+  
+  bool find_LUN(unsigned int a_unit) const {return m_LUNs.find(a_unit)==m_LUNs.end()?false:true;}
+
+  bool find_LUN(unsigned int a_unit,LUN*& a_lun) {
+    LUNs_t::iterator it = m_LUNs.find(a_unit);
+    if(it==m_LUNs.end()) {
+      a_lun = 0;
+      return false;
+    }
+    a_lun = &((*it).second);
+    return true;
+  }
+
+  void add_LUN_rroot_file(unsigned int a_unit,inlib::rroot::file* a_file) {m_LUNs[a_unit] = LUN(a_file);}
+  void add_LUN_wroot_file(unsigned int a_unit,inlib::wroot::file* a_file) {m_LUNs[a_unit] = LUN(a_file);}
+  void add_LUN_SYS_FILE(unsigned int a_unit,const std::string& a_path,FILE* a_file) {m_LUNs[a_unit] = LUN(a_path,a_file);}
+#ifdef APP_USE_HDF5
+  void add_LUN_hdf5_file(unsigned int a_unit,const std::string& a_path,hid_t a_file,hid_t a_dir,bool a_dir_owner) {
+    m_LUNs[a_unit] = LUN(a_path,a_file,a_dir,a_dir_owner);
+  }
+#endif
+#ifdef APP_USE_CFITSIO
+  void add_LUN_fits_file(unsigned int a_unit,const std::string& a_path,exlib::cfitsio::file* a_file) {
+    m_LUNs[a_unit] = LUN(a_path,a_file);
+  }
+#endif
+
+  bool find_LUN(const std::string& a_string,LUN*& a_lun) {
+    for(LUNs_t::iterator it=m_LUNs.begin();it!=m_LUNs.end();++it) {
+      if((*it).second.m_string==a_string) {
+	a_lun = &((*it).second);
+	return true;
+      }
+    }
+    a_lun = 0;
+    return false;
+  }
+  
+  bool find_rroot_file(unsigned int a_unit,inlib::rroot::file*& a_file,inlib::rroot::directory*& a_dir) const {
+    for(LUNs_t::const_iterator it=m_LUNs.begin();it!=m_LUNs.end();++it) {
+      if( ((*it).first==a_unit) && (*it).second.m_rroot_file && (*it).second.m_rroot_cur_dir) {
+	a_file = (*it).second.m_rroot_file;
+	a_dir = (*it).second.m_rroot_cur_dir;
+	return true;
+      }
+    }
+    a_file = 0;
+    a_dir = 0;
+    return false;
+  }
+
+#ifdef APP_USE_HDF5
+  bool find_hdf5_file(unsigned int a_unit,hid_t& a_file,hid_t& a_dir) const {
+    for(LUNs_t::const_iterator it=m_LUNs.begin();it!=m_LUNs.end();++it) {
+      if( ((*it).first==a_unit) && ((*it).second.m_hdf5_file!=(-1)) && ((*it).second.m_hdf5_cur_dir!=(-1)) ) {
+	a_file = (*it).second.m_hdf5_file;
+	a_dir = (*it).second.m_hdf5_cur_dir;
+	return true;
+      }
+    }
+    a_file = (-1);
+    return false;
+  }
+#endif //APP_USE_HDF5
+
+#ifdef APP_USE_CFITSIO
+  bool find_fits_file(unsigned int a_unit,exlib::cfitsio::file*& a_file) const {
+    for(LUNs_t::const_iterator it=m_LUNs.begin();it!=m_LUNs.end();++it) {
+      if( ((*it).first==a_unit) && ((*it).second.m_fits_file) ) {
+	a_file = (*it).second.m_fits_file;
+	return true;
+      }
+    }
+    a_file = 0;
+    return false;
+  }
+#endif //APP_USE_CFITSIO
+
+  bool find_current_LUN(LUN*& a_lun) {return find_LUN(m_current_unit,a_lun);}
+
+  bool find_current_rroot_file(inlib::rroot::file*& a_file,inlib::rroot::directory*& a_dir) {
+    return find_rroot_file(m_current_unit,a_file,a_dir);
+  }
+  bool find_current_wroot_file(inlib::wroot::file*& a_file) {
+    LUN* _lun;
+    if(!find_LUN(m_current_unit,_lun)) {a_file = 0;return false;}
+    if(!_lun->m_wroot_file) {a_file = 0;return false;}
+    a_file = _lun->m_wroot_file;
+    return true;
+  }
+#ifdef APP_USE_HDF5
+  bool find_current_hdf5_file(hid_t& a_file,hid_t& a_dir) {return find_hdf5_file(m_current_unit,a_file,a_dir);}
+#endif //APP_USE_HDF5
+
+#ifdef APP_USE_CFITSIO
+  bool find_current_fits_file(exlib::cfitsio::file*& a_file) {return find_fits_file(m_current_unit,a_file);}
+#endif //APP_USE_CFITSIO
+
+  void close_LUN(LUN& a_lun) {
+    if((a_lun.m_type==LUN::SYS_FILE) && a_lun.m_FILE) {
+      if(a_lun.m_is_meta) {
+        //out << "debug : gopaw::session::close_LUN : " << LUN << " is META FILE." << std::endl;
+
+        //FIXME : not really the right place to do that.
+       {inlib::sg::plots* _page = find_plots(gopaw::s_current());
+        iwidget* widget = m_ui.current_widget();
+        if(_page && widget) {
+          std::string stype = print_fmt(a_lun.m_string);
+          widget->write(a_lun.m_string,stype.empty()?"guessed":stype);
+        }}
+
+      } else {
+        m_out << "gopaw::session::close_LUN : SYS_FILE but not a METAFILE." << std::endl;
+      }
+    }
+    a_lun.close();
+  }
+
+  void close_LUNs() {
+    for(LUNs_t::iterator it=m_LUNs.begin();it!=m_LUNs.end();++it) close_LUN((*it).second);
+    m_LUNs.clear();
+  }
+ 
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+  
+  inlib::params<int,std::string>& cuts(){return m_cuts;}
+  inlib::params<std::string,std::string>& opts(){return m_OPTs;}
+  inlib::params<std::string,double>& atts(){return m_ATTs;}
+  void set_UTIT(const std::string& a_string){m_UTIT = a_string;}
+
+  int col_from_HCOL() const {
+    // HCOL is of the form <hatch>*1000+<col>.<palette>
+    // Here we extract the <col>.
+    int HCOL = (int)m_ATTs.value("HCOL");
+    return HCOL - ((int)(HCOL/1000)) * 1000;
+  }
+
+  //FIXME : is it correct ?
+  int col_from_FCOL(bool& a_touched) const { 
+    // FCOL is of the form <hatch>*1000+<col>.<palette>
+    // Here we extract the <col>.
+    int FCOL = (int)m_ATTs.value("FCOL");
+    m_ATTs.touched("FCOL",a_touched);
+    return FCOL - ((int)(FCOL/1000)) * 1000;
+  }
+
+  bool palette_from_HCOL(size_t& a_PALNB) const {
+    // Look if HCOL = <c>.<p> with p in [1,9]
+  
+    double HCOL = m_ATTs.value("HCOL");
+    double rest = HCOL - (int)HCOL;
+    if(rest==0) {
+      a_PALNB = PALETTE_DEFAULT();
+      return false;
+    }
+    rest *= 10;
+    //NOTE : on Linux, for :
+    //  HCOL = 0.3  (PAW_cpp_root/color.kumac)
+    //  int p = int(rest);
+    //returns 2 !
+    int p = round_d2i(rest);
+    if(p<=0) {   //for exa if HCOL 0.01
+      a_PALNB = PALETTE_DEFAULT();
+      return false;
+    }
+    a_PALNB = p;
+    return true;
+  }
+
+  std::string print_fmt(const std::string& a_FILE) const {
+    std::string stype;
+    std::string path,name,suffix;
+    if(!inlib::path_name_suffix(a_FILE,path,name,suffix)) {
+      stype = "GL2PS_PS";
+    } else {
+      inlib::touppercase(suffix);
+      if((suffix=="PS")||(suffix=="EPS")) {
+        stype = "GL2PS_EPS";
+      } else if(suffix=="PNG") {
+        stype = "INZB_PNG";
+      } else if((suffix=="JPG")||(suffix=="JPEG")) {
+        stype = "INZB_JPEG";
+      } else if(suffix.empty()) {
+        stype = "GL2PS_EPS";
+      } else {
+        stype = suffix;
+      }
+    }
+    return stype;
+  }
+
+  void set_contour_mode(bool a_mode) {m_contour_mode = a_mode;}
+
+  void set_current_unit(unsigned int a_unit) {m_current_unit = a_unit;}
+  unsigned int current_unit() const {return m_current_unit;}
+
+  void setFunctionPoints(int aNPX,int aNPY,int aNPZ) {
+    m_NPX = aNPX;
+    m_NPY = aNPY;
+    m_NPZ = aNPZ;
+  }
+
+  int NPX() const {return m_NPX;}
+  int NPY() const {return m_NPY;}
+  int NPZ() const {return m_NPZ;}
+
+  void set_do_zone() {m_do_zone = true;}
+
+  void set_ZONE(unsigned int a_NX,unsigned int a_NY,unsigned int a_FIRST,bool a_SUPER){
+    m_ZONE.m_NX = a_NX;
+    m_ZONE.m_NY = a_NY;
+    m_ZONE.m_FIRST = a_FIRST;
+    m_ZONE.m_SUPER = a_SUPER;
+  }
+
+  void set_ZONE_K(inlib::sg::plotter* a_plotter) {m_ZONE_K = a_plotter;} //dangerous.
+  inlib::sg::plotter* ZONE_K() const {return m_ZONE_K;}
+  
+  void createColor(int aICOL){
+    if(aICOL<0) return;
+    if(aICOL<(int)m_color_table.size()) return;
+    int n = (aICOL+1) - m_color_table.size();
+    for(int index=0;index<n;index++) m_color_table.push_back(color_entry());
+  }
+
+  void setColor(int aICOL,double aRED,double aGREEN,double aBLUE){
+    if(aICOL<0) return;
+    createColor(aICOL);
+    m_color_table[aICOL].m_red = aRED;
+    m_color_table[aICOL].m_green = aGREEN;
+    m_color_table[aICOL].m_blue = aBLUE;
+  }
+
+  void set_palette(size_t a_PALNB,const palette& a_palette){
+    if(a_PALNB>=m_palettes.size()) {
+      size_t n = (a_PALNB+1) - m_palettes.size();
+      for(size_t index=0;index<n;index++) {
+        m_palettes.push_back(palette());
+      }
+    }
+    m_palettes[a_PALNB] = a_palette;
+  }
+
+  void set_current_palette(size_t a_PALNB){m_current_palette = a_PALNB;}
+  size_t current_palette() const {return m_current_palette;}
+
+  void set_THETA(double aTHETA) {m_THETA = aTHETA;}
+  void set_PHI(double aPHI) {m_PHI = aPHI;}
+  double THETA() const {return m_THETA;}
+  double PHI() const {return m_PHI;}
+
+
+  
+  inlib::params<std::string,value_t>& variables() {return m_variables;}
+  ceval_t& processor() {return fProcessor;}
+
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  std::vector<named_vector>& named_vectors() {return m_named_vectors;}
+  void add_vector(const std::string& a_name,vector_t* a_vec) {
+    m_named_vectors.push_back(named_vector(a_name,a_vec));
+  }
+  bool remove_vector(const std::string& a_name) {
+    return inlib::remove(m_named_vectors,a_name,true);
+  }
+  bool find_vector(const std::string& a_name,vector_t*& a_vec) {
+    a_vec = 0;
+    bool status = inlib::find(m_named_vectors,a_name,a_vec);
+    if(!status) a_vec = 0;
+    return status;
+  }
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////
+  std::vector<named_handle>& named_handles() {return m_named_handles;}
+  inlib::random::flat& random_flat() {return m_random_flat;}
+
+  template <class T>
+  void add_handle(const std::string& a_name,T* a_obj) {
+    m_named_handles.push_back(named_handle(a_name,new inlib::handle<T>(a_obj->s_cls(),a_obj,true))); //true=handle owns a_obj.
+  }
+  bool remove_handle(const std::string& a_name) {
+    return inlib::remove(m_named_handles,a_name,true);
+  }
+
+  void remove_handles(const std::string& a_wildcard) {
+    std::vector<named_handle>::iterator it;
+    for(it=m_named_handles.begin();it!=m_named_handles.end();) {
+      if(inlib::match((*it).first,a_wildcard) ){
+        inlib::base_handle* handle = (*it).second;
+        it = m_named_handles.erase(it);
+        delete handle;
+      } else {
+        it++;
+      }
+    }
+  }
+
+  void remove_handle_of_class(const std::string& a_class,const std::string& a_wildcard) {
+    std::vector<named_handle>::iterator it;
+    for(it=m_named_handles.begin();it!=m_named_handles.end();) {
+      inlib::base_handle* handle = (*it).second;
+      if( (handle->object_class()==a_class) && inlib::match((*it).first,a_wildcard) ){
+        it = m_named_handles.erase(it);
+        delete handle;
+      } else {
+        it++;
+      }
+    }
+  }
+
+  template <class T>
+  bool find_object(const std::string& a_name,T*& a_obj) const {
+    a_obj = 0;
+    inlib_vforcit(named_handle,m_named_handles,it) {
+      inlib::base_handle* handle = (*it).second;
+      if( (handle->object_class()==T::s_class()) && ((*it).first==a_name) ){
+        a_obj = (T*)handle->object();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool find_func(const std::string& a_name,base_func*& a_func) const {
+    a_func = 0;
+    inlib_vforcit(named_handle,m_named_handles,it) {
+      if((*it).first==a_name) {
+        inlib::base_handle* handle = (*it).second;
+        a_func = (base_func*)handle->object();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void dump_handles(std::ostream& a_out) const {
+    a_out << "handles " << m_named_handles.size() << " :" << std::endl;
+    inlib_vforcit(named_handle,m_named_handles,it) {
+      inlib::base_handle* handle = (*it).second;
+      a_out << "name = " << inlib::sout((*it).first) << ", class = " << handle->object_class() << std::endl;
+    }
+  }
+
+  void set_warn_metaf_ps() {m_warn_metaf = true;}
+  void warn_metaf_ps() {
+    if(m_warn_metaf) return; //done
+    m_out << "gopaw::session::warn_metaf_ps :"
+          << " /GRAPHICS/METAFILE : WARNING : ps file will be produced at the /FORTRAN/CLOSE of unit."
+          << std::endl;
+    m_warn_metaf = true;
+  }
+
+  void showATTs(std::ostream& a_out,int a_category = -1) { 
+    //print defaults and current values for all attributes.
+    const inlib::params<std::string,double>::list_t& attList = m_ATTs.list();
+    inlib::params<std::string,double>::list_t::const_iterator it;
+    a_out << "+-------------+---------------+---------------+--------------------------------+" << std::endl;
+    a_out << "|  Parameter  | Current value | Default value |          Explanation           |" << std::endl;
+    a_out << "+-------------+---------------+---------------+--------------------------------+" << std::endl;
+    for(it=attList.begin();it!=attList.end();++it) {
+      int cat = (*it).category();
+      if( (a_category!=inlib::not_found())&&(cat!=a_category)) continue;
+  
+      std::string s = (*it).key(); //Key
+      inlib::justify(s,13,inlib::side_middle);
+      a_out << "|" << s;
+      inlib::sprintf(s,32,"%g",(*it).value()); //value
+      inlib::justify(s,15,inlib::side_middle);
+      a_out << "|" << s;
+      inlib::sprintf(s,32,"%g",(*it).default_value()); //default
+      inlib::justify(s,15,inlib::side_middle);
+      a_out << "|" << s;
+
+      s = (*it).label(); //label
+    //inlib::justify(s,32,inlib::side_left);
+    //a_out << "|" << s << "|";
+     {std::vector<std::string> words;
+      inlib::words(s," ",false,words);
+      unsigned int index;
+      std::string s1;
+      int l = 0;
+      int istart = inlib::not_found();
+      for(index=0;index<words.size();index++) {
+        if((l+words[index].size()+1)>30) {
+          istart = index;
+          break;
+        }
+        s1 += words[index];
+        s1 += " ";
+        l += words[index].size()+1;
+      }
+      std::string s2;
+      if(istart!=inlib::not_found()) {
+        for(index=(unsigned int)istart;index<words.size();index++) {
+          s2 += words[index];
+          s2 += " ";
+        }
+      }
+      inlib::justify(s1,30,inlib::side_left);
+      a_out << "| " << s1 << " |" << std::endl;        
+      inlib::strip(s2);
+      if(s2!="") {
+        inlib::justify(s2,30,inlib::side_left);
+        a_out << "|             |               |               | " << s2 << " |" << std::endl;
+      }}
+    }
+    a_out << "+-------------+---------------+---------------+--------------------------------+" << std::endl;  
+  }
+  
+  void showOPTs(std::ostream& a_out,int a_category = -1) { 
+    //print defaults and current values for all attributes.
+    const inlib::params<std::string,std::string>::list_t& optList = m_OPTs.list();
+    inlib::params<std::string,std::string>::list_t::const_iterator it;
+    a_out << "+-------------+-------------+---------------+---------------------------------+" << std::endl;
+    a_out << "|   Current   |   Default   |  Alternative  |           Explanation           |" << std::endl;
+    a_out << "+-------------+-------------+---------------+---------------------------------+" << std::endl;
+    for(it=optList.begin();it!=optList.end();++it) {
+      int cat = (*it).category();
+      if( (a_category!=inlib::not_found())&&(cat!=a_category)) continue;
+  
+      std::string s = (*it).value();
+      inlib::justify(s,13,inlib::side_middle);
+      a_out << "|" << s;
+      s = (*it).default_value();
+      inlib::justify(s,13,inlib::side_middle);
+      a_out << "|" << s;
+      s = (*it).alternative();
+      inlib::justify(s,15,inlib::side_middle);
+      a_out << "|" << s;
+
+      s = (*it).label();
+     {std::vector<std::string> words;
+      inlib::words(s," ",false,words);
+      unsigned int index;
+      std::string s1;
+      int l = 0;
+      int istart = inlib::not_found();
+      for(index=0;index<words.size();index++) {
+        if((l+words[index].size()+1)>31) {
+          istart = index;
+          break;
+        }
+        s1 += words[index];
+        s1 += " ";
+        l += words[index].size()+1;
+      }
+      std::string s2;
+      if(istart!=inlib::not_found()) {
+        for(index=(unsigned int)istart;index<words.size();index++) {
+          s2 += words[index];
+          s2 += " ";
+        }
+      }
+      inlib::justify(s1,31,inlib::side_left);
+      a_out << "| " << s1 << " |" << std::endl;        
+      inlib::strip(s2);
+      if(s2!="") {
+        inlib::justify(s2,31,inlib::side_left);
+        a_out << "|             |             |               | " << s2 << " |" << std::endl;
+      }}
+    }
+    a_out << "+------------+---------------+---------------+--------------------------------+" << std::endl;  
+  }
+  
+  bool filter_cuts(const std::string& a_string,std::string& aFilter) const {
+    std::string s = a_string;
+  
+    // Treat cuts. replace $<number> with (<cut>)
+    while(1) {
+      std::string::size_type dollar = s.find('$');
+      if(dollar==std::string::npos) break;
+  
+      const char* ss = s.c_str()+dollar+1;
+      char* sss;
+      long v = ::strtol(ss,&sss,10);
+      if(ss==sss) { //Syntax error :
+        aFilter = "";
+        return false;
+      }
+      inlib::diff_pointer_t l = sss - ss;     
+      std::string scut = s.substr(dollar+1,l);
+      //printf("debug : cut : \"%s\"\n",scut.c_str());      
+      if(!m_cuts.is_key((int)v)) {
+        aFilter = "";
+        return false;
+      }
+      std::string cut = m_cuts.value((int)v);
+      std::string sbef = s.substr(0,dollar);
+      std::string saft = s.substr(dollar+1+l,s.size()-(dollar+1+l));
+      //printf("debug : filter2C : bef \"%s\"\n",s.c_str());      
+      s = sbef + "(" + cut + ")" + saft;
+      //printf("debug : filter2C : aft \"%s\"\n",s.c_str());      
+    }
+  
+    //inlib::tolowercase(s);
+    inlib::replace(s,"!=",".neq.");
+    inlib::replace(s,"=",".eq.");
+  
+    inlib::replace(s,".neq.","!=");
+    inlib::replace(s,".eq.","==");
+    inlib::replace(s,".gt.",">");
+    inlib::replace(s,".ge.",">=");
+    inlib::replace(s,".lt.","<");
+    inlib::replace(s,".le.","<=");
+    inlib::replace(s,".and.","&&");
+    inlib::replace(s,".or.","||");
+    inlib::replace(s,".not.","!");
+  
+    aFilter = s;
+    //printf("debug : filter2C : res \"%s\"\n",aFilter.c_str());      
+    return true;
+  }
+  
+  bool parse_tuple_name(const std::string& aTNAME,std::string& aNAME,std::vector<std::string>& aVars){
+    aVars.clear();
+    std::string::size_type ldot = aTNAME.find('.');
+    if(ldot==std::string::npos){
+      m_out << "gopaw::session::parse_tuple_name : bad syntax in " << inlib::sout(aTNAME) << "." << std::endl;
+      return false;
+    }
+    aNAME = aTNAME.substr(0,ldot);
+    std::string svars = aTNAME.substr(ldot+1,aTNAME.size()-(ldot+1));
+    inlib::words(svars,"%",false,aVars);
+    for(unsigned int index=0;index<aVars.size();index++) {
+      std::string s;
+      if(!filter_cuts(aVars[index],s)) {
+        m_out << "gopaw::session::parse_tuple_name : problem treating " << inlib::sout(aVars[index]) << std::endl;
+        return false;
+      }
+      aVars[index] = s;
+    }
+    return true;
+  }
+
+  unsigned int get_infos_opts(std::string& a_opts) const {
+    unsigned int linen = 0;
+    std::string opts;
+  
+    // STAT infos :
+    std::string NSTA = m_OPTs.value("NSTA");
+    if(NSTA=="STA") {
+      double STAT = m_ATTs.value("STAT"); 
+      //p120 : set STAT [OURMEI]  //default 1111
+      // O=1 overflow
+      // U=1 underflow
+      // R=1 RMS
+      // M=1 mean
+      // E=1 entries
+      // I=1 ID
+      int code = (int)STAT;
+      int O = code/100000;
+      int U = (code - O * 100000)/10000; 
+      int R = (code - O * 100000 - U * 10000)/1000; 
+      int M = (code - O * 100000 - U * 10000 - R * 1000)/100; 
+      int E = (code - O * 100000 - U * 10000 - R * 1000 - M *100)/10; 
+      int I = (code - O * 100000 - U * 10000 - R * 1000 - M *100 - E*10)/1; 
+      //printf("debug : stat : %d %d %d %d %d %d\n",O,U,R,M,E,I);
+      if(I) {opts += "name ";linen++;}
+      if(E) {opts += "entries ";linen++;}
+      if(M) {opts += "mean ";linen++;}
+      if(R) {opts += "rms ";linen++;}
+      if(U) {opts += "underflow ";linen++;}
+      if(O) {opts += "overflow ";linen++;}
+    }
+  
+    // FIT infos :
+    std::string NFIT = m_OPTs.value("NFIT");
+    if(NFIT=="FIT") {
+      double FIT = m_ATTs.value("FIT"); 
+      // PAW set FIT [CEP] //default 101
+      //    C = 1;  print Chisquare/Number of degress of freedom
+      //    E = 1;  print errors (if e=1, v must be 1)
+      //    P = 1;  print name/values of parameters
+      //FIXME : from ROOT TPaveStats.
+      //  The parameter mode can be = pcev  (default = 0111)
+      //    v = 1;  print name/values of parameters
+      //    e = 1;  print errors (if e=1, v must be 1)
+      //    c = 1;  print Chisquare/Number of degrees of freedom
+      //    p = 1;  print Probability
+      //    When "v"=1 is specified, only the non-fixed parameters are shown.
+      //    When "v"=2 all parameters are shown.
+      //  Example: gStyle->SetOptFit(1011);
+      //           print fit probability, parameter names/values and errors.
+      int code = (int)FIT;
+      int C = code/100;
+      int E = (code - C * 100)/10; 
+      int P = (code - C * 100 - E * 10)/1; 
+      //printf("debug : fit : C %d E %d P %d\n",C,E,P);
+      if(C) {
+        opts += "fit_quality ";
+        opts += "fit_ndf ";
+        linen++;
+      }
+      if(E) {opts += "fit_errors ";linen++;}
+      if(P) {opts += "fit_parameters ";linen++;}
+    }
+  
+    a_opts = opts;
+  
+    return linen;
+  }
+
+  void set_axis_labels(inlib::sg::axis& a_axis,unsigned int a_labels_id,unsigned int a_labels_align) { 
+    //  SET NDVX 3.15                 | 3 div, lab id 1, 5=center on bin
+    // labels_id is 1
+    // labels_align is 5 : center of bin. 1 = on tick, 8 = bottom=>up.
+   {std::map<unsigned int, std::vector<std::string> >::const_iterator lab_it = m_labels.find(a_labels_id);
+    if(lab_it==m_labels.end()) {
+      //  SET NDVX 3.05
+      a_axis.labels_enforced = false;
+    } else {
+      a_axis.labels_enforced = true;
+      a_axis.labels = (*lab_it).second;
+    }}
+  
+    // 8=bottom -> up
+    inlib::sg::text_style& labels_style = a_axis.labels_style(); 
+    if((a_labels_align==0)||(a_labels_align==1)) { // center on tick
+      labels_style.enforced = false;
+      labels_style.options.value().clear();
+    } else if(a_labels_align==5) { //center on bin
+      labels_style.enforced = false;
+      labels_style.options = "center";
+    } else if(a_labels_align==8) { // 8=bottom -> up
+      labels_style.enforced = true;
+      //FIXME : handle x, y, z and shape
+      labels_style.x_orientation = inlib::vec3f(0,1,0);
+      labels_style.y_orientation = inlib::vec3f(-1,0,0);
+      labels_style.hjust = inlib::sg::right;
+      labels_style.vjust = inlib::sg::bottom;
+      labels_style.options = "center";
+    } else {
+      labels_style.enforced = false;
+      labels_style.options.value().clear();
+      m_out << "gopaw::session::set_axis_labels : unknow alignement " << a_labels_align << "." << std::endl;
+    }
+  }
+      
+  bool plotter_next(inlib::sg::plots& a_page,bool a_superpose = false){
+    if(a_superpose) return true;
+    if(m_start_ZONE) { //stay in current zone (the first one).
+      m_start_ZONE = false;
+    } else {
+      a_page.next();
+    }
+    if(a_page.current_index()==0) {
+      a_page.clear();
+    } else {
+      inlib::sg::plotter& region = page_plotter(a_page);
+      region.clear();        
+      //remove_cyclic(region,m_ui);
+    }
+    return true;
+  }
+    
+  void region_set_layout(inlib::sg::plotter& a_plotter) {
+    //::printf("debug : region_set_layout\n");
+    
+   {inlib::sg::style& style = a_plotter.background_style();
+    std::string BGRD = m_OPTs.value("BGRD");
+    if(BGRD=="BGRD") { //default
+      style.visible = true;
+    } else if(BGRD=="NBGR") {
+      style.visible = false;
+    }
+    style.back_color = get_SCOL("BGCI");}
+    
+#ifdef RM_VIEWPORT
+   {SoTextRegion& titleRegion = *(a_plotter.getTitleRegion());
+    inlib::sg::text_style& style = titleRegion.get_style(0);
+    style.color = inlib::colorf(0,0,0);
+    set_font(a_plotter.getTitleRegion()->get_style(0),"GFON");} 
+#endif
+
+    a_plotter.title_up = false;
+    a_plotter.right_axis_visible = false;
+    a_plotter.top_axis_visible = false;
+  
+    a_plotter.wall_style().visible = false;
+    a_plotter.grid_style().visible = false;
+    a_plotter.inner_frame_style().visible = true;
+  
+    a_plotter.colormap_visible = false;
+    a_plotter.colormap_axis_labeling = inlib::sg::plotter::min_max;
+  
+    double YHTI = m_ATTs.value("YHTI"); 
+    double TSIZ = m_ATTs.value("TSIZ"); 
+  
+   {inlib::sg::text_style& style = a_plotter.title_style();
+    style.color = inlib::colorf_black();
+    style.encoding = inlib::sg::encoding_PAW();
+    set_font(style,"TFON");
+  
+    bool do_style = false;
+    
+    std::string HTIT = m_OPTs.value("HTIT");
+    if(HTIT=="HTIT") {
+      a_plotter.title_automated = true;
+      do_style = true;
+    } else if(HTIT=="UTIT") {
+      if(m_UTIT.empty()) {
+        style.visible = false;
+        a_plotter.title_box_style().visible = false;
+        do_style = false;
+      } else {
+        a_plotter.title_automated = false;
+        a_plotter.title = m_UTIT;
+        do_style = true;
+      }
+    }
+    
+    if(do_style) {
+      std::string PTIT = m_OPTs.value("PTIT"); //gopaw option.
+      if(PTIT=="PTIT") {
+        style.visible = true;
+        a_plotter.title_box_style().visible = false;
+        a_plotter.title_up = false;
+        a_plotter.title_height = float(TSIZ);
+        a_plotter.title_to_axis = float(YHTI);
+      } else { //RTIT
+        style.visible = false;
+        inlib::sg::text_style& box_style = a_plotter.title_box_style();
+        // same as in inlib/xml/viewplot.style
+        box_style.visible = true;
+        box_style.back_color = inlib::colorf_ROOT_grey19();
+        box_style.back_shadow = 0.015f;  // % of width.
+        box_style.color = inlib::colorf_black();
+        box_style.font = inlib::sg::font_arialbd_ttf();
+        box_style.front_face = inlib::sg::winding_cw;
+        box_style.smoothing = true;
+        box_style.font_modeling = get_TTFM();
+      //box_style.encoding = inlib::sg::encoding_PAW(); //not ready with ttf.
+      }
+    }}
+  
+    ///////////////////////
+    /// Axes //////////////
+    ///////////////////////
+    inlib::sg::axis& x_axis = a_plotter.x_axis();
+    x_axis.modeling = inlib::sg::tick_modeling_hplot();
+   {const inlib::colorf& _color = get_SCOL("XCOL");
+    x_axis.line_style().color = _color;
+    x_axis.ticks_style().color = _color;
+    x_axis.labels_style().color = _color;
+    x_axis.title_style().color = _color;
+    x_axis.mag_style().color = _color;}
+    x_axis.title_hjust = inlib::sg::right;
+    x_axis.title_style().encoding = inlib::sg::encoding_PAW();
+    set_font(x_axis.title_style(),"LFON");
+    set_font(x_axis.labels_style(),"VFON");
+    
+    inlib::sg::axis& y_axis = a_plotter.y_axis();
+    y_axis.modeling = inlib::sg::tick_modeling_hplot();
+   {const inlib::colorf& _color = get_SCOL("YCOL");
+    y_axis.line_style().color = _color;
+    y_axis.ticks_style().color = _color;
+    y_axis.labels_style().color = _color;
+    y_axis.title_style().color = _color;
+    y_axis.mag_style().color = _color;}
+    y_axis.title_hjust = inlib::sg::right;
+    y_axis.title_style().encoding = inlib::sg::encoding_PAW();
+    set_font(y_axis.title_style(),"LFON");
+    set_font(y_axis.labels_style(),"VFON");
+  
+    inlib::sg::axis& zAxis = a_plotter.z_axis();
+    zAxis.modeling = inlib::sg::tick_modeling_hplot();
+    zAxis.line_style().color = inlib::colorf_black();
+    zAxis.ticks_style().color = inlib::colorf_black();
+    zAxis.labels_style().color = inlib::colorf_black();
+    zAxis.title_style().color = inlib::colorf_black();
+    zAxis.mag_style().color = inlib::colorf_black();
+    zAxis.title_hjust = inlib::sg::right;
+    zAxis.title_style().encoding = inlib::sg::encoding_PAW();
+    set_font(zAxis.title_style(),"LFON");
+    set_font(zAxis.labels_style(),"VFON");
+  
+    //Axis title SIZe
+    double ASIZ = m_ATTs.value("ASIZ");
+    x_axis.title_height = float(ASIZ);
+    y_axis.title_height = float(ASIZ);
+  
+    //y length of X axis ticks. Def 0.015 
+    double XTIC = m_ATTs.value("XTIC"); 
+    x_axis.tick_length = float(XTIC);
+  
+    //x length of Y axis ticks. Def 0.015 
+    double YTIC = m_ATTs.value("YTIC"); 
+    y_axis.tick_length = float(YTIC);
+  
+    //y distance of x tick label to data frame. Def 0.02 
+    double YVAL = m_ATTs.value("YVAL"); 
+    x_axis.label_to_axis = float(YVAL);
+  
+    //x distance of y tick label to data frame. Def 0.02 
+    double XVAL = m_ATTs.value("XVAL"); 
+    y_axis.label_to_axis = float(XVAL);
+  
+    //y distance of x title to data frame. Def 0.04  
+    double YLAB = m_ATTs.value("YLAB"); 
+    x_axis.title_to_axis = float(YLAB);
+  
+    //x distance of y title to data frame. Def 0.07  
+    double XLAB = m_ATTs.value("XLAB"); 
+    y_axis.title_to_axis = float(XLAB);
+  
+    // axis labels SIZe. Def : 0.28F.
+    double VSIZ = m_ATTs.value("VSIZ"); 
+    x_axis.label_height = float(VSIZ);
+    y_axis.label_height = float(VSIZ);
+    zAxis.label_height = float(VSIZ);
+    inlib::sg::axis& colorMappingAxis = a_plotter.colormap_axis();
+    colorMappingAxis.label_height = float(VSIZ);
+  
+    //  a_plotter.x_axis_automated = true;
+    //  a_plotter.x_axis_min = 0;
+    //  a_plotter.x_axis_max = 1;
+    if(m_OPTs.value("LINX")=="LOGX") {
+      a_plotter.x_axis_is_log = true;
+    } else {
+      a_plotter.x_axis_is_log = false;
+    }
+  
+    //  a_plotter.y_axis_automated = true;
+    //  a_plotter.y_axis_min = 0;
+    //  a_plotter.y_axis_max = 1;
+    if(m_OPTs.value("LINY")=="LOGY") {
+      a_plotter.y_axis_is_log = true;
+    } else {
+      a_plotter.y_axis_is_log = false;
+    }
+  
+    //  a_plotter.z_axis_automated = true;
+    //  a_plotter.z_axis_min = 0;
+    //  a_plotter.z_axis_max = 1;
+    if(m_OPTs.value("LINZ")=="LOGZ") {
+      a_plotter.z_axis_is_log = true;
+    } else {
+      a_plotter.z_axis_is_log = false;
+    }
+  
+   {double d_NDVX = m_ATTs.value("NDVX");
+    unsigned int NDVX,labels_id,labels_align;
+    get_divisions(m_ZONE.m_NX,d_NDVX,NDVX,labels_id,labels_align);
+    x_axis.divisions = NDVX;
+    set_axis_labels(x_axis,labels_id,labels_align);}
+  
+   {double d_NDVY = m_ATTs.value("NDVY"); 
+    unsigned int NDVY,labels_id,labels_align;
+  //get_divisions(m_ZONE.m_NY,d_NDVY,NDVY,labels_id,labels_align);
+    get_divisions(0,d_NDVY,NDVY,labels_id,labels_align);
+    y_axis.divisions = NDVY;
+    set_axis_labels(y_axis,labels_id,labels_align);}
+  
+   {double d_NDVZ = m_ATTs.value("NDVZ"); 
+    unsigned int NDVZ,labels_id,labels_align;
+    get_divisions(0,d_NDVZ,NDVZ,labels_id,labels_align);
+    zAxis.divisions = NDVZ;
+    set_axis_labels(zAxis,labels_id,labels_align);}
+  
+    float BWID = get_WID("BWID"); // Box line WIDth.
+    
+    inlib::sg::style& innerFrameStyle = a_plotter.inner_frame_style(); 
+    innerFrameStyle.line_width = BWID;
+    x_axis.line_style().width = BWID;
+    y_axis.line_style().width = BWID;
+  
+    //  PWID  //  1   // Picture line WIDth  
+  
+    x_axis.ticks_style().width = get_WID("XWID"); // X ticks WIDth.
+  
+    y_axis.ticks_style().width = get_WID("YWID"); // Y ticks WIDth.
+  
+    //  CWID  // 0.50 // Color map WIDth     
+  
+    std::string NGRI = m_OPTs.value("NGRI");
+    if(NGRI=="NGRI") {
+      a_plotter.grid_style().visible = false; 
+    } else {
+      a_plotter.grid_style().visible = true; 
+    }
+  
+    int GRID = (int)m_ATTs.value("GRID"); 
+    // o00p
+    // o = 1 = horizontal only.
+    // o = 2 = vertical only. 
+    // o = else = horizontal and vertical.
+    // p = 2 = dashed.
+    // p = 3 = dotted.
+    // p = 4 = dash-dotted.
+   {int pattern = GRID % 10;
+    a_plotter.grid_style().line_pattern = gopaw::get_DMOD(pattern); 
+    //FIXME : have a field orientation on inlib::sg::style.
+    int orientation = GRID / 1000;
+    if(orientation==1)
+      a_plotter.grid_style().options = "horizontal"; 
+    else if(orientation==2)
+      a_plotter.grid_style().options = "vertical"; 
+    else
+      a_plotter.grid_style().options = ""; }
+  
+    ///////////////////////
+    /// infosRegion ///////
+    ///////////////////////
+   {
+#ifdef RM_VIEWPORT
+    a_plotter.infosRegionAttachedToDataFrame = true;
+    a_plotter.infosRegionStyle = inlib::sg::encoding_PAW();
+    a_plotter.infosRegionResizePolicy = inlib::sg::plotter::ASPECT_RATIO;
+    SoInfosRegion& infosRegion = *(a_plotter.getInfosRegion());
+    infosRegion.inBetweenSpaces = 10;
+    set_font(*(infosRegion.getTextStyle()),"CFON");
+    SoViewportRegion& viewportRegion = *(infosRegion.getViewportRegion());
+    viewportRegion.horizontalShadow = 0;
+    viewportRegion.verticalShadow = 0;
+    viewportRegion.horizontalBorder = 1;
+    viewportRegion.verticalBorder = 1;
+    viewportRegion.horizontalOriginOffset = 1;
+    viewportRegion.verticalOriginOffset = 1;
+    viewportRegion.backgroundColor = inlib::colorf_white();
+    std::string NBAC = m_OPTs.value("NBAC");
+    if(NBAC=="NBAC") { //default
+      viewportRegion.background = false;
+    } else if(NBAC=="BACK") {
+      viewportRegion.background = true;
+    }
+    
+   {double SMGR = m_ATTs.value("SMGR"); 
+    double SMGU = m_ATTs.value("SMGU"); 
+    a_plotter.infosRegionOrigin = inlib::vec2f(float(SMGR),float(SMGU));}
+#endif
+
+    inlib::sg::text_style& style = a_plotter.infos_style();
+   
+    std::string NSTA = m_OPTs.value("NSTA");
+    std::string NFIT = m_OPTs.value("NFIT");
+    if( (NSTA=="STA") || (NFIT=="FIT") )  {
+      std::string opts;
+      get_infos_opts(opts);
+      //a_plotter.infosRegionVisible = true;
+      style.visible = true;
+      style.options = opts.c_str();
+    //style.encoding = inlib::sg::encoding_PAW();
+      set_font(style,"CFON");
+    } else {
+      style.visible = false;
+      //a_plotter.infosRegionVisible = false;
+    }
+
+    std::string PSTA = m_OPTs.value("PSTA"); //gopaw option.
+    if(PSTA=="RSTA") {
+      // same as in inlib/xml/viewplot.style
+      style.back_color = inlib::colorf_ROOT_grey19();
+      style.back_shadow = 0.015f;  // % of width.
+      style.color = inlib::colorf_black();
+      style.font = inlib::sg::font_arialbd_ttf();
+      style.front_face = inlib::sg::winding_cw;
+      style.smoothing = true;
+      style.font_modeling = get_TTFM();
+      style.modeling = inlib::sg::infos_modeling_ROOT();
+      a_plotter.infos_width = 0.35F;
+      a_plotter.infos_x_margin = 0.01F;  //from right border.
+      a_plotter.infos_y_margin = 0.005F; //from top border.
+    }}
+  }
+  
+  void set_plotter_layout(inlib::sg::plots& a_page) {
+    if(!m_do_zone) return;
+    set_plots_zone(a_page);
+    m_do_zone = false;
+  }
+
+  void set_plots_layout(inlib::sg::plots& a_page) {
+    //a_page.regionsResizePolicy = inlib::sg::plots::PAW_GRID;
+    //NOTE : if using an ATT or an OPT here, think to do
+    //       a setDoZONE(true) when changing
+    //       the corresponding att or opt.
+  
+    double XSIZ = m_ATTs.value("XSIZ"); 
+    double XMGL = m_ATTs.value("XMGL");
+    double XMGR = m_ATTs.value("XMGR");
+    double XWIN = m_ATTs.value("XWIN");
+    a_page.width = (float)XSIZ;
+    a_page.left_margin = (float)XMGL;
+    a_page.right_margin = (float)XMGR;
+    a_page.horizontal_spacing = (float)XWIN;
+  
+    double YSIZ = m_ATTs.value("YSIZ"); 
+    double YMGL = m_ATTs.value("YMGL");
+    double YMGU = m_ATTs.value("YMGU");
+    double YWIN = m_ATTs.value("YWIN");
+    a_page.height = (float)YSIZ;
+    a_page.bottom_margin = (float)YMGL;
+    a_page.top_margin = (float)YMGU;
+    a_page.vertical_spacing = (float)YWIN;
+  
+    //reinitialize regions ?
+    // Initialize region with PAW defaults :
+    //int number = a_a_plotter.numberOfRegions();
+    //for(int index=0;index<number;index++) {
+    //  AIDA::IPlotterRegion* region = a_a_plotter.region(index);
+    //  if(region) region_initialize(*region);
+    //}
+  }
+
+  void set_plots_zone(inlib::sg::plots& a_page) {
+    a_page.delete_extras();
+    m_ZONE_K = 0;
+    if(m_ZONE.m_SUPER) {
+      // Create one extra plotter. Size and position is given by specifiying the region index in a grid.
+      // First region is top left :
+      //  0 1 2
+      //  3 4 5
+      //m_out << "debug : gopaw::session::set_plots_zone : create an extra plotter :"
+      //      << " NX " << m_ZONE.m_NX << ", NY " << m_ZONE.m_NY << ", FIRST-1 " << m_ZONE.m_FIRST-1 << std::endl;
+      inlib::sg::plotter* _plotter = a_page.create_extra_plotter(m_ZONE.m_NX,m_ZONE.m_NY,m_ZONE.m_FIRST-1);
+      if(!_plotter) {
+        m_out << "gopaw::session::set_plots_zone : can't create an extra plotter." << std::endl;
+      } else {
+        region_initialize(*_plotter);
+        m_start_ZONE = true; //consider that it is a new area. Then next h/plot will not do "next".
+      }
+    } else {
+      a_page.set_regions(m_ZONE.m_NX,m_ZONE.m_NY);
+      a_page.set_current_plotter(m_ZONE.m_FIRST-1);
+      // initialize regions with PAW defaults :
+      unsigned int number = a_page.number();
+      for(unsigned int index=0;index<number;index++) {
+        inlib::sg::plotter* _plotter = a_page.find_plotter(index);
+        if(_plotter) region_initialize(*_plotter);
+      }
+      m_start_ZONE = true;
+    } 
+   {iwidget* widget = m_ui.current_widget();
+    if(widget) {
+      unsigned int ww,wh;
+      widget->size(ww,wh);
+      a_page.configure_PAW(ww,wh);
+    }}      
+  }
+
+  inlib::sg::plotter& page_plotter(inlib::sg::plots& a_plots) const {
+    if(m_ZONE.m_SUPER) {
+      inlib::sg::plotter* _plotter = a_plots.last_extra_plotter();
+      if(!_plotter) {
+        m_out << "gopaw::session::page_plotter : no extra plotter." << std::endl;
+        return a_plots.current_plotter();
+      }
+      return *_plotter;
+    } else {
+      return a_plots.current_plotter();
+    }
+  }
+
+/*
+  void setPlotterTitle(inlib::sg::plots& a_page,const std::string& aTitle) {
+    if(aTitle.empty()) {
+      //a_plotter.setParameter("titleVisible","false");
+      //a_plotter.setParameter("title","");  
+      //uppers done by the below a_plotter.setTitle(aTitle);
+    } else {
+      //a_plotter.setParameter("titleVisible","true");
+      //a_plotter.setParameter("title",aTitle.c_str());
+      //uppers done by the below a_plotter.setTitle(aTitle);
+  
+#ifdef RM_VIEWPORT
+#if 1
+      a_page.titleGeometryAutomated = true;
+      SoTextRegion& titleRegion = *(a_page.getTitleRegion());
+#else
+      //FIXME : the below does not show any page title !
+  
+      a_page.titleGeometryAutomated = false;
+  
+      SoTextRegion& titleRegion = *(a_page.getTitleRegion());
+      SoViewportRegion& viewportRegion = *(titleRegion.getViewportRegion());
+      viewportRegion.visible = false;
+  
+      //GSIZ : the height of the title region.
+      //       def 0.28 for a page height of 20.
+      double GSIZ = m_ATTs.value("GSIZ"); //def 0.28
+      double cooking = 1.5;
+      double h = (GSIZ/20.0)*cooking; //in [0,1]
+      // let us say that "h" pixels corresponds to two chars width...
+      double w = h/2.0 * aTitle.size();
+  
+      viewportRegion.size = inlib::vec2f(float(w),float(h));
+  
+      //YGTI : distance form the top of the page to
+      //       to the top of title region.
+      double YGTI = m_ATTs.value("YGTI"); //def 1.50
+      // 2*x + w = 1
+      double x = 0.5*(1-w);
+      // YGTI+h+y=1
+      double y = 1-h-(YGTI/20.);
+      viewportRegion.origin = inlib::vec2f(float(x),float(y));
+#endif
+    
+      //Have some int TBCO = (int)m_ATTs.value("TBCO"); ?
+      //a_plotter.setParameter("titleRegion.viewportRegion.backgroundColor","0.8 0.8 0.8");
+  
+      inlib::sg::text_style& style = titleRegion.get_style(0);
+      plotterSetFON(style,"GFON");
+  
+      //a_page.configure_children_PAW_GRID(ww,wh);
+      
+#endif    
+    }
+
+    //page_set_title(a_page,aTitle);
+  }
+*/
+
+  void region_initialize(inlib::sg::plotter& a_plotter) {
+    //::printf("debug : region_initalize\n");  
+      
+#ifdef RM_VIEWPORT
+   {SoViewportRegion& viewportRegion = *(a_plotter.getViewportRegion());
+    viewportRegion.visible = true;
+    viewportRegion.horizontalBorder = 0;
+    viewportRegion.verticalBorder = 0;
+    viewportRegion.horizontalShadow = 0;
+    viewportRegion.verticalShadow = 0;
+  
+    viewportRegion.showHighlight = false;
+    viewportRegion.sensitiveBorder = false;}
+    
+   {SoLegendRegion& legendRegion = *a_plotter.getLegendRegion();
+    SoViewportRegion& viewportRegion = *(legendRegion.getViewportRegion());
+    viewportRegion.horizontalShadow = 0;
+    viewportRegion.verticalShadow = 0;
+    viewportRegion.horizontalBorder = 1;
+    viewportRegion.verticalBorder = 1;
+    viewportRegion.horizontalOriginOffset = 1;
+    viewportRegion.verticalOriginOffset = 1;}
+#endif
+
+    a_plotter.xy_depth = 0.1f; //def is 0.01f which is too small when doing superposition with hatchs (pawex24, k_plus).
+
+    //a_plotter.reset_style(true); //it does too much.
+    a_plotter.gopaw_reset_style();
+    
+    a_plotter.legends_automated = false;
+    a_plotter.legends_string.clear();
+    a_plotter.legends_origin_unit.clear();
+    a_plotter.legends_origin.clear();
+    a_plotter.legends_size.clear();
+
+    a_plotter.x_axis_enforced = false; //to reset a previous NULL.
+    a_plotter.x_axis_automated = true;    
+    a_plotter.y_axis_enforced = false;
+    a_plotter.y_axis_automated = true;    
+    a_plotter.z_axis_enforced = false;
+    a_plotter.z_axis_automated = true;
+
+    std::string s;
+    for(int index=0;index<10;index++) {
+  
+      //FIXME : do the below as needed.
+  
+     {inlib::sg::style& style = a_plotter.right_hatch_style(index);
+      style.color = inlib::colorf_black();
+      style.line_pattern = inlib::sg::line_solid;
+      style.line_width = 1;
+      style.angle = 0.7854f;
+      style.spacing = 0.05f;
+      style.offset = 0;}
+  
+     {inlib::sg::style& style = a_plotter.left_hatch_style(index);
+      style.color = inlib::colorf_black();
+      style.line_pattern = inlib::sg::line_solid;
+      style.line_width = 1;
+      style.angle = 0.7854f;
+      style.spacing = 0.05f;
+      style.offset = 0;}
+  
+     {inlib::sg::style& style = a_plotter.errors_style(index);
+      style.visible = false;}
+  
+    }
+  }
+  
+  void plot_cloud_2D(inlib::sg::plotter& a_plotter,const inlib::histo::c2d& aCloud,const std::string& a_model) {
+  
+    size_t number = a_plotter.number_of_plotted_points2Ds();
+  
+    inlib::sg::style& style = a_plotter.points_style(number);
+    style.line_pattern = inlib::sg::line_solid;
+  //style.markerStyle = inlib::sg::style::CROSS;
+  
+    if(a_model=="L") {
+      // Lines joining points.
+  
+      // Modeling :
+      style.modeling = inlib::sg::modeling_lines();
+  
+      // Parameters :
+      style.painting = inlib::sg::painting_uniform;
+      style.color = inlib::colorf_black();
+  
+      style.line_pattern = get_DMOD(); 
+  
+    } else if(a_model=="P") {
+      // (Poly)markers.
+  
+      // Modeling :
+      style.modeling = inlib::sg::modeling_points();
+  
+      // Parameters :
+      style.painting = inlib::sg::painting_uniform;
+      style.color = get_SCOL("PMCI");
+      style.marker_size = get_MSCF();
+      style.marker_style = get_MTYP();
+  
+    } else if(a_model=="C") {
+      // Smooth curve joining points.
+  
+      // Modeling :
+      style.modeling = inlib::sg::modeling_curve();
+  
+      // Parameters :
+      style.painting = inlib::sg::painting_uniform;
+  
+      style.line_width = get_FWID(); // Function line WIDth.
+  
+     {bool touched;
+      int FCOL = col_from_FCOL(touched);
+      if(touched) {
+        style.color = get_COL(FCOL);
+      } else {
+        style.color = get_SCOL("PLCI");
+      }}
+  
+      style.line_pattern = get_DMOD(); 
+  
+    }
+  
+    //std::string legend = f_annotation->value("Legend");
+    std::string name;
+    //inlib::sg::plottable* _plottable = new inlib::sg::c2d2plot_cp(name,aCloud);
+    inlib::sg::plottable* _plottable = new inlib::sg::c2d2plot_cp(aCloud);
+    _plottable->set_name(name);
+    a_plotter.add_plottable(_plottable);
+  }
+  
+  void plot_histogram_1D(inlib::sg::plotter& a_plotter,const inlib::histo::h1d& a_hist,const std::string& a_name,
+                         const std::string& a_model,bool a_loop_line_style,bool a_add = true){
+    //::printf("debug : gopaw::session::plot_histogram_1D : model \"%s\", title \"%s\"\n",a_model.c_str(),a_hist.title().c_str());
+  
+    a_plotter.shape_automated = false;
+    a_plotter.shape = inlib::sg::plotter::xy;
+  
+    size_t number = a_plotter.number_of_plotted_bins1Ds();
+    if(number==0) region_set_automated(a_plotter,a_hist);
+  
+    inlib::sg::style& binsStyle = a_plotter.bins_style(number);
+    binsStyle.line_pattern = inlib::sg::line_solid;
+    //a_plotter.setParameter(field+"markerStyle","CROSS");
+  
+    inlib::sg::style& errorsStyle = a_plotter.errors_style(number);
+    errorsStyle.visible = false;
+  
+    float HWID = get_WID("HWID"); // Histogram line WIDth.
+    binsStyle.line_width = HWID;
+  
+    if(a_model=="C") { // Smooth curve joining points.
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_curve();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+  
+      binsStyle.line_width = get_FWID(); // Function line WIDth.
+  
+     {bool touched;
+      int FCOL = col_from_FCOL(touched);
+      if(touched) {
+        binsStyle.color = get_COL(FCOL);
+      } else {
+        binsStyle.color = get_SCOL("PLCI");
+      }}
+  
+      binsStyle.line_pattern = get_DMOD(); 
+  
+    } else if(a_model=="L") { // Line joining top middle of bins.
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_lines();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = inlib::colorf_black();
+      binsStyle.line_pattern = get_DMOD(); 
+  
+    } else if(a_model=="E") { // Errors. 
+      //FIXME : For a vector error = sqrt(value).
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_points();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = inlib::colorf_black();
+      binsStyle.marker_size = get_MSCF();
+      binsStyle.marker_style = get_MTYP(); //def MTYPE=1 (dot)
+  
+      binsStyle.visible = false; //if not, dots are too big on pawex15_c top-left plot.
+      
+      errorsStyle.modeling = inlib::sg::modeling_plus();
+    //errorsStyle.modeling = inlib::sg::modeling_I(); //pawex15_c
+      errorsStyle.visible = true;
+      errorsStyle.color = get_COL(col_from_HCOL());
+      errorsStyle.line_width = HWID; // in case marker_style is marker_plus)
+  
+    } else if(a_model=="P") { // Points at the top middle of bins.
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_points();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = inlib::colorf_black();
+      binsStyle.marker_size = get_MSCF();
+      binsStyle.marker_style = get_MTYP();
+  
+    } else if(a_model=="*") { // '*' at the top middle of bins.
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_points();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = inlib::colorf_black();
+      binsStyle.marker_size = 9;
+      binsStyle.marker_style = inlib::sg::marker_asterisk;
+  
+    } else if(a_model=="B") { // Bounding line of bins reduced to half.
+      // Modeling :
+      binsStyle.modeling = inlib::sg::modeling_bar_chart();
+  
+      // Parameters :
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = inlib::colorf_black();
+      binsStyle.line_pattern = inlib::sg::line_solid;
+      binsStyle.bar_offset = float(m_ATTs.value("BARO"));
+      binsStyle.bar_width = float(m_ATTs.value("BARW"));
+  
+      set_HTYP(a_plotter,number,(int)m_ATTs.value("HTYP"),m_ATTs.value("BARO"),m_ATTs.value("BARW"));
+  
+    } else { // Top lines of bins. Default rep    
+      set_HTYP(a_plotter,number,(int)m_ATTs.value("HTYP"),m_ATTs.value("BARO"),m_ATTs.value("BARW"));
+      
+      // Modeling :
+      if(m_contour_mode) { // Lines + hatch.
+        if(binsStyle.hatching==inlib::sg::hatching_none) {
+          binsStyle.modeling = inlib::sg::modeling_top_lines_boxes(); //pawex24, k_plus.
+        } else {
+          binsStyle.modeling = inlib::sg::modeling_top_lines();
+        }
+        //PAW loops on : SOLID, DOTTED, DASHED, DASH_DOTTED.
+        binsStyle.line_pattern = inlib::sg::line_solid;
+        if(a_loop_line_style) {
+          int lineStyle = number % 5;
+          binsStyle.line_pattern = gopaw::get_DMOD(lineStyle+1);
+        } else {
+          binsStyle.line_pattern = gopaw::get_DMOD(0);
+        }
+      } else {
+        binsStyle.modeling = inlib::sg::modeling_boxes();
+      }
+  
+      binsStyle.painting = inlib::sg::painting_uniform;
+      binsStyle.color = get_COL(col_from_HCOL());
+  
+    }
+  
+    //std::string legend = f_annotation->value("Legend");
+    inlib::sg::plottable* _plottable = new inlib::sg::h1d2plot_cp(a_hist);
+    _plottable->set_name(a_name);
+    if(a_add) {
+      a_plotter.add_plottable(_plottable);
+    } else {
+      a_plotter.prep_plottable(_plottable);
+    }
+  }
+  
+  void plot_errors_2D(inlib::sg::plotter& a_plotter,const inlib::histo::dps& a_DPS,int a_ISYMB,double a_SSIZE){
+    //::printf("debug : session::plot_errors_2D : begin : dps size %lu\n",a_DPS.size());
+
+    size_t number = a_plotter.number_of_plotted_bins1Ds();
+  
+   {inlib::sg::style& binsStyle = a_plotter.bins_style(number);
+    binsStyle.modeling = inlib::sg::modeling_points();
+    binsStyle.line_pattern = inlib::sg::line_solid;
+    binsStyle.visible = true;
+    binsStyle.color = get_SCOL("PMCI");
+    binsStyle.marker_style = gopaw::get_MTYP(m_out,a_ISYMB);  //ISYMB = MTYP ?
+    binsStyle.marker_size = get_SSIZ(a_SSIZE);} //SSIZ != MSCF
+  
+   {inlib::sg::style& errorsStyle = a_plotter.errors_style(number);
+    errorsStyle.modeling = inlib::sg::modeling_plus();
+  //errorsStyle.modeling = inlib::sg::modeling_I();
+    errorsStyle.visible = true;
+    //In CERN/PAW, HCOL change error rep color but not the one of the markers.
+    errorsStyle.painting = inlib::sg::painting_uniform;
+    errorsStyle.color = get_COL(col_from_HCOL());}
+  
+    //std::string legend = f_annotation->value("Legend");
+    std::string name;
+    inlib::sg::plottable* _plottable = new inlib::sg::dps2plot_cp(a_DPS,1,0);
+    _plottable->set_name(name);
+    a_plotter.add_plottable(_plottable);
+  }
+  
+  template <class FUNC>
+  void set_func_domain(FUNC& a_func,double aXLOW,double aXUP) {
+    double df = (aXUP - aXLOW)/(m_NPX-1+2);
+    double xmn = aXLOW + df;
+    double xmx = aXUP  - df;
+    a_func.set_xdomain_number_of_steps(m_NPX-1);
+    a_func.set_xdomain_min(xmn);
+    a_func.set_xdomain_max(xmx);
+  }
+  
+  template <class FUNC>
+  void set_func_domain(FUNC& a_func,double aXLOW,double aXUP,double aYLOW,double aYUP) {
+    a_func.set_xdomain_number_of_steps(m_NPX);
+    a_func.set_xdomain_min(aXLOW);
+    a_func.set_xdomain_max(aXUP);
+  
+    a_func.set_ydomain_number_of_steps(m_NPY);
+    a_func.set_ydomain_min(aYLOW);
+    a_func.set_ydomain_max(aYUP);
+  }
+
+  template <class BASE_FUNC,class FUNC>
+  bool _PLOT_FUNC(inlib::sg::plotter& a_plotter,BASE_FUNC& a_func,const std::string& a_name,const std::string& a_title,
+                  double a_XLOW,double a_XUP,const std::string& a_model) {
+    if(a_func.s_cls()!=FUNC::s_class()) return false;
+    FUNC* _func = (FUNC*)&a_func;
+    set_func_domain(*_func,a_XLOW,a_XUP);
+    inlib::sg::f1d2plot_cp<FUNC>* _plottable = new inlib::sg::f1d2plot_cp<FUNC>(*_func);
+    _plottable->set_name(a_name);
+    _plottable->set_title(a_title);
+    plot_function_1D(a_plotter,a_XLOW,a_XUP,a_model,_plottable);
+    return true;
+  }              
+
+  void plot_function_1D(inlib::sg::plotter& a_plotter,double aXLOW,double aXUP,
+		      const std::string& a_model,inlib::sg::plottable* a_plottable) {
+    //m_out << "debug : plot_function_1D : model " << a_model << "." << std::endl;
+    
+    // For CERN/PAW, NPX is the number of points between
+    // XLOW, XUP but by excluding these !
+  
+    std::ostream& out = m_out;
+  
+    if(aXUP<=aXLOW) {
+      out << "gopaw::session::plot_function_1D : XUP (" << aXUP << ") <= XLOW (" << aXLOW << ") !" << std::endl;
+      delete a_plottable;
+      return;
+    }
+    if(m_NPX<=1) {
+      out << "gopaw::session::plot_function_1D : NPX <=1 !" << std::endl;
+      delete a_plottable;
+      return;
+    }
+  
+    a_plotter.shape_automated = false;
+    a_plotter.shape = inlib::sg::plotter::xy;
+  
+    size_t number = a_plotter.number_of_plotted_func1Ds();
+  
+    inlib::sg::style& functionStyle = a_plotter.func_style(number);
+    functionStyle.line_pattern = inlib::sg::line_solid;
+  
+    if(a_model==s_FUN_C()) {
+      //function coming from a /HISTOGRAM/FIT or /VECTOR/FIT.
+      // It seems that FCOL, PCLI can change the color.
+      // FCOL has the priority over PLCI if it had been touched.
+    
+      functionStyle.line_width = get_FWID(); // Function line WIDth.
+  
+     {bool touched;
+      int FCOL = col_from_FCOL(touched);
+      if(touched) {
+        functionStyle.color = get_COL(FCOL);
+      } else {
+        functionStyle.color = get_SCOL("PLCI");
+      }}
+  
+      functionStyle.painting = inlib::sg::painting_uniform;
+      functionStyle.line_pattern = get_DMOD(); 
+  
+    } else if(a_model=="P") {
+  
+      // Modeling :
+      functionStyle.modeling = inlib::sg::modeling_points();
+  
+      // Parameters :
+      functionStyle.color = get_SCOL("PMCI");  
+      functionStyle.marker_size = get_MSCF();
+      functionStyle.marker_style = get_MTYP();
+  
+    } else if(a_model=="L") {
+      out << "gopaw::session::plot_function_1D : option L not yet supported." << std::endl;
+      delete a_plottable;
+      return;
+  
+    } else if(a_model=="*") {
+      out << "gopaw::session::plot_function_1D : option * not yet supported." << std::endl;
+      delete a_plottable;
+      return;
+  
+    } else {
+      out << "gopaw::session::plot_function_1D : option " << inlib::sout(a_model) << " not yet supported." << std::endl;
+      delete a_plottable;
+      return;
+    }
+  
+    //std::string legend = f_annotation->value("Legend");
+    a_plotter.add_plottable(a_plottable);  
+  }
+
+  void plot_function_2D(inlib::sg::plotter& a_plotter,
+                        double aZLOW,double aZUP,int aNLEVEL,size_t a_PALNB,const std::string& a_model,
+                        inlib::sg::plottable* a_plottable) {
+
+    a_plotter.shape_automated = false;
+    a_plotter.shape = inlib::sg::plotter::xy;
+  
+    size_t number = a_plotter.number_of_plotted_func2Ds();
+  
+    inlib::sg::style& functionStyle = a_plotter.func_style(number);
+    functionStyle.line_pattern = inlib::sg::line_solid;
+    //functionStyle.color = inlib::colorf_black();
+  
+    functionStyle.line_width = get_FWID(); // Function line WIDth.
+  
+    if(a_model=="CONT_COL") {
+  
+      functionStyle.modeling = inlib::sg::modeling_curve();
+  
+      if(m_OPTs.value("COLL")=="COLL") {
+        functionStyle.painting = inlib::sg::painting_by_level;
+        region_set_colormap(functionStyle,0,0,a_PALNB);
+      } else {
+        functionStyle.painting = inlib::sg::painting_by_value;
+        region_set_colormap(functionStyle,aZLOW,aZUP,a_PALNB);
+      }
+  
+    } else if(a_model=="CONT_COL_FILLED") {
+  
+      functionStyle.modeling = inlib::sg::modeling_filled_curve();
+  
+      if(m_OPTs.value("COLL")=="COLL") {
+        functionStyle.painting = inlib::sg::painting_by_level;
+        region_set_colormap(functionStyle,0,0,a_PALNB);
+      } else {
+        functionStyle.painting = inlib::sg::painting_by_value;
+        region_set_colormap(functionStyle,aZLOW,aZUP,a_PALNB);
+      }
+  
+    } else if(a_model=="CONT_DMOD") {
+  
+      functionStyle.modeling = inlib::sg::modeling_curve();
+      functionStyle.painting = inlib::sg::painting_uniform;
+      functionStyle.color = get_COL(col_from_HCOL());
+    }
+  
+    functionStyle.line_pattern = get_DMOD(); 
+  
+    a_plotter.number_of_levels = aNLEVEL;
+  
+    a_plotter.add_plottable(a_plottable);  
+  }
+
+  template <class STYLE>
+  void set_font(STYLE& a_style,const std::string& aFONT){
+    std::string font;
+    double scale;
+    bool smoothing,hinting;
+    get_font(aFONT,font,scale,smoothing,hinting);
+    a_style.font = font.c_str();
+    a_style.smoothing = true;
+    a_style.hinting = true;
+    a_style.scale = float(scale);
+    a_style.front_face = inlib::sg::winding_cw;  //if ttf.
+    a_style.font_modeling = get_TTFM();          //if ttf.
+  }
+  
+  void set_HTYP(inlib::sg::plotter& a_plotter,int a_index,int a_HTYP,double a_BARO,double a_BARW) {
+    // PAW encoding (manual p 122) :
+    // See also pagpri PAW_hatch.
+   
+    // code between [1,25] are specials. See SoPlotter/PAW_hatch.
+  
+    int code = a_HTYP;
+    if(code==0) code = 255; //No hatching.
+    int i = code / 100;
+    int j = (code - i * 100)/10;
+    int k = code - i * 100 - j * 10;
+  
+    //::printf("debug : gopaw::session::set_HTYP : index %d, HTYP %d : code %d : i %d, j %d, k %d\n",a_index,a_HTYP,code,i,j,k);
+  
+    if(i==0) return;
+  
+    // j-hatching on rightHatchStyle :
+    // k-hatching on leftHatchStyle :
+  
+   {inlib::sg::style& binsStyle = a_plotter.bins_style(a_index);
+         if((j==5)&&(k==5)) binsStyle.hatching = inlib::sg::hatching_none;
+    else if((j!=5)&&(k==5)) binsStyle.hatching = inlib::sg::hatching_right;
+    else if((j==5)&&(k!=5)) binsStyle.hatching = inlib::sg::hatching_left;
+    else if((j!=5)&&(k!=5)) binsStyle.hatching = inlib::sg::hatching_left_and_right;}
+  
+    unsigned int NY = m_ZONE.m_NY; // In CERN/PAW, hatch spacing is fixed for the page (not for the region) !
+  
+    float spacing = float(NY) * float(i) * 0.004f;
+  
+    if(j!=5) {
+      inlib::sg::style& rightHatchStyle = a_plotter.right_hatch_style(a_index);
+  
+      rightHatchStyle.color = inlib::colorf_black();
+      rightHatchStyle.spacing = spacing;
+  
+      float angle = float(j==4?45:j*10);
+      angle = 180.0f - angle;
+      angle *= inlib::fpi() / 180.0f;
+      rightHatchStyle.angle = angle;
+  
+      rightHatchStyle.bar_offset = float(a_BARO);
+      rightHatchStyle.bar_width = float(a_BARW);
+    }
+  
+    if(k!=5) {
+      inlib::sg::style& leftHatchStyle = a_plotter.left_hatch_style(a_index);
+  
+      leftHatchStyle.color = inlib::colorf_black();
+      leftHatchStyle.spacing = spacing;
+  
+      float angle = float(k==4?45:k*10);
+      angle *= inlib::fpi() / 180.0f;
+      leftHatchStyle.angle = angle;
+  
+      leftHatchStyle.bar_offset = float(a_BARO);
+      leftHatchStyle.bar_width = float(a_BARW);
+    }  
+  }
+    
+  void add_legend(inlib::sg::plotter& a_plotter,double aX,double aY,const std::string& aTEXT,
+                  const std::string& a_model,int a_IATT,double a_DX,bool aSuperpose) {
+    // aX,aY are in axes coordinates.
+    std::string stext = aTEXT;
+    inlib::replace(stext,"\"","\\\"");
+
+    //::printf("debug : gopaw::session::add_legend : %g %g : %s\n",aX,aY,aTEXT.c_str());
+
+    //if(aSuperpose) { //Put all in one SoLegendRegion.
+    if(false) { //Put all in one SoLegendRegion.
+      //a_plotter.legends_visible = true;
+      a_plotter.legends_automated = false;
+      a_plotter.legends_size = inlib::vec2f(0.5f,0.1f);
+    
+      //a_plotter.legends_attached_to_infos = false;
+      a_plotter.legends_origin_unit = inlib::sg::plotter::unit_axis;
+  
+      //then the last add_legend will enforce the origin.
+      a_plotter.legends_origin = inlib::vec2f(float(aX),float(aY));
+      
+      a_plotter.legends_string.add(stext);
+    
+#ifdef RM_VIEWPORT
+      SoLegendRegion& legendRegion = *(a_plotter.getLegendRegion());
+      legendRegion.getViewportRegion()->visible = false;
+      
+      inlib::sg::mf_string& ss = legendRegion.text;
+  
+      int number = ss.getNum();
+      //printf("debug : number %d |%s|\n",number,stext.c_str());
+      inlib::sg::style& style = legendRegion.get_style(number);
+      style.modeling = ?:
+      style.color = inlib::colorf_black();
+      style.encoding = "PAW";
+      plotterSetFON(style,"CFON");
+  
+      //if(a_model=="M") {
+      // IATT is the marker type. 
+      //}
+      style.marker_style = gopaw::get_MTYP(m_out,a_IATT);
+      style.marker_size = get_MSCF();
+    
+      ss.set1Value(number,stext.c_str());
+#endif
+
+    } else { // One SoLegendRegion per /GRAPHICS/HPLOT/KEY. Exa users/murban*.kumac.
+      a_plotter.legends_automated = false;
+      //a_plotter.legends_attached_to_infos = false;
+
+      a_plotter.legends_string.add(stext);
+      a_plotter.legends_origin_unit.add(inlib::sg::plotter::unit_axis);
+      a_plotter.legends_origin.add(inlib::vec2f(float(aX),float(aY)));
+  
+      double CSIZ = m_ATTs.value("CSIZ");   //0.28 for a YSIZ of 20
+      double cooking = 2.2;
+      double h = (CSIZ/20.0)*cooking; //in [0,1]
+      // let us say that "h" pixels corresponds to two chars width...
+      double w = h/2.0 * stext.size();
+      a_plotter.legends_size.add(inlib::vec2f(float(a_DX*w),float(a_DX*h)));
+      
+      inlib::sg::style& style = a_plotter.legend_style(a_plotter.legends_string.size()-1);
+      style.visible = true;
+      style.encoding = inlib::sg::encoding_PAW();
+      set_font(style,"CFON");
+      style.color = get_SCOL("PMCI");
+      if(a_model=="M") {  // IATT is the marker type. 
+        style.marker_size = get_MSCF();
+        style.marker_style = gopaw::get_MTYP(m_out,a_IATT);
+      }
+
+      // so that marker is at (aX,aY)
+      //legendRegion->verticalJustification = inlib::sg::plotter::MIDDLE;
+      //legendRegion->markerOnLeftBorder = true;
+      //legendRegion->textInBlack = true;
+    }
+  }
+
+  void region_set_colormap(inlib::sg::style& a_style,double aMin,double aMax,size_t a_PALNB){
+    // if palette contains : red, green, blue, yellow, magenta, cyan
+    // and aMin, aMax is 0 and 6 then we build :
+    //    0 red 1 green 2 blue 3 yellow 4 magenta 5 cyan 6
+    if(a_PALNB>=m_palettes.size()) return;
+    palette& pal = m_palettes[a_PALNB];
+    if(!pal.size()) return;
+   
+    std::vector<std::string> scols;
+   {for(unsigned int index=0;index<pal.size();index++) {
+      unsigned char r = (unsigned char)(m_color_table[pal[index]].m_red * 255);
+      unsigned char g = (unsigned char)(m_color_table[pal[index]].m_green * 255);
+      unsigned char b = (unsigned char)(m_color_table[pal[index]].m_blue * 255);
+      std::string s;
+      inlib::sprintf(s,64,"#%2x%2x%2x",r,g,b);
+      inlib::replace(s," ","0");
+      scols.push_back(s);
+    }}
+  
+    std::vector< std::pair<double,double> > limits;
+    size_t ncol = scols.size();
+    double dw = (aMax - aMin)/ncol;
+   {for(size_t index=0;index<ncol;index++) {
+      double cmn = aMin + index * dw;
+      double cmx = cmn + dw;
+      limits.push_back(std::pair<double,double>(cmn,cmx));
+    }}
+  
+    std::string cmap;
+   {for(size_t index=0;index<ncol;index++) {
+      inlib::numas(limits[index].first,cmap);
+      cmap += " ";
+      cmap += scols[index];
+      cmap += " ";
+    }}
+    inlib::numas(limits[ncol-1].second,cmap);
+  
+    if(m_verbose_level) {
+      m_out << "gopaw::session::region_set_colormap :" 
+            << " min= " << aMin
+            << " max= " << aMax
+            << " PALNB= " << a_PALNB
+            << " cmap= " << inlib::sout(cmap)
+            << std::endl;
+    }  
+  
+    a_style.color_mapping = cmap;
+  }
+
+  void gen_func_name(std::string& a_name) {
+    inlib::sprintf(a_name,128,"fitHistogram_%d",m_func_counter);
+    m_func_counter++;
+  }
+public:
+  bool palette_size(size_t a_PALNB,size_t& a_size) {
+    if(a_PALNB>=m_palettes.size()) {
+      a_size = 0;
+      return false;
+    }
+    palette& pal = m_palettes[a_PALNB];
+    a_size = pal.size();
+    return true;
+  } 
+  
+  void get_font(const std::string& a_att,std::string& a_font,double& a_scale,bool& aSmoothing,bool& aHinting){
+    // ATT value code :
+    //      2 : Hershey  
+    //    -fp : PAW code. f is the font and p the "precision". From page 129.
+    //     fp : ROOT code convention. From TAttText.cxx.
+    // font_ROOT_<code>
+    // From TAttText.cxx :
+    //*-*      1 : times-medium-i-normal      "Times New Roman"      1           4
+    //*-*      2 : times-bold-r-normal        "Times New Roman"      0           7
+    //*-*      3 : times-bold-i-normal        "Times New Roman"      1           7
+    //*-*      4 : helvetica-medium-r-normal  "Arial"                0           4
+    //*-*      5 : helvetica-medium-o-normal  "Arial"                1           4
+    //*-*      6 : helvetica-bold-r-normal    "Arial"                0           7
+    //*-*      7 : helvetica-bold-o-normal    "Arial"                1           7
+    //*-*      8 : courier-medium-r-normal    "Courier New"          0           4
+    //*-*      9 : courier-medium-o-normal    "Courier New"          1           4
+    //*-*     10 : courier-bold-r-normal      "Courier New"          0           7
+    //*-*     11 : courier-bold-o-normal      "Courier New"          1           7
+    //*-*     12 : symbol-medium-r-normal     "Symbol"               0           6
+    //*-*     13 : times-medium-r-normal      "Times New Roman"      0           4
+    //*-*     14 :                            "Wingdings"            0           4
+      
+    aSmoothing = true;
+    aHinting = true;
+  
+    int X_FON = (int)m_ATTs.value(a_att);
+  
+    float ttf_scale = 1.6f; //Majic factor to have the same aspect than Hershey.
+      
+    int FF = X_FON/10; //can be negative.
+  
+    //int prec = ::abs(X_FON-FF*10); //FIXME : handle that ?
+    
+    // HIGZ :
+    if(FF==0) {  //X_FON = 2, FF = 0, prec = 2
+      //a_font = "Hershey";
+      a_font = inlib::sg::font_hershey();
+      a_scale = 1;
+      return;
+  
+    // PAW code :
+    }
+    else if(FF==-1) {a_font = "timesi.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-2) {a_font = "timesbd.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-3) {a_font = "timesbi.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-4) {a_font = "Helvetica.ttf";a_scale = ttf_scale;return;}
+
+    else if(FF==-5) {a_font = inlib::sg::font_ROOT_52();a_scale = ttf_scale;return;} //ok?
+    else if(FF==-6) {a_font = inlib::sg::font_ROOT_62();a_scale = ttf_scale;return;} //ok?
+    else if(FF==-7) {a_font = inlib::sg::font_ROOT_72();a_scale = ttf_scale;return;} //ok?
+
+    else if(FF==-8) {a_font = "cour.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-9) {a_font = "couri.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-10) {a_font = "courbd.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-11) {a_font = "courbi.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-12) {a_font = "symbol.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-13) {a_font = "Times-Roman.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-14) {
+      //ZapfDingbats  
+    }
+    else if(FF==-15) {a_font = "timesi.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-16) {a_font = "timesbd.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-17) {a_font = "timesbi.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-18) {a_font = "Helvetica.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-19) {}
+    else if(FF==-20) {}
+    else if(FF==-21) {}
+
+    else if(FF==-22) {a_font = "symbol.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-23) {a_font = "Times-Roman.ttf";a_scale = ttf_scale;return;}
+    else if(FF==-24) {
+      //ZapfDingbats
+    }
+    
+    // ROOT code :
+    else if(FF==1) {a_font = inlib::sg::font_ROOT_12();a_scale = ttf_scale;return;}
+    else if(FF==2) {a_font = inlib::sg::font_ROOT_22();a_scale = ttf_scale;return;}
+    else if(FF==3) {a_font = inlib::sg::font_ROOT_32();a_scale = ttf_scale;return;}
+    else if(FF==4) {a_font = inlib::sg::font_ROOT_42();a_scale = ttf_scale;return;}
+    else if(FF==5) {a_font = inlib::sg::font_ROOT_52();a_scale = ttf_scale;return;}
+    else if(FF==6) {a_font = inlib::sg::font_ROOT_62();a_scale = ttf_scale;return;}
+    else if(FF==7) {a_font = inlib::sg::font_ROOT_72();a_scale = ttf_scale;return;}
+    else if(FF==8) {a_font = inlib::sg::font_ROOT_82();a_scale = ttf_scale;return;}
+    else if(FF==9) {a_font = inlib::sg::font_ROOT_92();a_scale = ttf_scale;return;}
+    else if(FF==10) {a_font = inlib::sg::font_ROOT_102();a_scale = ttf_scale;return;}
+    else if(FF==11) {a_font = inlib::sg::font_ROOT_112();a_scale = ttf_scale;return;}
+    else if(FF==12) {a_font = inlib::sg::font_ROOT_122();a_scale = ttf_scale;return;}
+    else if(FF==13) {a_font = inlib::sg::font_ROOT_132();a_scale = ttf_scale;return;}
+    else if(FF==14) {a_font = inlib::sg::font_ROOT_142();a_scale = ttf_scale;return;}
+    
+    m_out << "gopaw::session::get_font :" 
+          << " for ATT " << inlib::sout(a_att)
+          << " unknown font code " << X_FON << "."
+          << " Take Hershey (code 2)."
+          << std::endl;
+  
+    //a_font = "Hershey";
+    a_font = inlib::sg::font_hershey();
+    a_scale = 1;  
+  }
+  
+  void set_labels(unsigned int a_id,const std::vector<std::string>& a_v) {m_labels[a_id] = a_v;}
+
+  const hbook& get_hbook() const {return m_hbook;}
+  std::ostream& out() const {return m_out;}
+  unsigned int verbose_level() const {return m_verbose_level;}
+  
+  void set_atime(const inlib::atime& a_atime) {m_atime = a_atime;}
+  const inlib::atime& atime() const {return m_atime;}
+
+#ifdef APP_USE_EXPAT
+  const inlib::xml::styles& styles() const {return m_styles;}
+  inlib::xml::styles& styles() {return m_styles;}
+  void style_from_res(const std::string& a_path,inlib::sg::plotter& a_plotter,bool a_verbose) {
+    inlib::sg::style_from_res(m_styles,a_path,a_plotter,a_verbose);
+  }
+#endif
+
+#ifdef APP_USE_PYTHON
+  const exlib::py_opener& py_opener() const {return m_py_opener;}
+  exlib::py_opener& py_opener() {return m_py_opener;}
+#endif
+
+public:
+  static bool parse_name(const std::string& a_string,std::string& a_NAME,
+                         std::vector< std::pair<int,int> >& aDims,std::ostream& a_out){
+    //printf("debug : parse_name : \"%s\"\n",a_string.c_str());
+    aDims.clear();
+    std::string::size_type lbrace = a_string.find('(');
+    if(lbrace!=std::string::npos){
+      std::string::size_type rbrace = a_string.find(')');
+      if( (rbrace==std::string::npos) || (rbrace<lbrace) ) {
+        a_out << "gopaw::session::parse_name :" 
+              << " Bad syntax in " << inlib::sout(a_string) << "." << std::endl;
+        return false;
+      }
+      a_NAME = a_string.substr(0,lbrace);
+      std::string sdim = a_string.substr(lbrace+1,rbrace-(lbrace+1));
+      std::vector<std::string> words;
+      inlib::words(sdim,",",true,words);
+      if( (words.size()<=0) || (words.size()>=4)) {
+        a_out << "gopaw::session::parse_name :" 
+              << " Dimension >=4 not supported." << std::endl;
+        return false;
+      }
+      for(unsigned int index=0;index<words.size();index++) {
+        int idim;
+        if(words[index].empty()) {
+          aDims.push_back( std::pair<int,int>(inlib::not_found(),inlib::not_found())); 
+        } else if(!inlib::to(words[index],idim)) {
+          // Case of limits ?
+          std::string::size_type colon = words[index].find(':');
+          if(colon==std::string::npos){
+            a_out << "gopaw::session::parse_name :" 
+                  << " bad syntax in " << inlib::sout(words[index]) << "." 
+                  << std::endl;
+            return false;
+          } else {
+            std::string left = words[index].substr(0,colon);
+            std::string right = words[index].substr(colon+1,words[index].size()-(colon+1));
+            int mn;
+            if(left.empty()) {
+              mn = inlib::not_found();
+            } else {
+              if(!inlib::to(left,mn)) {
+                a_out << "gopaw::session::parse_name :" 
+                      << " can't convert " << inlib::sout(left) << " to int." 
+                      << " a_string " << inlib::sout(a_string) << "."
+                      << " sdim " << inlib::sout(sdim) << "."
+                      << " Word " << inlib::sout(words[index]) << "."
+                      << " colon " << colon << "."
+                      << std::endl;
+                return false;
+              }
+              mn -= 1;
+              if(mn<0) {
+                a_out << "gopaw::session::parse_name :" 
+                      << " bad limits in " << inlib::sout(words[index]) << "." 
+                      << std::endl;
+                return false;
+              }
+            }
+            int mx;
+            if(right.empty()) {
+              mx = inlib::not_found();
+            } else {
+              if(!inlib::to(right,mx)) {
+                a_out << "gopaw::session::parse_name :" 
+                      << " can't convert " << inlib::sout(right) << " to int." 
+                      << " a_string " << inlib::sout(a_string) << "."
+                      << " sdim " << inlib::sout(sdim) << "."
+                      << " Word " << inlib::sout(words[index]) << "."
+                      << " colon " << colon << "."
+                      << std::endl;
+                return false;
+              }
+              mx -= 1;
+              if(mx<0) {
+                a_out << "gopaw::session::parse_name :" 
+                      << " bad limits in " << inlib::sout(words[index]) << "." 
+                      << std::endl;
+                return false;
+              }
+              if((mn!=inlib::not_found())&&(mx<mn)) {
+                a_out << "gopaw::session::parse_name :" 
+                      << " bad limits in " << inlib::sout(words[index]) << "." 
+                      << std::endl;
+                return false;
+              }
+            }
+            //printf("debug : mn,mx1 : %d %d\n",mn,mx);
+            aDims.push_back( std::pair<int,int>(mn,mx)); 
+          }       
+        } else {
+          //printf("debug : mn,mx2 : %d %d\n",idim-1,idim-1);
+          aDims.push_back( std::pair<int,int>(idim-1,idim-1)); 
+        }
+      }
+    } else {
+      a_NAME = a_string;
+    }
+    return true;
+  }
+  
+  static bool is_an_option(const std::vector<std::string>& aOPTS,const std::string& aEntered,const std::string& aIsIn) {
+    //  For FUN2 ("CHOPT","BOXSSURF","S") yes
+    //  For FUN2 ("CHOPT","BOXSURF","S") no
+    // aEntered could contain spaces : " A C"
+  
+    std::vector<std::string> OPTS = aOPTS;
+    inlib::sort::strlen(OPTS,false); //reorder : longer options first.
+  
+    // Check if aIsIn is in aEntered.
+    // WARNING : an option may be a substring of another one
+    // like "S" and "SURF" for FUN2 CHOPT.
+    std::string s = aEntered;
+    if(s.empty()) s = " ";
+    std::vector<std::string> sfound;
+    unsigned int index;
+   {for(index=0;index<OPTS.size();index++) {
+      const std::string& OPT = OPTS[index];
+      if(s.size() && (s.find(OPT)!=std::string::npos) ) {
+        sfound.push_back(OPT);
+        inlib::replace(s,OPT,"");
+      }
+    }}
+   {for(index=0;index<sfound.size();index++) {
+      if(aIsIn==sfound[index]) return true;
+    }}
+    return false;
+  }
+
+  static bool has_unkown_option(const std::vector<std::string>& aOPTS,const std::string& aEntered) {
+    // WARNING : an option may be a substring of another one
+    // like "S" and "SURF" for FUN2 CHOPT.
+    std::vector<std::string> OPTS = aOPTS;
+    inlib::sort::strlen(OPTS,false); //reorder : longer options first.
+    std::string s = aEntered;
+    std::vector<std::string> sfound;
+    unsigned int index;
+    for(index=0;index<OPTS.size();index++) {
+      const std::string& OPT = OPTS[index];
+      if(OPT.empty()) {
+        sfound.push_back("");
+      } else if(s.size() && (s.find(OPT)!=std::string::npos) ) {
+        sfound.push_back(OPT);
+        inlib::replace(s,OPT,"");
+      }
+    }
+    return (s.size()?true:false);
+  }
+protected:
+  inlib::sg::marker_style get_MTYP() const {return gopaw::get_MTYP(m_out,(int)m_ATTs.value("MTYP"));} //def MTYPE=1 (dot)
+  float get_MSCF() const {return gopaw::get_MSCF(m_ATTs.value("MSCF"));} //def MSCF=1
+  unsigned short get_DMOD() const {return gopaw::get_DMOD((int)m_ATTs.value("DMOD"));}
+  float get_WID(const std::string& a_WID) const {
+    double WID = m_ATTs.value(a_WID); 
+    return float(inlib::mx<int>(int(WID/2.2),1));  //From graflib/higz/ikernel/islwsc.F
+  }
+  float get_FWID() const {return get_WID("FWID");}
+  const inlib::colorf& get_SCOL(const std::string& a_COL) {
+    int COL = (int)m_ATTs.value(a_COL);
+    return get_COL(COL);
+  }
+public: //for paghpl,pagpri.
+//float get_TWID() const {return m_ATTs.value("TWID");}
+  float get_TWID() const {return get_WID("TWID");}
+  inlib::sg::font_modeling get_TTFM() const {
+    int TTFM = (int)m_ATTs.value("TTFM");
+    if(TTFM==1) return inlib::sg::font_outline;
+    if(TTFM==2) return inlib::sg::font_filled;
+    return inlib::sg::font_pixmap; //default.
+  }
+protected:
+  std::ostream& m_out;
+  unsigned int m_verbose_level;
+  iui& m_ui;
+  LUNs_t m_LUNs;
+  inlib::params<int,std::string> m_cuts;
+  inlib::params<std::string,std::string> m_OPTs;
+  inlib::params<std::string,double> m_ATTs;
+  std::string m_UTIT;
+  bool m_contour_mode;
+  unsigned int m_current_unit;
+  int fFunctionCounter;
+  int m_NPX;
+  int m_NPY;
+  int m_NPZ;
+  bool m_do_zone;
+  ZONE m_ZONE;
+  bool m_start_ZONE;
+  inlib::sg::plotter* m_ZONE_K;
+  std::vector<color_entry> m_color_table;
+  std::vector<palette> m_palettes;
+  size_t m_current_palette;
+  std::map<unsigned int, std::vector<std::string> > m_labels;
+  inlib::params<std::string,value_t> m_variables;
+  ceval_t fProcessor;
+  double m_THETA;
+  double m_PHI;
+  bool m_warn_metaf;
+  std::vector<named_vector> m_named_vectors;
+  std::vector<named_handle> m_named_handles;
+  unsigned int m_func_counter;
+  inlib::random::flat m_random_flat;
+  hbook m_hbook;
+  gopaw::function_manager m_function_manager;
+  inlib::atime m_atime;
+#ifdef APP_USE_EXPAT
+  inlib::xml::styles m_styles;
+#endif  
+#ifdef APP_USE_PYTHON
+  exlib::py_opener m_py_opener;
+#endif
+};
+
+}
+
+#include "h__book"
+  
+extern "C" {
+  inline float _hrndm1(void* a_tag,int a_id) {
+    gopaw::session* _sess = (gopaw::session*)a_tag;
+    return gopaw::hrndm1(_sess->out(),_sess->named_handles(),_sess->random_flat(),a_id);
+  }    
+  inline void _hfill(void* a_tag,int a_id,float a_x,float a_y,float a_w) {
+    gopaw::session* _sess = (gopaw::session*)a_tag;
+    gopaw::hfill(_sess->out(),_sess->named_handles(),a_id,a_x,a_y,a_w);
+  }    
+}
+
+#include <inlib/sto>
+#include <inlib/histo/h1d>
+#include <inlib/histo/h2d>
+
+#include <inlib/sg/plotter>
+
+#include <inlib/mapmanip>
+
+namespace gopaw {
+
+typedef inlib::params<std::string,double> atts_t;
+typedef inlib::params<std::string,std::string> opts_t;
+
+INLIB_GLOBAL_STRING(LEGO)
+INLIB_GLOBAL_STRING(LEGO_LIGHT)
+INLIB_GLOBAL_STRING(LEGO_LEVEL)
+INLIB_GLOBAL_STRING(LEGO_COL)
+
+INLIB_GLOBAL_STRING(SURF)
+INLIB_GLOBAL_STRING(SURF_CONT)
+INLIB_GLOBAL_STRING(SURF_LIGHT)
+INLIB_GLOBAL_STRING(SURF_LEVEL)
+INLIB_GLOBAL_STRING(SURF_LEVEL_NO_EDGE)
+INLIB_GLOBAL_STRING(SURF_COL)
+
+template <class T>
+inline std::string num2rs(const T& a_v) {
+  std::string sv;
+  if(!inlib::num2s(a_v,sv)) {}
+  return sv;
+}
+
+inline bool region_set_limits(inlib::sg::plotter& a_plotter,const inlib::histo::h1d& a_hist,
+                             const std::vector< std::pair<int,int> >& aDims,std::ostream& a_out) {
+  if(!aDims.size()) return true;
+  if(aDims.size()!=1) {
+    a_out << "gopaw::region_set_limits : bad input dimension." << std::endl;
+    return false;
+  }
+  int ixmn = aDims[0].first;
+  int ixmx = aDims[0].second;
+  int xbinn = a_hist.axis().bins();
+  if(ixmn==inlib::not_found()) ixmn = 0;
+  if(ixmx==inlib::not_found()) ixmx = xbinn-1;
+  if( (ixmn>ixmx) || (ixmn<0)||(ixmn>=xbinn) || (ixmx<0)||(ixmx>=xbinn) ) {
+    a_out << "gopaw::region_set_limits :" 
+          << " bad binning "
+          << " (xbins=" << xbinn 
+          << ",ixmn=" << ixmn << ",ixmx=" << ixmx 
+          << ")"
+          << std::endl;
+    return false;
+  }
+  double XLOW = a_hist.axis().bin_lower_edge(ixmn);
+  double XUP = a_hist.axis().bin_upper_edge(ixmx);
+  a_plotter.x_axis_automated = false;
+  a_plotter.x_axis_min = (float)XLOW;
+  a_plotter.x_axis_max = (float)XUP;
+  return true;
+}
+
+inline bool region_set_limits(inlib::sg::plotter& a_plotter,const inlib::histo::h2d& a_hist,
+                             const std::vector< std::pair<int,int> >& aDims,std::ostream& a_out) {
+  if(!aDims.size()) return true;
+  if(aDims.size()!=2) {
+    a_out << "gopaw::region_set_limits : bad input dimension." << std::endl;
+    return false;
+  }
+  int ixmn = aDims[0].first;
+  int ixmx = aDims[0].second;
+  int xbinn = a_hist.axis_x().bins();
+  if(ixmn==inlib::not_found()) ixmn = 0;
+  if(ixmx==inlib::not_found()) ixmx = xbinn-1;
+  int iymn = aDims[1].first;
+  int iymx = aDims[1].second;
+  int ybinn = a_hist.axis_y().bins();
+  if(iymn==inlib::not_found()) iymn = 0;
+  if(iymx==inlib::not_found()) iymx = ybinn-1;
+  if( (ixmn>ixmx) || (ixmn<0)||(ixmn>=xbinn) || (ixmx<0)||(ixmx>=xbinn) ||
+      (iymn>iymx) || (iymn<0)||(iymn>=ybinn) || (iymx<0)||(iymx>=ybinn) ) {
+    a_out << "gopaw::region_set_limits :" 
+          << " bad binning "
+          << " (xbins=" << xbinn 
+          << ",ixmn=" << ixmn << ",ixmx=" << ixmx 
+          << ",ybins=" << ybinn 
+          << ",iymn=" << iymn << ",iymx=" << iymx 
+          << ")"
+          << std::endl;
+    return false;
+  }
+  double XLOW = a_hist.axis_x().bin_lower_edge(ixmn);
+  double XUP = a_hist.axis_x().bin_upper_edge(ixmx);
+  a_plotter.x_axis_automated = false;
+  a_plotter.x_axis_min = (float)XLOW;
+  a_plotter.x_axis_max = (float)XUP;
+
+  double YLOW = a_hist.axis_y().bin_lower_edge(iymn);
+  double YUP = a_hist.axis_y().bin_upper_edge(iymx);
+  a_plotter.y_axis_automated = false;
+  a_plotter.y_axis_min = (float)YLOW;
+  a_plotter.y_axis_max = (float)YUP;
+
+  return true;
+}
+
+}
+
+#endif

@@ -1,0 +1,13 @@
+// Copyright (C) 2018, Guy Barrand. All rights reserved.
+// See the file gopaw.license for terms.
+
+#ifndef gopaw_version
+#define gopaw_version
+
+#define GOPAW_MAJOR_VERSION 1
+#define GOPAW_MINOR_VERSION 0
+#define GOPAW_PATCH_VERSION 0
+#define GOPAW_VERSION       "1.0.0"
+#define GOPAW_VERSION_VRP   "v1r0p0"
+
+#endif
