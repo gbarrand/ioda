@@ -8,7 +8,7 @@ if [ `uname` = Darwin ] ; then
   #echo ${ip}
   DISPLAY=${ip}:0;export DISPLAY
   xhost + ${ip}
-  docker run -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw gbarrand/ioda:1.13.1
+  docker run -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw gbarrand/ioda:1.14.0
 else
   echo "Don't know (yet) how to run a docker X11 application on this platform."
 fi
