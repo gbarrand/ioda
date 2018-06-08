@@ -2,6 +2,7 @@
  - read HDF5 files with g4tools data semantic. A g4b4.hdf5 file comes in the res directory.
  - examples/paw_py_root/all.kumac : show all PAW_py_root examples (see also gopaw pages).
  - include GOPAW core.
+ - include CoinGL, HEPVis : then we can read .iv, .hiv, .wrl files.
  - comres : handle python_2_7_lib_py.zip. Unfolded at startup.
  - res : tree.lua, hrand.lua.
  - iOS, Cocoa, mgr/build : have -DINLIB_USE_CSZ for inlib_swig_[lua,py].cpp.
