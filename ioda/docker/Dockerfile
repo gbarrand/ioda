@@ -5,7 +5,7 @@ FROM centos
 COPY app /app/
 ENV LD_LIBRARY_PATH /app
 #ENV env_debug_0 dummy
-ENTRYPOINT /app/ioda/1.13.1/bin/ioda
+ENTRYPOINT /app/ioda/1.14.0/bin/ioda
 COPY libpthread.so.0 /app/libpthread.so.0
 COPY libdl.so.2 /app/libdl.so.2
 COPY libX11.so.6 /app/libX11.so.6
@@ -18,6 +18,7 @@ COPY libc.so.6 /app/libc.so.6
 COPY libxcb.so.1 /app/libxcb.so.1
 COPY libexpat.so.1 /app/libexpat.so.1
 COPY libxcb-dri3.so.0 /app/libxcb-dri3.so.0
+COPY libxcb-xfixes.so.0 /app/libxcb-xfixes.so.0
 COPY libxcb-present.so.0 /app/libxcb-present.so.0
 COPY libxcb-sync.so.1 /app/libxcb-sync.so.1
 COPY libxshmfence.so.1 /app/libxshmfence.so.1
