@@ -1,0 +1,34 @@
+
+ centos> <edit Dockerfile to change version>
+ centos> /bin/rm -R app
+ centos> mkdir app
+ centos> cp -R ../mgr/bin_gnu/distrib/ioda ./app/.
+ centos> ../../bush/ldd_docker ./app/ioda/<version>/bin/ioda
+ centos> ./cp-so
+ centos> <if needed update COPY .so in Dockerfile from COPY_so>
+
+ centos> sudo docker build -t gbarrand/ioda:<version> .
+
+ centos> sudo docker push gbarrand/ioda:<version>
+
+ ////////////////////////////////////////////////////////////////////
+ /// macOS : ////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////
+  macOS> docker pull gbarrand/ioda:<version>
+
+  macOS> ifconfig # to get IP
+  macOS> <setenv  DISPLAY <IP>:0>
+  macOS> xhost + <IP>
+
+  macOS> docker run -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw gbarrand/ioda:<version>
+
+ ////////////////////////////////////////////////////////////////////
+ /// Windows-10 : ///////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////
+  On a Windows-10 with the X11/Xming server, from XLaunch, start Xming with "on"
+ in the "No Access Control" box, or from the DOS prompt :
+    DOS> Xming :0 -multiwindow -clipboard -ac
+  (may have to kill Xming from "Gestionnaire de taches"), and :
+    DOS> docker pull gbarrand/ioda:<version>
+    DOS> docker run -e DISPLAY=10.0.75.1:0 gbarrand/ioda:<version>
+

@@ -1,0 +1,15 @@
+#!/bin/sh -f
+
+# Copyright (C) 2010, Guy Barrand. All rights reserved.
+# See the file bush.license for terms.
+
+if [ `uname` = Darwin ] ; then
+  ip="`ifconfig en0 | grep 'inet ' | awk '{print $2}'`"
+  #echo ${ip}
+  DISPLAY=${ip}:0;export DISPLAY
+  xhost + ${ip}
+  docker run -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw gbarrand/ioda:1.13.1
+else
+  echo "Don't know (yet) how to run a docker X11 application on this platform."
+fi
+
