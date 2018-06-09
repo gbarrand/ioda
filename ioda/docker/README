@@ -59,6 +59,9 @@
      meta-zone > home > large-down arrow > export > out.png
   then exit with :
      meta-zone > home > short-down arrow > exit
+
+ (meta-zone = area at the bottom of the window. When touched/clicked, it permits
+  to toggle from screen mode to menut mode).
      
   You should have in the local host /tmp/work_dir a out.png file.
   
