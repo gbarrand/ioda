@@ -10,7 +10,7 @@ if [ `uname` = Darwin ] ; then
   xhost + ${ip}
 
   args=
-  args="-e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw"
+  args="${args} -e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:rw"
 
  #args="${args} -v /tmp/work_dir:/root/Documents/ioda:rw"
 
