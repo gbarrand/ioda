@@ -1,3 +1,6 @@
+ - mgr/build : have -DAPP_USE_HDF5, -DAPP_USE_CFITSIO for the gopaw core.
+ - ioda/main : #ifndef APP_USE_HDF5, APP_USE_GRAPHVIZ.
+  
 1.14.0 :
  - read HDF5 files with g4tools data semantic. A g4b4.hdf5 file comes in the res directory.
  - examples/paw_py_root/all.kumac : show all PAW_py_root examples (see also gopaw pages).
