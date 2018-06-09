@@ -1,4 +1,7 @@
- - mgr/build : have -DAPP_USE_HDF5, -DAPP_USE_CFITSIO for the gopaw core.
+ - mgr/build : have -DAPP_USE_HDF5, -DAPP_USE_CFITSIO for the gopaw core. This permits
+   to have the docker/ioda app able, from a mounted local host working directory,
+   able to execute .kumac files working on g4tools/hdf5 and FITS files.
+   (See ioda/docker web page for examples).
  - ioda/main : #ifndef APP_USE_HDF5, APP_USE_GRAPHVIZ.
   
 1.14.0 :
