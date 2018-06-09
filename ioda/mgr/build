@@ -85,6 +85,9 @@ cppflags="${cppflags} -DINLIB_USE_CSZ"
 if [ "${build_gopaw}" = "yes" ] ; then
   cppflags="${cppflags} -DAPP_USE_GOPAW"
 
+  cppflags="${cppflags} -DAPP_USE_HDF5"
+  cppflags="${cppflags} -DAPP_USE_CFITSIO"
+
   cfiles="${cfiles} ../../gopaw/source/PAWCDF.c"
   cfiles="${cfiles} ../../gopaw/source/gopawcdf.c"
   cppfiles="${cppfiles} ../../gopaw/source/PAW.cpp"
