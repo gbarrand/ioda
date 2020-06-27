@@ -1,2 +1,0 @@
-
-/*GB : empty this file.*/

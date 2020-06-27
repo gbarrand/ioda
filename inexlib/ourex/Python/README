@@ -1,4 +1,0 @@
-
-Windows : if running from cygwin you have to launch with
-               cygwin> ./bin_visual/python.exe -i
-          else the program hangs.

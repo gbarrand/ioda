@@ -1,8 +1,0 @@
-#!/bin/sh -f
-find ../src -name "*.cpp" -exec /bin/rm {} \;
-find ../src -name "*.c" -exec /bin/rm {} \;
-find ../src -name "*.h" -exec /bin/rm {} \;
-find ../include/Inventor -name "*.h" -exec /bin/rm {} \;
-find ../data -name "*.h" -exec /bin/rm {} \;
-find ../data -name "*.iv" -exec /bin/rm {} \;
-find ../data -name "*.sh" -exec /bin/rm {} \;

@@ -1,8 +1,0 @@
-<ftps>
-  <ftp>
-    <host>ftp.lal.in2p3.fr</host>
-    <dir>/pub/ioda/data</dir>
-    <user>anonymous</user>
-    <active>false</active>
-  </ftp>
-</ftps>
