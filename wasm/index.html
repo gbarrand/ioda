@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet">
+  <link rel="icon" type="image/png" href="icon_32.png" />
+  <link rel="apple-touch-icon" href="icon_114.png">
+  <link rel="apple-touch-icon-precomposed" href="icon_114.png">
+
+<!--
+  <link rel="stylesheet" href="xterm.css" />
+  <script src="xterm.js"></script>
+-->
+
+  <title>ioda</title>
+  <style>
+    html, body {
+      padding: 0;
+      margin: 0;
+      text-align: center;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 100%;
+      font-weight: 300;
+      overflow:hidden;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+
+    .canvas {
+      margin: 0 auto 0 auto;
+      border: 1px solid black;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gl_canvas" class="canvas"></canvas>
+  <div id="gui_area" class="container"></div>
+  
+  <script type="text/javascript" src="download.js"></script>
+  <script type="text/javascript" src="main.js"></script>
+
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <!-- //// WebGL : /////////////////////////////////////////////////////////////////// -->
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+  <script type="text/javascript" src="webgl.js"></script>  <!-- because it defines g_gl, it must come before the below "main" javascript code. -->
+
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <!-- //// main : //////////////////////////////////////////////////////////////////// -->
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <script type="text/javascript">
+    g_app_name = 'ioda';
+
+    const canvas = document.getElementById('gl_canvas');
+
+    // initialize WebGL :
+    try {
+    //g_gl = canvas.getContext('webgl');
+      g_gl = canvas.getContext('webgl', { premultipliedAlpha: false});  //does not work with Safari.
+    } catch (e) {
+    }
+    if (!g_gl) {
+      alert('Could not initialise WebGL, sorry :-(');
+    } else {
+      create_shader_program();
+      use_shader_program();
+      //chrome wants the below begdraw, else we have a too large viewport after that.
+
+      var Module = {};
+      Module.canvas = canvas;
+      Module.onRuntimeInitialized = () => run_time_init(canvas);
+
+      canvas_resize();
+
+      window.addEventListener('resize',window_resize);
+      window.addEventListener('orientationchange',window_resize);
+    //window.addEventListener('keydown',window_keydown);
+
+      begdraw(0,0,canvas.width,canvas.height,0.8,0.8,0.8,1);
+    }
+
+  </script>
+
+  <script type="text/javascript" src="renderer.js"></script> <!-- should come after the upper that creates the variable Module. -->
+
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+  <!-- //////////////////////////////////////////////////////////////////////////////// -->
+
+</body>
+</html>
